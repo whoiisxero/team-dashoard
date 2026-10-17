@@ -4,7 +4,7 @@
 #worldGlobe{width:85%;max-width:420px}.world-layout.globe-large{grid-template-columns:minmax(0,2.4fr) minmax(260px,1fr)}.globe-large #worldGlobe{width:100%;max-width:720px}.globe-controls{flex-wrap:wrap}@media(max-width:850px){.world-layout.globe-large{grid-template-columns:1fr}}
 
 /* A gentle breathing motion and theme-aware glow for the welcome heading. */
-#homeWelcome{transform-origin:center;animation:welcome-breathe 10s ease-in-out infinite}
+#homeWelcome{transform-origin:center;animation:welcome-breathe 3s ease-in-out infinite}
 @keyframes welcome-breathe{
   0%,100%{transform:translateY(0) scale(1);color:var(--ink);text-shadow:0 0 0 transparent}
   50%{transform:translateY(-2px) scale(1.025);color:var(--green2);text-shadow:0 0 20px color-mix(in srgb,var(--green2) 30%,transparent)}
