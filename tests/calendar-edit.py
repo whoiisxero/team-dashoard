@@ -35,6 +35,17 @@ with sync_playwright() as p:
  page.evaluate('testState.fail=false;testState.zero=true');page.locator('#entryForm [type=submit]').click()
  assert 'could not be updated' in page.locator('#entryError').inner_text();page.locator('#cancelDialog').click()
  page.locator('[data-edit-event="other"]').click();assert page.locator('#field-detail').is_disabled();assert page.locator('#entryForm [type=submit]').is_hidden();page.locator('#cancelDialog').click()
+ page.locator('.nav [data-view=projects]').click()
+ project=page.locator('#allProjects [data-project-event=project]')
+ project.click();assert page.locator('#field-project_id').input_value()=='project'
+ assert page.locator('#field-event_date').input_value()=='2026-10-18'
+ assert page.locator('#field-detail').input_value()==''
+ page.locator('#field-title').fill('Loden casting');page.locator('#field-detail').fill('Project event notes')
+ page.locator('#entryForm [type=submit]').click();page.wait_for_function('!document.querySelector("#entryDialog").open')
+ assert page.evaluate('testState.events.at(-1).project_id')=='project'
+ project.focus();page.keyboard.press('Enter');assert page.locator('#entryDialog').is_visible();page.locator('#cancelDialog').click()
+ project.focus();page.keyboard.press('Space');assert page.locator('#entryDialog').is_visible();page.locator('#cancelDialog').click()
+ page.locator('.nav [data-view=calendar]').click()
  page.locator('[data-add=calendar]').click();assert page.locator('#field-event_date').input_value()=='2026-10-18';assert page.locator('#field-title').input_value()=='';assert page.locator('#field-detail').input_value()==''
  page.locator('#field-title').fill('New event');page.locator('#field-detail').fill('New shared notes');page.locator('#entryForm [type=submit]').click();page.wait_for_function('!document.querySelector("#entryDialog").open')
  assert page.evaluate('testState.events.at(-1).detail')=='New shared notes'
