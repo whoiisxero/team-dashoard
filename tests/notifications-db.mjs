@@ -21,6 +21,7 @@ insert into auth.users values ('${quan}'),('${tertius}');insert into team_member
 grant select,insert,update,delete on public.projects,public.tasks,public.expenses,public.goals,public.discussion_messages,public.calendar_events to authenticated;`);
 const sql=await readFile(new URL('../supabase/notifications.sql',import.meta.url),'utf8');
 await db.exec(sql);await db.exec(sql); // Migration can be rerun without duplicating triggers.
+const workspaceSql=await readFile(new URL('../supabase/project-workspaces.sql',import.meta.url),'utf8');await db.exec(workspaceSql);await db.exec(workspaceSql);
 const actor=async id=>{await db.exec('reset role');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[id||'']);if(id)await db.exec('set role authenticated');};
 await actor(quan);
 await db.exec(`insert into calendar_events(title,event_date,detail,created_by) values ('Casting','2026-10-18','Bring portfolio','${quan}');`);
@@ -42,5 +43,14 @@ await assert.rejects(db.exec("insert into team_notifications(recipient_id,actor_
 ({rows}=await db.query('update team_notifications set read_at=now() where recipient_id=$1 returning id',[quan]));assert.equal(rows.length,0);
 await actor(quan);({rows}=await db.query('select * from team_notifications where id=$1',[notification.id]));assert.equal(rows.length,0);
 await actor(tertius);({rows}=await db.query('select read_at from team_notifications where id=$1',[notification.id]));assert(rows[0].read_at);
+await actor(null);const project=(await db.query("select id from projects where name='Loden'")).rows[0].id;
+await actor(quan);await db.query('insert into project_notes(project_id,title,body,created_by) values ($1,$2,$3,$4)',[project,'Brief','Private project note body',quan]);
+await db.query('update tasks set assigned_to=$1',[tertius]);await assert.rejects(db.query('update tasks set assigned_to=$1',['00000000-0000-0000-0000-000000000001']),/foreign key/);
+await actor(tertius);const note=(await db.query('select * from project_notes')).rows[0];assert.equal(note.title,'Brief');
+assert.equal((await db.query('update project_notes set body=$1 where id=$2 returning id',['Tampered',note.id])).rows.length,0);
+await assert.rejects(db.query('insert into project_notes(project_id,title,body,created_by) values ($1,$2,$3,$4)',[project,'Spoofed','Body',quan]),/row-level security/);
+await actor(quan);await db.query('update project_notes set body=$1 where id=$2',['Updated notes',note.id]);
+await assert.rejects(db.query('update project_notes set project_id=$1 where id=$2',[project,note.id]),/permission denied/);
+await actor(tertius);const noteAlerts=(await db.query("select * from team_notifications where source_table='project_notes'")).rows;assert.equal(noteAlerts.length,2);assert(noteAlerts.every(n=>n.recipient_id===tertius&&n.actor_name==='Quan'));assert(!JSON.stringify(noteAlerts).includes('Private project note body'));
 await actor(null);await db.query('delete from team_members where user_id=$1',[tertius]);await actor(tertius);({rows}=await db.query('select * from team_notifications'));assert.equal(rows.length,0);
 await db.close();console.log('PASS PostgreSQL: repeatable migration, actual actor attribution, sender exclusion, event notes/date notifications, no-op suppression, message privacy, admin changes, deletion history, per-recipient RLS, immutable activity, read persistence, removed-member access.');

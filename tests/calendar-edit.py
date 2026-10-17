@@ -16,6 +16,7 @@ with sync_playwright() as p:
  page=browser.new_page(timezone_id='Africa/Johannesburg');page.clock.install(time=__import__('datetime').datetime(2026,10,17,23,30,tzinfo=__import__('datetime').timezone.utc));errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
  def route(r):
   if r.request.url=='http://dashboard.test/':r.fulfill(body=html,content_type='text/html')
+  elif r.request.url.endswith('/project-workspace.js'):r.fulfill(body=(Path(__file__).resolve().parents[1]/'project-workspace.js').read_text(),content_type='application/javascript')
   else:r.fulfill(body='',content_type='application/javascript' if r.request.url.endswith('.js') else 'text/css')
  page.route('**/*',route);page.goto('http://dashboard.test/');page.wait_for_function('window.ready')
  page.locator('[data-edit-event="event"]').click()
@@ -36,15 +37,15 @@ with sync_playwright() as p:
  assert 'could not be updated' in page.locator('#entryError').inner_text();page.locator('#cancelDialog').click()
  page.locator('[data-edit-event="other"]').click();assert page.locator('#field-detail').is_disabled();assert page.locator('#entryForm [type=submit]').is_hidden();page.locator('#cancelDialog').click()
  page.locator('.nav [data-view=projects]').click()
- project=page.locator('#allProjects [data-project-event=project]')
- project.click();assert page.locator('#field-project_id').input_value()=='project'
+ project=page.locator('#allProjects [data-open-project=project]')
+ project.click();page.locator('[data-workspace-add=calendar]').click();assert page.locator('#field-project_id').input_value()=='project'
  assert page.locator('#field-event_date').input_value()=='2026-10-18'
  assert page.locator('#field-detail').input_value()==''
  page.locator('#field-title').fill('Loden casting');page.locator('#field-detail').fill('Project event notes')
  page.locator('#entryForm [type=submit]').click();page.wait_for_function('!document.querySelector("#entryDialog").open')
  assert page.evaluate('testState.events.at(-1).project_id')=='project'
- project.focus();page.keyboard.press('Enter');assert page.locator('#entryDialog').is_visible();page.locator('#cancelDialog').click()
- project.focus();page.keyboard.press('Space');assert page.locator('#entryDialog').is_visible();page.locator('#cancelDialog').click()
+ page.locator('.workspace-back').click();project.focus();page.keyboard.press('Enter');assert page.locator('#projectWorkspace').is_visible()
+ page.locator('.workspace-back').click();project.focus();page.keyboard.press('Space');assert page.locator('#projectWorkspace').is_visible()
  page.locator('.nav [data-view=calendar]').click()
  page.locator('[data-add=calendar]').click();assert page.locator('#field-event_date').input_value()=='2026-10-18';assert page.locator('#field-title').input_value()=='';assert page.locator('#field-detail').input_value()==''
  page.locator('#field-title').fill('New event');page.locator('#field-detail').fill('New shared notes');page.locator('#entryForm [type=submit]').click();page.wait_for_function('!document.querySelector("#entryDialog").open')

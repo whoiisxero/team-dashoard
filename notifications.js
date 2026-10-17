@@ -1,8 +1,8 @@
 /* Per-recipient activity inbox. Database triggers create trusted actor snapshots. */
 window.createNotificationCenter = ({getClient, getUser, navigate, openEvent, toast}) => {
   const $ = id => document.getElementById(id);
-  const destinations = {projects:'projects',tasks:'tasks',expenses:'expenses',goals:'goals',discussion_messages:'discussions',calendar_events:'calendar',team_settings:'expenses',team_members:'dashboard'};
-  const labels = {projects:'project',tasks:'task',expenses:'expense',goals:'goal',discussion_messages:'message',calendar_events:'event',team_settings:'budget',team_members:'team member'};
+  const destinations = {project_notes:'projects',projects:'projects',tasks:'tasks',expenses:'expenses',goals:'goals',discussion_messages:'discussions',calendar_events:'calendar',team_settings:'expenses',team_members:'dashboard'};
+  const labels = {project_notes:'project note',projects:'project',tasks:'task',expenses:'expense',goals:'goal',discussion_messages:'message',calendar_events:'event',team_settings:'budget',team_members:'team member'};
   let session = 0, owner = null, channel = null, poll = null, rows = [], limit = 50, unread = 0;
   let fetching = false, refreshAgain = false, online = false, busy = false;
   const status = text => { $('notificationStatus').textContent=text; };
