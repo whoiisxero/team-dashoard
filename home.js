@@ -81,6 +81,7 @@
   $('countrySelect').onchange=e=>{if(e.target.value)selectCountry(e.target.value);};
   $('countryZone').onchange=homeClock;$('retryRates').onclick=()=>void loadRates();
   $('globeSpin').onclick=()=>{paused=!paused;spinLabel();};
+  $('globeSize').onclick=()=>{const large=$('overview').querySelector('.world-layout').classList.toggle('globe-large');$('globeSize').textContent=large?'Make globe smaller':'Enlarge globe';$('globeSize').setAttribute('aria-pressed',String(large));};
   $('globeReset').onclick=()=>{rotation=[-25,-15,0];draw();};
   async function init() {
     try {

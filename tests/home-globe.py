@@ -21,6 +21,10 @@ with sync_playwright() as p:
   return r.fulfill(body='',content_type='text/css')
  page.route('**/*',route);page.goto('http://dashboard.test/');page.wait_for_function('document.querySelector("#countrySelect").options.length>200')
  before=page.locator('#worldGlobe').evaluate('(el)=>el.toDataURL()');page.clock.run_for(1600);after=page.locator('#worldGlobe').evaluate('(el)=>el.toDataURL()');assert before!=after
+ compact=page.locator('#worldGlobe').bounding_box()['width'];assert compact<=420
+ page.locator('#globeSize').click();assert page.locator('#worldGlobe').bounding_box()['width']>compact
+ assert page.locator('#globeSize').get_attribute('aria-pressed')=='true'
+ page.locator('#globeSize').click();assert page.locator('#worldGlobe').bounding_box()['width']==compact
  assert page.locator('#overview').is_visible();assert page.locator('#dashboard').is_hidden()
  assert '18' in page.locator('#homeDate').inner_text()
  page.locator('#countrySelect').select_option('USA');page.wait_for_function('document.querySelector("#countryRates").textContent.includes("R1 = 0.05 USD")')
@@ -37,7 +41,7 @@ with sync_playwright() as p:
  page.locator('.nav [data-view=dashboard]').click();assert page.locator('#dashboard').is_visible()
  page.locator('.nav [data-view=overview]').click();page.wait_for_timeout(1100);assert 'Quan' in page.locator('#homeWelcome').inner_text()
  page.screenshot(path='/tmp/quest-home.png',full_page=True)
- page.set_viewport_size({'width':390,'height':844});assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
+ page.set_viewport_size({'width':390,'height':844});assert page.evaluate('document.documentElement.scrollWidth<=innerWidth');page.locator('#globeSize').click();assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
  # An unavailable rate must not fabricate a conversion.
  state['fail']=True;page.reload();page.wait_for_function('document.querySelector("#countrySelect").options.length>200');page.locator('#countrySelect').select_option('USA');page.locator('#retryRates').wait_for(state='visible');assert 'unavailable' in page.locator('#countryRates').inner_text()
  state['fail']=False;page.locator('#retryRates').click();page.wait_for_function('document.querySelector("#countryRates").textContent.includes("R1 = 0.05 USD")')
