@@ -1,0 +1,24 @@
+(() => {
+  const colours={amber:'#ffbd59',red:'#ff9184',violet:'#c7a5ff',blue:'#8dceff'};
+  const labels={normal:'Normal',important:'Important',very_important:'Very important'};
+  const escape=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const level=item=>Object.hasOwn(labels,item?.priority)?item.priority:'normal';
+  const accent=item=>colours[item?.priority_color]||colours.amber;
+  const marked=item=>level(item)!=='normal';
+  const badgeHTML=item=>marked(item)?`<span class="priority-badge" style="--priority-accent:${accent(item)}">${labels[level(item)]}</span>`:'';
+  const buttonHTML=(kind,item)=>`<button class="button priority-edit" type="button" data-priority-kind="${kind}" data-priority-id="${escape(item.id)}" aria-label="Change priority and colour for ${escape(item.name||item.title)}">Priority &amp; colour</button>`;
+  function decorate(element,item){element.classList.toggle('priority-marked',marked(item));element.style.setProperty('--priority-accent',accent(item));}
+  function badge(item){const element=document.createElement('span');element.className='priority-badge';element.style.setProperty('--priority-accent',accent(item));element.textContent=labels[level(item)];element.hidden=!marked(item);return element;}
+  function button(kind,item){const element=document.createElement('button');element.type='button';element.className='button priority-edit';element.dataset.priorityKind=kind;element.dataset.priorityId=item.id;element.textContent='Priority & colour';element.setAttribute('aria-label','Change priority and colour for '+(item.name||item.title));return element;}
+  window.QuestPriority={level,accent,marked,badgeHTML,buttonHTML,decorate,badge,button};
+  window.createPriorityEditor=({getData,refresh,toast})=>{
+    const $=id=>document.getElementById(id);let busy=false,epoch=0;
+    function preview(){const item={priority:$('priorityLevel').value,priority_color:$('priorityColour').value};$('priorityPreview').style.setProperty('--priority-accent',accent(item));$('priorityPreview').textContent=level(item)==='normal'?'Normal · no priority highlight':labels[level(item)]+' · '+$('priorityColour').selectedOptions[0].textContent;}
+    function open(kind,id){const collection=kind==='project'?getData().projects:kind==='task'?getData().tasks:[];const item=collection.find(row=>row.id===id);if(!item||!getData().user)return;epoch++;const dialog=$('priorityDialog');dialog.dataset.kind=kind;dialog.dataset.itemId=id;$('priorityTitle').textContent='Priority · '+(item.name||item.title);$('priorityLevel').value=level(item);$('priorityColour').value=Object.hasOwn(colours,item.priority_color)?item.priority_color:'amber';$('priorityError').textContent='';preview();dialog.showModal();}
+    function reset(){epoch++;$('priorityDialog').close();}
+    $('priorityLevel').onchange=preview;$('priorityColour').onchange=preview;$('priorityCancel').onclick=reset;
+    document.addEventListener('click',event=>{const target=event.target.closest('[data-priority-kind]');if(target)open(target.dataset.priorityKind,target.dataset.priorityId);});
+    $('priorityForm').onsubmit=async event=>{event.preventDefault();if(busy)return;const dialog=$('priorityDialog'),current=epoch,uid=getData().user?.id;if(!uid)return;const table=dialog.dataset.kind==='project'?'projects':'tasks',id=dialog.dataset.itemId,values={priority:$('priorityLevel').value,priority_color:$('priorityColour').value};busy=true;$('prioritySave').disabled=true;$('priorityError').textContent='';try{const {data,error}=await getData().db.from(table).update(values).eq('id',id).select('id').maybeSingle();if(error)throw error;if(!data)throw new Error('This item could not be updated. Please refresh.');if(current!==epoch||getData().user?.id!==uid)return;const item=(table==='projects'?getData().projects:getData().tasks).find(row=>row.id===id);if(item)Object.assign(item,values);dialog.close();toast('Priority saved');try{await refresh()}catch{toast('Priority saved. Refresh the dashboard to reload the latest data.')}}catch(error){if(current!==epoch||getData().user?.id!==uid)return;$('priorityError').textContent=error?.code==='PGRST204'||error?.code==='42703'?'Priority setup is needed. Run supabase/priorities-and-goal-delete.sql in Supabase SQL Editor.':error?.message||'Could not save priority. Please retry.';}finally{busy=false;$('prioritySave').disabled=false;}};
+    return {reset};
+  };
+})();

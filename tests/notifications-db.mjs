@@ -52,5 +52,15 @@ await assert.rejects(db.query('insert into project_notes(project_id,title,body,c
 await actor(quan);await db.query('update project_notes set body=$1 where id=$2',['Updated notes',note.id]);
 await assert.rejects(db.query('update project_notes set project_id=$1 where id=$2',[project,note.id]),/permission denied/);
 await actor(tertius);const noteAlerts=(await db.query("select * from team_notifications where source_table='project_notes'")).rows;assert.equal(noteAlerts.length,2);assert(noteAlerts.every(n=>n.recipient_id===tertius&&n.actor_name==='Quan'));assert(!JSON.stringify(noteAlerts).includes('Private project note body'));
+await actor(null);await db.exec("insert into projects(name,status) values (' Fragile ','On track'),('Unrelated','On track')");
+await db.exec('alter table goals enable row level security;create policy goal_team_read on goals for select to authenticated using(public.is_team_member());create policy legacy_goal_access on goals for all to authenticated using(public.is_team_member()) with check(public.is_team_member())');
+const prioritySql=await readFile(new URL('../supabase/priorities-and-goal-delete.sql',import.meta.url),'utf8');await db.exec(prioritySql);await db.exec(prioritySql);
+const fragile=(await db.query("select * from projects where btrim(name)='Fragile'")).rows[0];assert.equal(fragile.priority,'very_important');assert.equal(fragile.priority_color,'red');assert.equal(fragile.status,'On track');assert.equal((await db.query("select priority from projects where name='Unrelated'")).rows[0].priority,'normal');
+await actor(quan);await db.query('update projects set priority=$1,priority_color=$2 where id=$3',['important','violet',fragile.id]);
+await assert.rejects(db.query('update projects set priority_color=$1 where id=$2',['invalid',fragile.id]),/check constraint/);
+await db.exec(`insert into goals(title,created_by) values ('Quan goal','${quan}'),('Tertius goal','${tertius}')`);
+assert.equal((await db.query("delete from goals where title='Tertius goal' returning id")).rows.length,0);
+assert.equal((await db.query("delete from goals where title='Quan goal' returning id")).rows.length,1);
+await actor(tertius);assert.equal((await db.query("delete from goals where title='Tertius goal' returning id")).rows.length,1);
 await actor(null);await db.query('delete from team_members where user_id=$1',[tertius]);await actor(tertius);({rows}=await db.query('select * from team_notifications'));assert.equal(rows.length,0);
 await db.close();console.log('PASS PostgreSQL: repeatable migration, actual actor attribution, sender exclusion, event notes/date notifications, no-op suppression, message privacy, admin changes, deletion history, per-recipient RLS, immutable activity, read persistence, removed-member access.');

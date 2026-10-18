@@ -4,7 +4,7 @@ projects=[{id:'p1',name:'Loden',client:'Client one',status:'On hold',progress:10
 calendarEvents=[{id:'ev1',project_id:'p1',title:'Loden casting',detail:'Bring a portfolio',event_date:'2026-10-18',created_by:'quan'},{id:'ev2',project_id:'p2',title:'Other project audition',event_date:'2026-10-18',created_by:'tertius'}];
 tasks=[{id:'t1',project_id:'p1',title:'Prepare brief',status:'To do',assigned_to:'tertius',due_date:'2026-10-19',created_by:'quan'},{id:'t2',project_id:'p2',title:'Other project task',status:'Done',created_by:'tertius'}];
 expenses=[{id:'e1',project_id:'p1',title:'Transport',amount:40,category:'Travel',spent_on:'2026-10-17',created_by:'quan'},{id:'e2',project_id:'p2',title:'Other project cost',amount:999,spent_on:'2026-10-17',created_by:'tertius'}];
-function query(table){let filters=[],update=null,insert=null,single=false;const collection=()=>table==='project_notes'?state.notes:table==='tasks'?tasks:table==='calendar_events'?calendarEvents:expenses;
+function query(table){let filters=[],update=null,insert=null,single=false;const collection=()=>table==='project_notes'?state.notes:table==='projects'?projects:table==='tasks'?tasks:table==='calendar_events'?calendarEvents:expenses;
  const q={select:()=>q,eq:(key,value)=>{filters.push(row=>row[key]===value);return q},order:()=>q,maybeSingle:()=>{single=true;return q},update:values=>{update=values;return q},insert:values=>{insert=values;return q},then:(resolve,reject)=>Promise.resolve().then(()=>{
  if(table==='project_notes'&&state.notesError)return {error:{code:state.notesError}};
  if((update||insert)&&state.fail)return {error:{message:'Save denied'}};
