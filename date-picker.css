@@ -1,0 +1,16 @@
+input[type="date"]{color-scheme:dark;accent-color:var(--green)}
+input[type="date"]::-webkit-calendar-picker-indicator{opacity:.7;cursor:pointer}
+.quest-date-picker{width:min(330px,100%);margin:8px 0 14px;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);color:var(--ink);box-shadow:0 12px 30px #0005}
+.quest-date-picker button{border:1px solid transparent;border-radius:7px;background:transparent;color:var(--ink);padding:8px;min-height:36px;font:inherit}
+.quest-date-picker button:hover{background:var(--panel);border-color:var(--green2)}
+.quest-date-picker button:focus-visible{outline:2px solid var(--green2);outline-offset:1px}
+.date-picker-head{display:flex;align-items:center;justify-content:space-between;gap:6px;margin-bottom:12px}
+.date-picker-head strong{font-size:14px}.date-picker-head button{font-size:23px;line-height:1}
+.date-picker-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:3px;text-align:center}
+.date-picker-grid small{font-size:10px;color:var(--muted);padding:6px 0}
+.date-picker-grid button{padding:5px 0;font-size:12px}.date-picker-grid .outside{color:var(--muted);opacity:.55}
+.date-picker-grid button[aria-current="date"]{border-color:var(--green2)}
+.date-picker-grid button[aria-pressed="true"]{background:var(--green);color:var(--theme-10,#081008);font-weight:700;opacity:1}
+.date-picker-grid button:disabled{opacity:.25;cursor:default}
+.date-picker-foot{display:flex;justify-content:space-between;border-top:1px solid var(--line);padding-top:8px;margin-top:10px}
+.date-picker-foot button{font-size:12px;color:var(--green2)}

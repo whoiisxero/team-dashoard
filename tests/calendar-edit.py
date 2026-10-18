@@ -16,6 +16,8 @@ with sync_playwright() as p:
  page=browser.new_page(timezone_id='Africa/Johannesburg');page.clock.install(time=__import__('datetime').datetime(2026,10,17,23,30,tzinfo=__import__('datetime').timezone.utc));errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
  def route(r):
   if r.request.url=='http://dashboard.test/':r.fulfill(body=html,content_type='text/html')
+  elif r.request.url.endswith(('/date-picker.js','/date-picker.css')):
+   name=r.request.url.rsplit('/',1)[-1];r.fulfill(body=(Path(__file__).resolve().parents[1]/name).read_text(),content_type='application/javascript' if name.endswith('.js') else 'text/css')
   elif r.request.url.endswith('/project-workspace.js'):r.fulfill(body=(Path(__file__).resolve().parents[1]/'project-workspace.js').read_text(),content_type='application/javascript')
   else:r.fulfill(body='',content_type='application/javascript' if r.request.url.endswith('.js') else 'text/css')
  page.route('**/*',route);page.goto('http://dashboard.test/');page.wait_for_function('window.ready')
@@ -23,6 +25,23 @@ with sync_playwright() as p:
  assert page.locator('#calendarDayDialog').is_visible()
  page.locator('#calendarDayAdd').click()
  assert page.locator('#field-event_date').input_value()=='2026-10-22'
+ page.locator('#field-event_date').click()
+ assert page.locator('.quest-date-picker').is_visible()
+ assert page.locator('.quest-date-picker [aria-pressed=true]').get_attribute('data-date')=='2026-10-22'
+ for theme in ['green','blue','violet','rose','amber']:
+  page.evaluate('(theme)=>document.documentElement.dataset.theme=theme',theme)
+  assert page.locator('.quest-date-picker').evaluate('(el)=>getComputedStyle(el).backgroundColor')==page.locator('.quest-date-picker').evaluate('(el)=>{const probe=document.createElement("div");probe.style.background="var(--panel2)";el.append(probe);const colour=getComputedStyle(probe).backgroundColor;probe.remove();return colour}')
+ page.locator('.quest-date-picker [data-date="2026-10-24"]').click()
+ assert page.locator('#field-event_date').input_value()=='2026-10-24'
+ assert page.locator('.quest-date-picker').count()==0
+ page.locator('#field-event_date').click()
+ page.locator('.quest-date-picker').get_by_role('button',name='Next month',exact=True).click()
+ assert page.locator('.date-picker-head strong').inner_text()=='November 2026'
+ page.keyboard.press('Escape')
+ assert page.locator('.quest-date-picker').count()==0
+ assert page.locator('#entryDialog').is_visible()
+ page.evaluate('document.documentElement.dataset.theme="green"')
+
  page.locator('#cancelDialog').click()
  cell=page.locator('[data-calendar-date="2026-10-17"]');cell.focus();page.keyboard.press('Enter')
  assert page.locator('#calendarDayItems [data-edit-event="event"]').is_visible()
