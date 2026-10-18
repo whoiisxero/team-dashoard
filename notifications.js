@@ -1,8 +1,8 @@
 /* Per-recipient activity inbox. Database triggers create trusted actor snapshots. */
 window.createNotificationCenter = ({getClient, getUser, navigate, openEvent, toast}) => {
   const $ = id => document.getElementById(id);
-  const destinations = {project_notes:'projects',projects:'projects',tasks:'tasks',expenses:'expenses',goals:'goals',discussion_messages:'discussions',calendar_events:'calendar',team_settings:'expenses',team_members:'dashboard'};
-  const labels = {project_notes:'project note',projects:'project',tasks:'task',expenses:'expense',goals:'goal',discussion_messages:'message',calendar_events:'event',team_settings:'budget',team_members:'team member'};
+  const destinations = {brand_messages:'fragile',brand_moodboard_items:'fragile',project_notes:'projects',projects:'projects',tasks:'tasks',expenses:'expenses',goals:'goals',discussion_messages:'discussions',calendar_events:'calendar',team_settings:'expenses',team_members:'dashboard'};
+  const labels = {brand_messages:'brand message',brand_moodboard_items:'moodboard pin',project_notes:'project note',projects:'project',tasks:'task',expenses:'expense',goals:'goal',discussion_messages:'message',calendar_events:'event',team_settings:'budget',team_members:'team member'};
   let session = 0, owner = null, channel = null, poll = null, rows = [], limit = 50, unread = 0;
   let fetching = false, refreshAgain = false, online = false, busy = false;
   const status = text => { $('notificationStatus').textContent=text; };
@@ -21,7 +21,7 @@ window.createNotificationCenter = ({getClient, getUser, navigate, openEvent, toa
       const open=document.createElement('button');open.type='button';open.className='notification-open';
       const verb=row.action==='INSERT'?(row.source_table==='discussion_messages'?'sent':'added'):row.action==='DELETE'?'removed':'updated';
       open.append(text(document.createElement('strong'),`${row.actor_name} ${verb} ${labels[row.source_table]||'an item'}`));
-      open.append(text(document.createElement('span'),row.item_title));
+      open.append(text(document.createElement('span'),row.source_table==='brand_messages'?'Fragile brand chat':row.item_title));
       const time=document.createElement('time');time.dateTime=row.created_at;time.textContent=new Date(row.created_at).toLocaleString(undefined,{dateStyle:'medium',timeStyle:'short'});open.append(time);
       open.onclick=()=>void openNotification(row);article.append(open);
       if (!row.read_at) {

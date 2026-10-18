@@ -78,7 +78,7 @@ revoke all on function public.capture_team_notification() from public, anon, aut
 do $$
 declare t text;
 begin
-  foreach t in array array['projects','tasks','expenses','goals','discussion_messages','calendar_events','team_settings','team_members','project_notes'] loop
+  foreach t in array array['projects','tasks','expenses','goals','discussion_messages','calendar_events','team_settings','team_members','project_notes','brand_messages','brand_moodboard_items'] loop
     if to_regclass('public.' || t) is null then continue; end if;
     execute format('drop trigger if exists notify_team_activity on public.%I', t);
     execute format('create trigger notify_team_activity after insert or update or delete on public.%I for each row execute function public.capture_team_notification()', t);

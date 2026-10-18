@@ -62,5 +62,16 @@ await db.exec(`insert into goals(title,created_by) values ('Quan goal','${quan}'
 assert.equal((await db.query("delete from goals where title='Tertius goal' returning id")).rows.length,0);
 assert.equal((await db.query("delete from goals where title='Quan goal' returning id")).rows.length,1);
 await actor(tertius);assert.equal((await db.query("delete from goals where title='Tertius goal' returning id")).rows.length,1);
+await actor(null);const brandSql=await readFile(new URL('../supabase/fragile-studio.sql',import.meta.url),'utf8');await db.exec(brandSql);await db.exec(brandSql);
+await actor(quan);const brandMessage=(await db.query('insert into brand_messages(project_id,user_id,body) values ($1,$2,$3) returning id',[fragile.id,quan,'Private collection discussion'])).rows[0];
+const brandPin=(await db.query('insert into brand_moodboard_items(project_id,created_by,kind,title,colour) values ($1,$2,$3,$4,$5) returning id',[fragile.id,quan,'colour','Rust palette','#a64b32'])).rows[0];
+await assert.rejects(db.query('insert into brand_moodboard_items(project_id,created_by,kind,title,image_url) values ($1,$2,$3,$4,$5)',[fragile.id,quan,'image','Invalid source','javascript:alert(1)']),/check constraint/);
+await actor(tertius);assert.equal((await db.query('select * from brand_messages where project_id=$1',[fragile.id])).rows.length,1);
+assert.equal((await db.query('delete from brand_messages where id=$1 returning id',[brandMessage.id])).rows.length,0);
+assert.equal((await db.query('delete from brand_moodboard_items where id=$1 returning id',[brandPin.id])).rows.length,0);
+await assert.rejects(db.query('insert into brand_messages(project_id,user_id,body) values ($1,$2,$3)',[fragile.id,quan,'Spoofed sender']),/row-level security/);
+await assert.rejects(db.query('update brand_moodboard_items set title=$1 where id=$2',['Tampered pin',brandPin.id]),/permission denied/);
+const brandNotifications=(await db.query("select * from team_notifications where source_table in ('brand_messages','brand_moodboard_items')")).rows;assert.equal(brandNotifications.length,2);assert(brandNotifications.every(n=>n.actor_name==='Quan'&&n.recipient_id===tertius));assert(!JSON.stringify(brandNotifications).includes('Private collection discussion'));
+await actor(quan);assert.equal((await db.query('delete from brand_messages where id=$1 returning id',[brandMessage.id])).rows.length,1);assert.equal((await db.query('delete from brand_moodboard_items where id=$1 returning id',[brandPin.id])).rows.length,1);
 await actor(null);await db.query('delete from team_members where user_id=$1',[tertius]);await actor(tertius);({rows}=await db.query('select * from team_notifications'));assert.equal(rows.length,0);
 await db.close();console.log('PASS PostgreSQL: repeatable migration, actual actor attribution, sender exclusion, event notes/date notifications, no-op suppression, message privacy, admin changes, deletion history, per-recipient RLS, immutable activity, read persistence, removed-member access.');

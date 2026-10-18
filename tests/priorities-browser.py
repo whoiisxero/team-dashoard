@@ -23,7 +23,7 @@ with sync_playwright() as p:
  page.locator('#priorityLevel').select_option('important');page.locator('#priorityColour').select_option('violet');page.locator('#priorityCancel').click();assert 'Very important' in card.inner_text()
  card.locator('[data-priority-kind=project]').click();page.locator('#priorityLevel').select_option('important');page.locator('#priorityColour').select_option('violet');page.locator('#prioritySave').click();page.wait_for_function('!document.querySelector("#priorityDialog").open')
  assert 'Important' in card.inner_text();assert card.evaluate('(el)=>el.style.getPropertyValue("--priority-accent")')=='#c7a5ff';assert 'On hold' in card.inner_text()
- page.locator('#fragileShortcut').click();page.wait_for_function('document.querySelector("#workspacePriorityBadge").textContent.includes("Important")')
+ page.locator('#fragileShortcut').click();assert page.locator('#fragile').is_visible();page.locator('#fragileProjectWorkspace').click();page.wait_for_function('document.querySelector("#workspacePriorityBadge").textContent.includes("Important")')
  page.locator('#workspaceTasks [data-priority-id=t1]').click();page.locator('#priorityLevel').select_option('very_important');page.locator('#priorityColour').select_option('blue')
  page.evaluate('workspaceTest.fail=true');page.locator('#prioritySave').click();page.wait_for_function('document.querySelector("#priorityError").textContent==="Save denied"')
  assert page.locator('#priorityLevel').input_value()=='very_important';page.evaluate('workspaceTest.fail=false');page.locator('#prioritySave').click();page.wait_for_function('!document.querySelector("#priorityDialog").open')
