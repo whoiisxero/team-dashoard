@@ -26,7 +26,7 @@ with sync_playwright() as p:
  page.wait_for_function('!document.querySelector("#fragileAddPin").disabled');assert page.locator('#fragile').is_visible()
  assert page.locator('#fragile h1').inner_text()=='Fragile';assert 'FragileGothic' in page.locator('#fragile h1').evaluate('(el)=>getComputedStyle(el).fontFamily')
  assert 'Loden casting' in page.locator('#fragileEvents').inner_text();assert 'Other project audition' not in page.locator('#fragileEvents').inner_text()
- page.locator('[data-brand-add=calendar]').click();assert page.locator('#field-project_id').input_value()=='p1';page.locator('#cancelDialog').click()
+ page.locator('#fragile [data-brand-add=calendar]').click();assert page.locator('#field-project_id').input_value()=='p1';page.locator('#cancelDialog').click()
  page.locator('#fragile [data-studio-tab=chat]').click();assert 'Brand direction' in page.locator('#fragileMessages').inner_text();assert 'Other brand chat' not in page.locator('#fragileMessages').inner_text();assert page.locator('#fragileMessages button').count()==0
  page.locator('#fragileChatText').fill('Collection ideas\nUse rust and black');page.evaluate('workspaceTest.failBrand=true');page.locator('#fragileChatSend').click();page.wait_for_function('document.querySelector("#fragileChatStatus").textContent==="Brand save denied"');assert 'Collection ideas' in page.locator('#fragileChatText').input_value()
  page.evaluate('workspaceTest.failBrand=false');page.locator('#fragileChatSend').click();page.wait_for_function('document.querySelector("#fragileMessages").textContent.includes("Collection ideas")');assert page.evaluate('workspaceTest.writes.at(-1).values.project_id')=='p1'
@@ -40,7 +40,7 @@ with sync_playwright() as p:
  page.screenshot(path='/tmp/fragile-moodboard.png',full_page=True)
  page.once('dialog',lambda d:d.accept());page.locator('.fragile-pin').filter(has_text='A written idea').get_by_role('button',name='Remove pin').click();page.wait_for_function('!document.querySelector("#fragileBoard").textContent.includes("A written idea")')
  page.evaluate("workspaceTest.brandError='PGRST205'");page.locator('#fragileBoardPanel [data-brand-refresh]').click();page.wait_for_function('document.querySelector("#fragileBoardStatus").textContent.includes("need setup")');assert page.locator('#fragileAddPin').is_disabled()
- page.locator('[data-studio-tab=work]').click();page.locator('#fragileProjectWorkspace').click();assert page.locator('#projectWorkspace').is_visible();assert page.locator('#workspaceTitle').inner_text()=='Fragile'
+ page.locator('#fragile [data-studio-tab=work]').click();page.locator('#fragileProjectWorkspace').click();assert page.locator('#projectWorkspace').is_visible();assert page.locator('#workspaceTitle').inner_text()=='Fragile'
  page.locator('#fragileShortcut').click();page.set_viewport_size({'width':390,'height':844});assert page.evaluate('document.documentElement.scrollWidth<=innerWidth');page.screenshot(path='/tmp/fragile-workstation.png',full_page=True)
  page.set_viewport_size({'width':1280,'height':950});page.evaluate("workspaceTest.setProjectName('Unrelated brand')")
  assert page.locator('#fragileShortcut').is_enabled();page.locator('#fragileShortcut').click()
