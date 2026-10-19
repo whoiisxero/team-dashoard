@@ -26,7 +26,7 @@ with sync_playwright() as p:
  assert page.locator('#dusted h1').text_content()=='Dusted.'
  assert 'FragileGothic' not in page.locator('#dusted h1').evaluate('(el)=>getComputedStyle(el).fontFamily')
  assert page.locator('#dusted .dusted-social').get_attribute('href')=='https://www.instagram.com/dusted.cpt/'
- assert 'non-THC product' in page.locator('#dustedProposalPanel').inner_text()
+ assert 'non-thc' not in page.locator('#dustedProposalPanel').inner_text().lower()
  assert 'Instagram Reels' in page.locator('#dustedProposalPanel').inner_text()
  assert 'YouTube Shorts' in page.locator('#dustedProposalPanel').inner_text()
  for costing in ['R250','R30','12%']:
@@ -40,15 +40,19 @@ with sync_playwright() as p:
  page.evaluate("document.body.classList.remove('dusted-print')")
  page.locator('#dusted [data-studio-tab=work]').click();page.wait_for_function('!document.querySelector("#dustedAddPin").disabled')
  assert 'Other project audition' in page.locator('#dustedEvents').inner_text();assert 'Loden casting' not in page.locator('#dustedEvents').inner_text()
- assert page.locator('#dustedWorkContactGrid .dusted-contact-task').count()==17
+ assert page.locator('#dustedWorkContactGrid .dusted-contact-task').count()==19
  assert 'Find and verify Greater Cape Town running clubs' in page.locator('#dustedWorkContactGrid').inner_text()
  card=page.locator('#dustedWorkContactGrid [data-lead-key=origin]');card.get_by_role('button',name='Prepare task').click()
  assert page.locator('#field-title').input_value().startswith('Contact Origin Coffee Roasting')
  assert page.locator('#field-project_id').input_value()=='p2';assert page.locator('#field-due_date').input_value()=='2026-10-20';page.locator('#cancelDialog').click()
  page.locator('#dustedWorkContactFilter').select_option('club');assert page.locator('#dustedWorkContactGrid .dusted-contact-task').count()==7
+ page.locator('#dustedWorkContactFilter').select_option('creator');assert page.locator('#dustedWorkContactGrid .dusted-contact-task').count()==2
+ page.locator('[data-lead-key=instagram-creators]').get_by_role('button',name='Prepare task').click();assert 'Instagram' in page.locator('#field-title').input_value();assert page.locator('#field-project_id').input_value()=='p2';page.locator('#cancelDialog').click()
  page.locator('#dustedWorkContactFilter').select_option('all')
  page.locator('#dusted [data-brand-add=calendar]').click();assert page.locator('#field-project_id').input_value()=='p2';page.locator('#cancelDialog').click()
- page.locator('#dusted [data-studio-tab=chat]').click();assert 'Other brand chat' in page.locator('#dustedMessages').inner_text();assert 'Brand direction' not in page.locator('#dustedMessages').inner_text()
+ page.locator('#dusted [data-studio-tab=chat]').click();assert page.locator('#dustedBrandQuestionList li').count()==12
+ page.locator('#dustedBrandQuestionList button').first.click();assert 'ideal customer' in page.locator('#dustedChatText').input_value()
+ assert 'Other brand chat' in page.locator('#dustedMessages').inner_text();assert 'Brand direction' not in page.locator('#dustedMessages').inner_text()
  page.locator('#dustedChatText').fill('Dusted tasting feedback');page.locator('#dustedChatSend').click();page.wait_for_function('document.querySelector("#dustedMessages").textContent.includes("Dusted tasting feedback")');assert page.evaluate('workspaceTest.writes.at(-1).values.project_id')=='p2'
  page.locator('#dusted [data-studio-tab=board]').click();assert 'Other brand pin' in page.locator('#dustedBoard').inner_text();assert 'Warm rust' not in page.locator('#dustedBoard').inner_text()
  page.locator('#dustedAddPin').click();page.locator('#dustedPinKind').select_option('note');page.locator('#dustedPinTitle').fill('Elegant gifting');page.locator('#dustedPinNotes').fill('Cream, espresso and soft gold');page.locator('#dustedPinSave').click();page.wait_for_function('!document.querySelector("#dustedPinDialog").open');assert 'Elegant gifting' in page.locator('#dustedBoard').inner_text();assert page.evaluate('workspaceTest.writes.at(-1).values.project_id')=='p2'

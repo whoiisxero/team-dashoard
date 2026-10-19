@@ -27,23 +27,23 @@ with sync_playwright() as p:
    return r.fulfill(body=path.read_bytes() if path.is_file() else b'',content_type=mimetypes.guess_type(path)[0] or 'text/plain')
   return r.fulfill(body='',content_type='text/css')
  page.route('**/*',route);page.goto('http://dashboard.test/');page.wait_for_function('window.ready');page.locator('#dustedShortcut').click();page.locator('#dusted [data-studio-tab=work]').click()
- assert page.locator('.dusted-contact-task').count()==17
+ assert page.locator('.dusted-contact-task').count()==19
  page.locator('[data-lead-key=origin] summary').click();assert 'https://originroasting.co.za/' in page.locator('[data-lead-key=origin] pre').inner_text();assert 'not verified' in page.locator('[data-lead-key=origin] pre').inner_text()
  page.evaluate('workspaceTest.failContactNotes=true');page.locator('#dustedSaveContactTasks').click();page.wait_for_function('!document.querySelector("#dustedSaveContactTasks").disabled');assert 'Project notes setup is missing' in page.locator('#dustedContactSaveStatus').inner_text()
  assert page.evaluate('workspaceTest.contactCalls.filter(x=>x.table==="tasks").length')==0
  page.evaluate("workspaceTest.failContactNotes=false;workspaceTest.failContactLead='Origin Coffee'");page.locator('#dustedSaveContactTasks').click();page.wait_for_function('document.querySelector("#dustedContactSaveStatus").textContent.includes("Contact task save denied")')
  assert '2 tasks saved so far' in page.locator('#dustedContactSaveStatus').inner_text()
- page.evaluate('workspaceTest.failContactLead=null');page.locator('#dustedSaveContactTasks').click();page.locator('#dustedSaveContactTasks').dispatch_event('click');page.wait_for_function('document.querySelector("#dustedContactSaveStatus").textContent.includes("15 contact tasks saved")')
- assert page.evaluate('workspaceTest.notes.filter(n=>n.title.startsWith("Contact sheet")).length')==17
- assert page.locator('.dusted-contact-task').filter(has_text='Saved task').count()==17
+ page.evaluate('workspaceTest.failContactLead=null');page.locator('#dustedSaveContactTasks').click();page.locator('#dustedSaveContactTasks').dispatch_event('click');page.wait_for_function('document.querySelector("#dustedContactSaveStatus").textContent.includes("17 contact tasks saved")')
+ assert page.evaluate('workspaceTest.notes.filter(n=>n.title.startsWith("Contact sheet")).length')==19
+ assert page.locator('.dusted-contact-task').filter(has_text='Saved task').count()==19
  assert page.evaluate('workspaceTest.contactCalls.filter(x=>x.table==="tasks"&&!x.values.title.includes("Origin Coffee")).every(x=>x.values.project_id==="p2"&&x.values.created_by==="quan"&&x.values.due_date==="2026-10-20")')
  assert 'Loden casting' not in page.locator('#dustedWorkContactGrid').inner_text()
  page.evaluate('workspaceTest.notes.find(n=>n.title==="Contact sheet · Origin Coffee Roasting").body="Owner added a verified phone"')
- page.locator('#dustedSaveContactTasks').click();page.wait_for_function('document.querySelector("#dustedContactSaveStatus").textContent.includes("0 contact tasks saved; 17 existing tasks kept")')
- assert page.evaluate('workspaceTest.notes.filter(n=>n.title.startsWith("Contact sheet")).length')==17
+ page.locator('#dustedSaveContactTasks').click();page.wait_for_function('document.querySelector("#dustedContactSaveStatus").textContent.includes("0 contact tasks saved; 19 existing tasks kept")')
+ assert page.evaluate('workspaceTest.notes.filter(n=>n.title.startsWith("Contact sheet")).length')==19
  assert page.evaluate('workspaceTest.notes.find(n=>n.title==="Contact sheet · Origin Coffee Roasting").body')=='Owner added a verified phone'
  page.locator('#dustedWorkContactFilter').select_option('club');assert page.locator('.dusted-contact-task').count()==7
  page.set_viewport_size({'width':390,'height':844});assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
  page.screenshot(path='/tmp/dusted-contact-workstation.png',full_page=True)
  assert not errors,errors
- b.close();print('PASS contact task import: 16 organisation tasks plus club research, source details, project/creator/deadline scope, missing notes setup, partial failure/retry, repeat import and double-click protection, preserved contact notes, filters and mobile layout.')
+ b.close();print('PASS contact task import: 16 organisation tasks plus club research and two creator-outreach tasks, source details, project/creator/deadline scope, missing notes setup, partial failure/retry, repeat import and double-click protection, preserved contact notes, filters and mobile layout.')
