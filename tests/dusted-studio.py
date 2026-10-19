@@ -106,6 +106,6 @@ with sync_playwright() as p:
   page.locator('#dusted [data-studio-tab='+tab+']').click();assert page.evaluate('document.documentElement.scrollWidth<=innerWidth'),tab
  page.locator('#dusted [data-studio-tab=proposal]').click();page.screenshot(path='/tmp/dusted-mobile.png',full_page=True)
  page.set_viewport_size({'width':1440,'height':1000});page.evaluate("workspaceTest.setDustedName('Different brand')");page.locator('#dustedShortcut').click();page.locator('#dusted [data-studio-tab=work]').click();assert page.locator('#dustedConnectActions').is_visible();assert 'Other project audition' not in page.locator('#dustedEvents').inner_text()
- page.locator('#dustedCreateProject').click();assert page.locator('#field-name').input_value()=='Dusted.';page.locator('#cancelDialog').click()
+ assert page.locator('#dustedCreateProject').is_enabled();assert 'Connect Dusted.' in page.locator('#dustedCreateProject').inner_text()
  assert not errors,errors
  b.close();print('PASS Dusted: isolated studio/chat/moodboard, project and event links, distinct type, proposal and PDF, non-THC scope, Reels/Shorts plan, cost-free personal promotion plan, outreach draft editing/copy, owner meeting brief and campaign tasks, mobile layout and missing-project recovery.')

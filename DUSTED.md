@@ -4,7 +4,7 @@ The sidebar shortcut below Fragile opens the Dusted. studio. Its Proposal tab pr
 
 ## Connect shared tools
 
-Open **Dusted. → Workstation**. The studio uses a project named `Dusted.` or `Dusted` (case-insensitive). If no such project exists, use **Create Dusted. project**, review the form, and save. This reuses the existing project creation and authentication flow. The proposal is available even before connection.
+Open **Dusted. → Workstation**. The studio uses a project named `Dusted.` or `Dusted` (case-insensitive). Use **Connect Dusted. & save tasks** when the project is missing, or the save button in Workstation. It first checks existing projects, otherwise creates the brand project with a stable project ID to prevent duplicate creation, then saves the prepared tasks and sheets through the signed-in account. The proposal and All links view are available even before connection.
 
 Chat and moodboard reuse `brand_messages` and `brand_moodboard_items`, filtered by this project's ID. No new migration is necessary if `supabase/fragile-studio.sql` was already applied. If the UI reports missing shared brand tables, apply that existing script in Supabase SQL Editor. Project notes use the existing `supabase/project-workspaces.sql` schema.
 
@@ -26,7 +26,7 @@ Nothing sends email or connects affiliate tracking, checkout or payments. The or
 
 Contact references live in `dusted-contacts.js`; phone/email fields stay empty unless verified. Website references are labelled as unverified. External venue/club research is currently blocked by the cloud network allowlist; required access changes were saved in the environment configuration draft but do not take effect until the user reviews, saves and publishes them.
 
-`dusted-workstation.js` saves a project note with the source/status/next step before creating its corresponding task. It uses project-specific stable UUIDs and conflict-ignore writes to avoid duplicate imports or overwrite of completed tasks and edited contact sheets. Existing tasks with the same title are retained. A failed import can be retried. It reuses the existing tasks and project_notes schemas, and adds no schema migration.
+`dusted-workstation.js` saves a project note with the source/status/next step before creating its corresponding task. Project connection preserves existing projects, including repeat clicks; a renamed reserved project causes an explicit error rather than silently linking another brand. It uses project-specific stable UUIDs and conflict-ignore writes to avoid duplicate imports or overwrite of completed tasks and edited contact sheets. Existing tasks with the same title are retained. **Open saved contact sheets** opens a dedicated dialog that loads only Dusted. contact notes and makes web links clickable. The **All links** tab includes every organisation search, available website reference, WPA directory reference, Instagram and TikTok platform links, even before notes are saved. Search filters both views; project notes remain the place to edit sheet content. A failed import can be retried. It reuses the existing tasks and project_notes schemas, and adds no schema migration.
 
 ## Local checks
 

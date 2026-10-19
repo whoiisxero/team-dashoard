@@ -13,8 +13,9 @@ db.from=table=>{if(!table.startsWith('brand_'))return baseFrom(table);let filter
 html=html.replace('</script></body>',fixture+'</script></body>')
 
 html=html.replace('</script></body>', """
+refreshAll=async()=>{render();if(document.querySelector('#dusted').classList.contains('active'))dustedStudio.activate();void projectWorkspace.loadNotes()};
 const contactFrom=db.from;state.contactCalls=[];state.failContactNotes=false;state.failContactLead=null;
-db.from=table=>{const q=contactFrom(table);if(!['tasks','project_notes'].includes(table))return q;q.upsert=async(values,options)=>{state.contactCalls.push({table,values:{...values},options});await new Promise(resolve=>setTimeout(resolve,2));if(table==='project_notes'&&state.failContactNotes)return {error:{code:'PGRST205'}};if(table==='tasks'&&values.title.includes(state.failContactLead||'!never!'))return {error:{message:'Contact task save denied'}};const rows=table==='tasks'?tasks:state.notes;if(!rows.some(row=>row.id===values.id))rows.push({...values,created_at:new Date().toISOString()});return {error:null}};return q};
+db.from=table=>{const q=contactFrom(table);if(!['tasks','project_notes','projects'].includes(table))return q;q.upsert=async(values,options)=>{state.contactCalls.push({table,values:{...values},options});await new Promise(resolve=>setTimeout(resolve,2));if(table==='project_notes'&&state.failContactNotes)return {error:{code:'PGRST205'}};if(table==='tasks'&&values.title.includes(state.failContactLead||'!never!'))return {error:{message:'Contact task save denied'}};const rows=table==='tasks'?tasks:table==='projects'?projects:state.notes;if(!rows.some(row=>row.id===values.id))rows.push({...values,created_at:new Date().toISOString()});return {error:null}};return q};
 </script></body>""")
 with sync_playwright() as p:
  b=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox']);page=b.new_page(viewport={'width':1280,'height':1000});errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
@@ -28,21 +29,56 @@ with sync_playwright() as p:
   return r.fulfill(body='',content_type='text/css')
  page.route('**/*',route);page.goto('http://dashboard.test/');page.wait_for_function('window.ready');page.locator('#dustedShortcut').click();page.locator('#dusted [data-studio-tab=work]').click()
  assert page.locator('.dusted-contact-task').count()==19
+ page.locator('#dustedOpenContactNotes').click();page.wait_for_function('document.querySelector("#dustedSheetsStatus").textContent.includes("0 saved contact sheets")')
+ assert 'No contact sheets have been saved' in page.locator('#dustedSavedSheetList').inner_text()
+ page.locator('#dustedLinksTab').click();assert page.locator('.dusted-contact-link-row').count()==19
+ assert page.locator('#dustedAllContactLinks a[href="https://www.instagram.com/"]').count()==1
+ assert page.locator('#dustedAllContactLinks a[href="https://www.tiktok.com/"]').count()==1
+ assert page.locator('#dustedAllContactLinks a[href="https://wpa.org.za/"]').count()==1
+ page.locator('#dustedSheetsSearch').fill('running-club');assert page.locator('.dusted-contact-link-row').count()==1
+ page.locator('#dustedSheetsClose').click()
+
  page.locator('[data-lead-key=origin] summary').click();assert 'https://originroasting.co.za/' in page.locator('[data-lead-key=origin] pre').inner_text();assert 'not verified' in page.locator('[data-lead-key=origin] pre').inner_text()
  page.evaluate('workspaceTest.failContactNotes=true');page.locator('#dustedSaveContactTasks').click();page.wait_for_function('!document.querySelector("#dustedSaveContactTasks").disabled');assert 'Project notes setup is missing' in page.locator('#dustedContactSaveStatus').inner_text()
  assert page.evaluate('workspaceTest.contactCalls.filter(x=>x.table==="tasks").length')==0
  page.evaluate("workspaceTest.failContactNotes=false;workspaceTest.failContactLead='Origin Coffee'");page.locator('#dustedSaveContactTasks').click();page.wait_for_function('document.querySelector("#dustedContactSaveStatus").textContent.includes("Contact task save denied")')
  assert '2 tasks saved so far' in page.locator('#dustedContactSaveStatus').inner_text()
  page.evaluate('workspaceTest.failContactLead=null');page.locator('#dustedSaveContactTasks').click();page.locator('#dustedSaveContactTasks').dispatch_event('click');page.wait_for_function('document.querySelector("#dustedContactSaveStatus").textContent.includes("17 contact tasks saved")')
- assert page.evaluate('workspaceTest.notes.filter(n=>n.title.startsWith("Contact sheet")).length')==19
+ assert page.evaluate('workspaceTest.notes.filter(n=>n.project_id==="p2"&&n.title.startsWith("Contact sheet")).length')==19
  assert page.locator('.dusted-contact-task').filter(has_text='Saved task').count()==19
+ page.evaluate("workspaceTest.notes.push({id:'hidden-contact',project_id:'p1',title:'Contact sheet · Other brand only',body:'Hidden contact details'})")
+ page.locator('#dustedOpenContactNotes').click();page.wait_for_function('document.querySelector("#dustedSheetsStatus").textContent.includes("19 saved contact sheets")')
+ assert page.locator('.dusted-saved-sheet').count()==19
+ assert 'Other brand only' not in page.locator('#dustedSavedSheetList').inner_text()
+ assert page.locator('#dustedSavedSheetList a[href="https://originroasting.co.za/"]').count()==1
+ assert page.locator('#dustedSavedSheetList a[href="https://www.instagram.com/"]').count()==1
+ assert page.locator('#dustedSavedSheetList a[href="https://www.tiktok.com/"]').count()==1
+ for href in page.locator('#dustedSavedSheetList a').all():
+  assert href.get_attribute('rel')=='noopener noreferrer'
+ page.evaluate("workspaceTest.notes.find(n=>n.title==='Contact sheet · Origin Coffee Roasting').body='<script>unsafe()</script> https://example.com/contact' ")
+ page.locator('#dustedSheetsRefresh').click();page.wait_for_function('document.querySelector("#dustedSavedSheetList").textContent.includes("<script>unsafe()")')
+ assert page.locator('#dustedSavedSheetList script').count()==0
+ assert page.locator('#dustedSavedSheetList a[href="https://example.com/contact"]').count()==1
+ page.locator('#dustedSheetsSearch').fill('Origin Coffee');assert page.locator('.dusted-saved-sheet').count()==1
+ page.set_viewport_size({'width':390,'height':844});assert page.evaluate('document.documentElement.scrollWidth<=innerWidth');page.set_viewport_size({'width':1280,'height':1000})
+ page.locator('#dustedSheetsClose').click()
+
  assert page.evaluate('workspaceTest.contactCalls.filter(x=>x.table==="tasks"&&!x.values.title.includes("Origin Coffee")).every(x=>x.values.project_id==="p2"&&x.values.created_by==="quan"&&x.values.due_date==="2026-10-20")')
  assert 'Loden casting' not in page.locator('#dustedWorkContactGrid').inner_text()
  page.evaluate('workspaceTest.notes.find(n=>n.title==="Contact sheet · Origin Coffee Roasting").body="Owner added a verified phone"')
  page.locator('#dustedSaveContactTasks').click();page.wait_for_function('document.querySelector("#dustedContactSaveStatus").textContent.includes("0 contact tasks saved; 19 existing tasks kept")')
- assert page.evaluate('workspaceTest.notes.filter(n=>n.title.startsWith("Contact sheet")).length')==19
+ assert page.evaluate('workspaceTest.notes.filter(n=>n.project_id==="p2"&&n.title.startsWith("Contact sheet")).length')==19
  assert page.evaluate('workspaceTest.notes.find(n=>n.title==="Contact sheet · Origin Coffee Roasting").body')=='Owner added a verified phone'
  page.locator('#dustedWorkContactFilter').select_option('club');assert page.locator('.dusted-contact-task').count()==7
+ page.evaluate("workspaceTest.setDustedName('Unrelated project')");page.locator('#dustedShortcut').click();page.locator('#dusted [data-studio-tab=work]').click()
+ assert 'Connect Dusted.' in page.locator('#dustedSaveContactTasks').inner_text()
+ page.locator('#dustedCreateProject').click();page.wait_for_function('document.querySelector("#dustedContactSaveStatus").textContent.includes("19 contact tasks saved")')
+ assert page.evaluate('workspaceTest.contactCalls.filter(x=>x.table==="projects").length')==1
+ page.wait_for_function('!document.querySelector("#dustedSaveContactTasks").disabled')
+ assert page.locator('#dustedConnectActions').is_hidden()
+ page.locator('#dustedSaveContactTasks').click();page.wait_for_function('document.querySelector("#dustedContactSaveStatus").textContent.includes("0 contact tasks saved; 19 existing tasks kept")')
+ assert page.evaluate('workspaceTest.contactCalls.filter(x=>x.table==="projects").length')==1
+
  page.set_viewport_size({'width':390,'height':844});assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
  page.screenshot(path='/tmp/dusted-contact-workstation.png',full_page=True)
  assert not errors,errors
