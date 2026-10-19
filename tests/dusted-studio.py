@@ -26,18 +26,26 @@ with sync_playwright() as p:
  assert page.locator('#dusted h1').text_content()=='Dusted.'
  assert 'FragileGothic' not in page.locator('#dusted h1').evaluate('(el)=>getComputedStyle(el).fontFamily')
  assert page.locator('#dusted .dusted-social').get_attribute('href')=='https://www.instagram.com/dusted.cpt/'
- assert 'R250' in page.locator('.dusted-terms-register').inner_text()
- assert '12%' in page.locator('.dusted-terms-register').inner_text()
- assert 'R30' in page.locator('.dusted-terms-register').inner_text()
- assert 'cannabis-infused' in page.locator('#dustedProposalPanel').inner_text()
+ assert 'non-THC product' in page.locator('#dustedProposalPanel').inner_text()
+ assert 'Instagram Reels' in page.locator('#dustedProposalPanel').inner_text()
+ assert 'YouTube Shorts' in page.locator('#dustedProposalPanel').inner_text()
+ for costing in ['R250','R30','12%']:
+  assert costing not in page.locator('#dusted').inner_text()
+ assert page.locator('#dustedBoxCount').count()==0
  assert page.locator('.dusted-flavours h4').all_text_contents()==['Soft Raspberry','Dusty Rose','Summer Blueberry','Sunset Orange']
  page.screenshot(path='/tmp/dusted-desktop.png',full_page=True)
  page.evaluate("document.body.classList.add('dusted-print')")
  Path('/workspace/outputs').mkdir(exist_ok=True)
- page.pdf(path='/workspace/outputs/Dusted-Owner-Review.pdf',format='A4',print_background=True,margin={'top':'12mm','bottom':'12mm','left':'12mm','right':'12mm'})
+ page.pdf(path='/workspace/outputs/Dusted-Promotion-Proposal.pdf',format='A4',print_background=True,margin={'top':'12mm','bottom':'12mm','left':'12mm','right':'12mm'})
  page.evaluate("document.body.classList.remove('dusted-print')")
  page.locator('#dusted [data-studio-tab=work]').click();page.wait_for_function('!document.querySelector("#dustedAddPin").disabled')
  assert 'Other project audition' in page.locator('#dustedEvents').inner_text();assert 'Loden casting' not in page.locator('#dustedEvents').inner_text()
+ for key,title in [('shops','Email local shops'),('clubs','Contact local running-club organisers'),('restaurants','Email restaurants in the area')]:
+  page.locator('#dustedWorkPanel [data-dusted-task='+key+']').click()
+  assert page.locator('#field-title').input_value().startswith(title)
+  assert page.locator('#field-project_id').input_value()=='p2'
+  page.locator('#cancelDialog').click()
+
  page.locator('#dusted [data-brand-add=calendar]').click();assert page.locator('#field-project_id').input_value()=='p2';page.locator('#cancelDialog').click()
  page.locator('#dusted [data-studio-tab=chat]').click();assert 'Other brand chat' in page.locator('#dustedMessages').inner_text();assert 'Brand direction' not in page.locator('#dustedMessages').inner_text()
  page.locator('#dustedChatText').fill('Dusted tasting feedback');page.locator('#dustedChatSend').click();page.wait_for_function('document.querySelector("#dustedMessages").textContent.includes("Dusted tasting feedback")');assert page.evaluate('workspaceTest.writes.at(-1).values.project_id')=='p2'
@@ -46,6 +54,39 @@ with sync_playwright() as p:
  page.locator('#fragileShortcut').click();page.locator('#fragile [data-studio-tab=board]').click();page.wait_for_function('!document.querySelector("#fragileAddPin").disabled');assert 'Elegant gifting' not in page.locator('#fragileBoard').inner_text()
  page.locator('#dustedShortcut').click();page.locator('#dusted [data-studio-tab=outreach]').click()
  assert 'Dusted. owner review' in page.locator('#dustedReviewBrief').input_value()
+ assert 'May I send' in page.locator('#dustedEmailSubject').input_value()
+ assert page.locator('.dusted-lead-card').count()==12
+ assert page.locator('.dusted-contact-table tbody tr').count()==12
+ page.locator('#dustedLeadArea').select_option('seaboard');assert 'Newlands' not in page.locator('#dustedLeadGrid').inner_text()
+ page.locator('#dustedLeadType').select_option('club');assert page.locator('.dusted-lead-card').count()==1
+ assert 'Atlantic Athletic Club' in page.locator('#dustedLeadGrid').inner_text()
+ page.locator('.dusted-lead-card').get_by_role('button',name='Prepare introduction').click()
+ assert 'Atlantic Athletic Club' in page.locator('#dustedEmailSubject').input_value()
+ page.locator('.dusted-lead-card').get_by_role('button',name='＋ Add contact task').click()
+ assert 'Contact Atlantic Athletic Club' in page.locator('#field-title').input_value()
+ assert page.locator('#field-project_id').input_value()=='p2';page.locator('#cancelDialog').click()
+ page.locator('#dustedLeadArea').select_option('all');page.locator('#dustedLeadType').select_option('restaurant')
+ assert page.locator('.dusted-lead-card').count()==3
+ link=page.locator('.dusted-lead-card a').first
+ assert link.get_attribute('href').startswith('https://www.google.com/search?q=')
+ assert link.get_attribute('rel')=='noopener noreferrer'
+ page.locator('#dustedLeadType').select_option('all')
+
+ for channel in ['shop','market','gym','club','restaurant']:
+  page.locator('#dustedTemplate').select_option(channel)
+  assert 'non-THC Turkish delight' in page.locator('#dustedEmailBody').input_value()
+  assert 'R250' not in page.locator('#dustedEmailBody').input_value()
+ page.locator('#dustedTemplate').select_option('club')
+ page.locator('#dustedEmailBody').fill('A personalised running club idea')
+ page.locator('#dustedTemplate').select_option('shop');page.locator('#dustedTemplate').select_option('club')
+ assert page.locator('#dustedEmailBody').input_value()=='A personalised running club idea'
+ page.locator('#dustedResetDraft').click();assert 'non-THC Turkish delight' in page.locator('#dustedEmailBody').input_value()
+ page.locator('#dustedCopyDraft').click();assert page.locator('#dustedDraftStatus').inner_text()
+ page.evaluate("Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async value=>window.copiedDraft=value}})")
+ page.locator('#dustedCopyDraft').click();page.wait_for_function('window.copiedDraft?.startsWith("Subject:")')
+ assert 'non-THC Turkish delight' in page.evaluate('window.copiedDraft')
+ page.locator('#dusted [data-dusted-task=content]').click();assert 'YouTube Shorts' in page.locator('#field-title').input_value();assert page.locator('#field-project_id').input_value()=='p2';page.locator('#cancelDialog').click()
+
  page.locator('#dustedReviewBrief').fill('Owner meeting questions')
  page.locator('#dusted [data-studio-tab=proposal]').click();page.locator('#dusted [data-studio-tab=outreach]').click()
  assert page.locator('#dustedReviewBrief').input_value()=='Owner meeting questions'
@@ -62,4 +103,4 @@ with sync_playwright() as p:
  page.set_viewport_size({'width':1440,'height':1000});page.evaluate("workspaceTest.setDustedName('Different brand')");page.locator('#dustedShortcut').click();page.locator('#dusted [data-studio-tab=work]').click();assert page.locator('#dustedConnectActions').is_visible();assert 'Other project audition' not in page.locator('#dustedEvents').inner_text()
  page.locator('#dustedCreateProject').click();assert page.locator('#field-name').input_value()=='Dusted.';page.locator('#cancelDialog').click()
  assert not errors,errors
- b.close();print('PASS Dusted: isolated studio/chat/moodboard, project and event links, distinct type, proposal and PDF, supplied terms, owner meeting brief, copy fallback, internal review tasks, mobile layout and missing-project recovery.')
+ b.close();print('PASS Dusted: isolated studio/chat/moodboard, project and event links, distinct type, proposal and PDF, non-THC scope, Reels/Shorts plan, cost-free personal promotion plan, outreach draft editing/copy, owner meeting brief and campaign tasks, mobile layout and missing-project recovery.')

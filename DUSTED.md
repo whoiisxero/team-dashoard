@@ -1,6 +1,6 @@
 # Dusted. studio
 
-The sidebar shortcut below Fragile opens the Dusted. studio. Its Proposal tab is an internal workspace and owner-review demonstration, with print-to-PDF support. The visual reference is the user-supplied @dusted.cpt packaging screenshots: bold lowercase sans-serif, cream, brown, and four flavour accents. Typeface and colour specifications are approximations until original assets are supplied.
+The sidebar shortcut below Fragile opens the Dusted. studio. Its Proposal tab presents the proposed non-THC Turkish delight partnership, with print-to-PDF support. The visual reference is the user-supplied @dusted.cpt packaging screenshots: bold lowercase sans-serif, cream, brown, and four flavour accents. Typeface and colour specifications are approximations until original assets are supplied.
 
 ## Connect shared tools
 
@@ -14,13 +14,16 @@ Brand chat, moodboard, tasks, events and notes are shared with authenticated tea
 
 - Workstation: project events, tasks, assignments and a link to the full project workspace.
 - Brand chat and image/link/colour/note moodboard, with creator-only deletion.
-- Proposal: identity reference, product record register, workspace plan, supplied terms and an owner-review agenda.
-- Review checklist: internal record and asset tasks, a meeting brief, and a shortcut to saved project notes. The brief itself is temporary until copied into a project note; it resets on reload/sign-out.
+- Proposal: identity and product references, Instagram Reels and YouTube Shorts concepts, five partner channels, a personal promotion approach, a 30-day plan and workspace demonstration.
+- Greater Cape Town contact shortlist: twelve suggested organisations, contact roles, area/channel filters, official-contact search links, personalised draft preparation and project-task shortcuts. These are research leads, not verified contacts or confirmed partners. The list also appears in the exported proposal.
+- Outreach kit: content-response tracking guidance, permission and channel-specific editable email drafts, project task shortcuts and an owner meeting brief. Drafts and the brief are temporary until saved in project notes; they reset on reload/sign-out.
 
-The screenshots identify a THC-infused product. The demonstration does not include promotional campaigns, sales outreach, referral tracking, checkout or payment integration. The supplied R250 box price and 12% rate are recorded as internal information, with the arithmetic R30; no sales or legal authorisation is represented as complete.
+The user clarified that the product covered by this proposal will not be THC-infused. The proposal and every outreach draft explicitly cover that non-THC range. The supplied screenshots are visual references only, and final product assets must accurately represent the new product. The user asked for a personal promotion plan without costing, so pricing, commission figures and the scenario calculator are omitted from the presentation and email drafts.
+
+Nothing sends email or connects affiliate tracking, checkout or payments. The order route, final flavours, product facts and content approvals need owner agreement. South African contact/consent guidance is included with reference links, but no live policy or Instagram verification is claimed.
 
 ## Local checks
 
-`python3 tests/dusted-studio.py` uses simulated Supabase records and Chromium. It checks project isolation, chat/moodboard writes, event/project links, identity styling, supplied figures, meeting brief, tasks, missing-project recovery and mobile widths. It exports a sample review PDF to `/workspace/outputs/Dusted-Owner-Review.pdf`. This test never writes to the live database.
+`python3 tests/dusted-studio.py` uses simulated Supabase records and Chromium. It checks project isolation, chat/moodboard writes, event/project links, identity styling, cost-free proposal, outreach task starters, draft edits/copy, meeting brief, tasks, missing-project recovery and mobile widths. It exports a sample review PDF to `/workspace/outputs/Dusted-Promotion-Proposal.pdf`. This test never writes to the live database.
 
 Fragile remains covered by `python3 tests/fragile-studio.py`; the existing project workspace and calendar tests cover linked records and date interactions.
