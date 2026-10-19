@@ -40,12 +40,13 @@ with sync_playwright() as p:
  page.evaluate("document.body.classList.remove('dusted-print')")
  page.locator('#dusted [data-studio-tab=work]').click();page.wait_for_function('!document.querySelector("#dustedAddPin").disabled')
  assert 'Other project audition' in page.locator('#dustedEvents').inner_text();assert 'Loden casting' not in page.locator('#dustedEvents').inner_text()
- for key,title in [('shops','Email local shops'),('clubs','Contact local running-club organisers'),('restaurants','Email restaurants in the area')]:
-  page.locator('#dustedWorkPanel [data-dusted-task='+key+']').click()
-  assert page.locator('#field-title').input_value().startswith(title)
-  assert page.locator('#field-project_id').input_value()=='p2'
-  page.locator('#cancelDialog').click()
-
+ assert page.locator('#dustedWorkContactGrid .dusted-contact-task').count()==17
+ assert 'Find and verify Greater Cape Town running clubs' in page.locator('#dustedWorkContactGrid').inner_text()
+ card=page.locator('#dustedWorkContactGrid [data-lead-key=origin]');card.get_by_role('button',name='Prepare task').click()
+ assert page.locator('#field-title').input_value().startswith('Contact Origin Coffee Roasting')
+ assert page.locator('#field-project_id').input_value()=='p2';assert page.locator('#field-due_date').input_value()=='2026-10-20';page.locator('#cancelDialog').click()
+ page.locator('#dustedWorkContactFilter').select_option('club');assert page.locator('#dustedWorkContactGrid .dusted-contact-task').count()==7
+ page.locator('#dustedWorkContactFilter').select_option('all')
  page.locator('#dusted [data-brand-add=calendar]').click();assert page.locator('#field-project_id').input_value()=='p2';page.locator('#cancelDialog').click()
  page.locator('#dusted [data-studio-tab=chat]').click();assert 'Other brand chat' in page.locator('#dustedMessages').inner_text();assert 'Brand direction' not in page.locator('#dustedMessages').inner_text()
  page.locator('#dustedChatText').fill('Dusted tasting feedback');page.locator('#dustedChatSend').click();page.wait_for_function('document.querySelector("#dustedMessages").textContent.includes("Dusted tasting feedback")');assert page.evaluate('workspaceTest.writes.at(-1).values.project_id')=='p2'
@@ -55,8 +56,8 @@ with sync_playwright() as p:
  page.locator('#dustedShortcut').click();page.locator('#dusted [data-studio-tab=outreach]').click()
  assert 'Dusted. owner review' in page.locator('#dustedReviewBrief').input_value()
  assert 'May I send' in page.locator('#dustedEmailSubject').input_value()
- assert page.locator('.dusted-lead-card').count()==12
- assert page.locator('.dusted-contact-table tbody tr').count()==12
+ assert page.locator('.dusted-lead-card').count()==16
+ assert page.locator('.dusted-contact-table tbody tr').count()==16
  page.locator('#dustedLeadArea').select_option('seaboard');assert 'Newlands' not in page.locator('#dustedLeadGrid').inner_text()
  page.locator('#dustedLeadType').select_option('club');assert page.locator('.dusted-lead-card').count()==1
  assert 'Atlantic Athletic Club' in page.locator('#dustedLeadGrid').inner_text()
@@ -67,7 +68,7 @@ with sync_playwright() as p:
  assert page.locator('#field-project_id').input_value()=='p2';page.locator('#cancelDialog').click()
  page.locator('#dustedLeadArea').select_option('all');page.locator('#dustedLeadType').select_option('restaurant')
  assert page.locator('.dusted-lead-card').count()==3
- link=page.locator('.dusted-lead-card a').first
+ link=page.locator('.dusted-lead-card a').filter(has_text='Find official contact').first
  assert link.get_attribute('href').startswith('https://www.google.com/search?q=')
  assert link.get_attribute('rel')=='noopener noreferrer'
  page.locator('#dustedLeadType').select_option('all')

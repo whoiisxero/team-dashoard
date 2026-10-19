@@ -12,18 +12,26 @@ Brand chat, moodboard, tasks, events and notes are shared with authenticated tea
 
 ## Contents
 
-- Workstation: project events, tasks, assignments and a link to the full project workspace.
+- Workstation: project events, tasks, assignments, sixteen proposed organisation contact tasks, a running-club research task and a link to the full project workspace. **Save 17 contact tasks to team** saves missing tasks and contact-sheet project notes through the signed-in user. Preparation deadline: 20 October 2026; the meeting time was not supplied. The cloud assistant cannot execute that action without a user session.
 - Brand chat and image/link/colour/note moodboard, with creator-only deletion.
 - Proposal: identity and product references, Instagram Reels and YouTube Shorts concepts, five partner channels, a personal promotion approach, a 30-day plan and workspace demonstration.
-- Greater Cape Town contact shortlist: twelve suggested organisations, contact roles, area/channel filters, official-contact search links, personalised draft preparation and project-task shortcuts. These are research leads, not verified contacts or confirmed partners. The list also appears in the exported proposal.
+- Greater Cape Town contact shortlist: sixteen suggested organisations, contact roles, area/channel filters, official-contact search links, personalised draft preparation and project-task shortcuts. Six running clubs are included. These are research leads, not verified contacts or confirmed partners. The list also appears in the exported proposal.
 - Outreach kit: content-response tracking guidance, permission and channel-specific editable email drafts, project task shortcuts and an owner meeting brief. Drafts and the brief are temporary until saved in project notes; they reset on reload/sign-out.
 
 The user clarified that the product covered by this proposal will not be THC-infused. The proposal and every outreach draft explicitly cover that non-THC range. The supplied screenshots are visual references only, and final product assets must accurately represent the new product. The user asked for a personal promotion plan without costing, so pricing, commission figures and the scenario calculator are omitted from the presentation and email drafts.
 
 Nothing sends email or connects affiliate tracking, checkout or payments. The order route, final flavours, product facts and content approvals need owner agreement. South African contact/consent guidance is included with reference links, but no live policy or Instagram verification is claimed.
 
+## Contact task saving
+
+Contact references live in `dusted-contacts.js`; phone/email fields stay empty unless verified. Website references are labelled as unverified. External venue/club research is currently blocked by the cloud network allowlist; required access changes were saved in the environment configuration draft but do not take effect until the user reviews, saves and publishes them.
+
+`dusted-workstation.js` saves a project note with the source/status/next step before creating its corresponding task. It uses project-specific stable UUIDs and conflict-ignore writes to avoid duplicate imports or overwrite of completed tasks and edited contact sheets. Existing tasks with the same title are retained. A failed import can be retried. It reuses the existing tasks and project_notes schemas, and adds no schema migration.
+
 ## Local checks
 
 `python3 tests/dusted-studio.py` uses simulated Supabase records and Chromium. It checks project isolation, chat/moodboard writes, event/project links, identity styling, cost-free proposal, outreach task starters, draft edits/copy, meeting brief, tasks, missing-project recovery and mobile widths. It exports a sample review PDF to `/workspace/outputs/Dusted-Promotion-Proposal.pdf`. This test never writes to the live database.
+
+`python3 tests/dusted-contact-tasks.py` checks creator/project/deadline scoping, missing note tables, partial failures, retries, repeat import, note preservation, double-click protection and mobile layouts.
 
 Fragile remains covered by `python3 tests/fragile-studio.py`; the existing project workspace and calendar tests cover linked records and date interactions.
