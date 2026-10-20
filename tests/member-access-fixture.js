@@ -1,4 +1,4 @@
-const state=window.accessTest={failAccess:false,failPresence:false,writes:[],online:new Set(['tertius']),profiles:{
+const state=window.accessTest={failAccess:false,failPresence:false,writes:[],presenceReads:[],heartbeats:[],online:new Set(['tertius']),profiles:{
 quan:{ready:true,is_admin:true,project_mode:'all',shared_access:true,can_create_projects:true},
 tertius:{ready:true,is_admin:false,project_mode:'all',shared_access:true,can_create_projects:true},
 josh:{ready:true,is_admin:false,project_mode:'selected',shared_access:false,can_create_projects:false}}};
@@ -17,9 +17,9 @@ function query(table){let filters=[],single=false,limit=Infinity,head=false,inse
 }
 db={from:query,channel:()=>{const c={on:()=>c,subscribe:()=>c};return c},removeChannel:()=>{},rpc:async(name,args={})=>{
  if(name==='my_dashboard_access')return state.failAccess?{error:{code:'PGRST202'}}:{data:{...state.profiles[user.id]}};
- if(name==='touch_member_presence'){if(state.failPresence)return {error:{message:'Offline'}};state.online.add(user.id);return {data:null};}
+ if(name==='touch_member_presence'){state.heartbeats.push(user.id);if(state.failPresence)return {error:{message:'Offline'}};state.online.add(user.id);return {data:null};}
  if(name==='leave_member_presence'){state.online.delete(user.id);return {data:null};}
- if(name==='team_online_members')return {data:records.team_members.map(m=>({...m,online:state.online.has(m.user_id)}))};
+ if(name==='team_online_members'){state.presenceReads.push(user.id);return {data:state.profiles[user.id].is_admin?records.team_members.map(m=>({...m,online:state.online.has(m.user_id)})):[]};}
  if(name==='list_member_access')return {data:records.team_members.map(m=>({...m,...state.profiles[m.user_id],project_rules:(state.rules[m.user_id]||[]).map(id=>({project_id:id,allowed:true}))}))};
  if(name==='set_member_access'){state.writes.push({rpc:name,args});state.rules[args.target]=args.allowed_projects;Object.assign(state.profiles[args.target],{project_mode:args.mode,shared_access:args.shared});return {data:null};}
  return {error:{message:'Unknown RPC'}};

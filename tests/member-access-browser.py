@@ -37,10 +37,15 @@ with sync_playwright() as p:
  assert not page.locator('#dusted').evaluate('(el)=>el.classList.contains("active")')
  page.locator('.sidebar [data-view=projects]').click()
  assert 'Dusted.' not in page.locator('#allProjects').inner_text()
- page.locator('.sidebar [data-view=members]').click();assert page.locator('#memberAccessControls').is_hidden()
+ assert page.locator('.sidebar [data-view=members]').is_hidden()
+ page.evaluate("accessTest.navigate('members')")
+ assert page.locator('#members').is_hidden()
+ assert page.locator('#memberAccessList').inner_text()==''
+ assert page.locator('#onlineMemberList').inner_text()==''
 
  page.evaluate("accessTest.switchUser('josh')");page.wait_for_function('!document.querySelector("#dustedPrivateChatShortcut").hidden')
  assert page.locator('#fragileShortcut').is_hidden()
+ assert page.locator('.sidebar [data-view=members]').is_hidden()
  assert page.locator('.sidebar [data-view=discussions]').is_hidden()
  page.locator('.sidebar [data-view=projects]').click()
  assert page.locator('#allProjects .project-card').count()==1
@@ -67,10 +72,15 @@ with sync_playwright() as p:
  page.evaluate('accessTest.failAccess=true;accessTest.refresh()')
  page.wait_for_function('!document.querySelector("#teamAccessNotice").hidden')
  assert page.locator('.sidebar [data-view=projects]').is_hidden()
+ assert page.locator('.sidebar [data-view=members]').is_hidden()
+ assert page.evaluate('accessTest.presenceReads.every(id=>id==="quan")')
+ assert page.evaluate('accessTest.heartbeats.includes("tertius")&&accessTest.heartbeats.includes("josh")')
+ page.evaluate("accessTest.failAccess=false;accessTest.switchUser('quan')")
+ page.wait_for_function('!document.querySelector(".sidebar [data-view=members]").hidden')
  page.locator('.sidebar [data-view=members]').click()
  page.evaluate('accessTest.failPresence=true');page.locator('#membersRefresh').click()
  page.wait_for_function('document.querySelector("#membersOnlineLabel").textContent==="Status unavailable"')
  page.set_viewport_size({'width':390,'height':844});assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
  page.screenshot(path='/tmp/quest-members.png',full_page=True)
  assert not errors,errors
- b.close();print('PASS browser: online roster, owner-only permissions editor, role-specific navigation, Dusted private chat, scoped event selection, hidden shared budget/chat, revocation, fail-closed setup, connection errors and mobile layout.')
+ b.close();print('PASS browser: owner-only Members page, direct navigation blocked, no non-owner presence reads, working member heartbeats, permissions editor, project scopes, private chat, revocation, setup errors and mobile layout.')

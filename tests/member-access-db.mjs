@@ -72,13 +72,16 @@ await actor(quan);await db.exec(`select set_member_access('${josh}','selected',f
 await actor(josh);assert.equal((await rows('select * from projects')).length,0);assert.equal((await rows('select * from team_notifications')).length,0);
 await actor(quan);await assert.rejects(db.exec(`select set_member_access('${quan}','selected',false,'{}')`),/Owner access/);
 await db.exec(`select set_member_access('${josh}','selected',false,array['${dusted}']::uuid[])`);
-// Presence cannot be spoofed; two tabs keep the same member online until both leave/expire.
+// All members can send heartbeats; only the owner can read online status.
 await actor(josh);await db.exec(`select touch_member_presence('${uid(40)}');select touch_member_presence('${uid(41)}')`);
-assert((await rows('select * from team_online_members()')).find(m=>m.user_id===josh).online);
+assert.equal((await rows('select * from team_online_members()')).length,0);
 await assert.rejects(db.exec(`insert into member_presence values('${quan}','${uid(42)}',now())`),/permission denied/);
-await db.exec(`select leave_member_presence('${uid(40)}')`);assert((await rows('select * from team_online_members()')).find(m=>m.user_id===josh).online);
+await actor(tertius);assert.equal((await rows('select * from team_online_members()')).length,0);
+await actor(quan);assert((await rows('select * from team_online_members()')).find(m=>m.user_id===josh).online);
+await actor(josh);await db.exec(`select leave_member_presence('${uid(40)}')`);
+await actor(quan);assert((await rows('select * from team_online_members()')).find(m=>m.user_id===josh).online);
 await actor(null);await db.exec(`update member_presence set last_seen=now()-interval '91 seconds'`);
-await actor(josh);assert(!(await rows('select * from team_online_members()')).find(m=>m.user_id===josh).online);
+await actor(quan);assert(!(await rows('select * from team_online_members()')).find(m=>m.user_id===josh).online);
 await actor(stranger);assert.equal((await rows('select * from team_online_members()')).length,0);
 await assert.rejects(db.exec(`select touch_member_presence('${uid(43)}')`),/Team access/);
 await actor(null);await db.exec('set role anon');await assert.rejects(db.exec('select my_dashboard_access()'),/permission denied/);

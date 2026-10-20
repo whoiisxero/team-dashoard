@@ -6,8 +6,9 @@ window.createTeamAccess = ({getData, refresh, toast}) => {
   const node=(tag,value,cls='')=>{const el=document.createElement(tag);el.textContent=value;if(cls)el.className=cls;return el;};
   const normal=name=>name.trim().toLowerCase().replace(/\.$/,'');
   function canView(view) {
-    if(['overview','members'].includes(view))return true;
+    if(view==='overview')return true;
     if(!policy)return false;
+    if(view==='members')return !!policy.is_admin;
     if(view==='discussions')return policy.shared_access;
     if(['fragile','dusted'].includes(view))return getData().projects.some(p=>normal(p.name)===view)||policy.is_admin;
     return true;
@@ -22,6 +23,8 @@ window.createTeamAccess = ({getData, refresh, toast}) => {
     $('budgetSubtitle')?.parentElement?.toggleAttribute('hidden',!policy?.shared_access);
     $('teamAccessNotice').hidden=!!policy;
     $('memberAccessControls').hidden=!policy?.is_admin;
+    $('members').hidden=!policy?.is_admin;
+    if(!policy?.is_admin){profiles=[];$('memberAccessList').replaceChildren();renderOnline();}
     $('dustedPrivateChatShortcut').hidden=!policy||!getData().projects.some(p=>normal(p.name)==='dusted');
   }
   async function load() {
@@ -50,8 +53,9 @@ window.createTeamAccess = ({getData, refresh, toast}) => {
     const current=epoch,uid=presenceOwner;presenceBusy=true;
     try {
       const touch=await getData().db.rpc('touch_member_presence',{session_key:sessionKey});if(touch.error)throw touch.error;
+      if(current!==epoch||getData().user?.id!==uid||!policy?.is_admin)return;
       const result=await getData().db.rpc('team_online_members');if(result.error)throw result.error;
-      if(current===epoch&&getData().user?.id===uid)renderOnline(result.data||[]);
+      if(current===epoch&&getData().user?.id===uid&&policy?.is_admin)renderOnline(result.data||[]);
     } catch {
       if(current===epoch){renderOnline();$('membersOnlineLabel').textContent='Status unavailable';$('memberPresenceStatus').textContent='Online status is unavailable. Reconnecting automatically…';}
     } finally {if(current===epoch)presenceBusy=false;}
@@ -69,10 +73,10 @@ window.createTeamAccess = ({getData, refresh, toast}) => {
     if(uid&&getData().user?.id===uid)try{await getData().db.rpc('leave_member_presence',{session_key:key});}catch{}
   }
   async function loadMembers() {
-    void presenceTick();if(!policy?.is_admin)return;
+    if(!policy?.is_admin)return;void presenceTick();
     const current=epoch,uid=getData().user?.id;
     $('memberAccessStatus').textContent='Loading access settings…';
-    try{const result=await getData().db.rpc('list_member_access');if(current!==epoch||getData().user?.id!==uid)return;
+    try{const result=await getData().db.rpc('list_member_access');if(current!==epoch||getData().user?.id!==uid||!policy?.is_admin)return;
       if(result.error)throw result.error;profiles=result.data||[];renderControls();$('memberAccessStatus').textContent='Project access also applies to its tasks, events, notes, chat, moodboard and notifications.';
     }catch{if(current===epoch)$('memberAccessStatus').textContent='Could not load permissions. Press Refresh to retry.';}
   }

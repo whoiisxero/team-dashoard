@@ -218,7 +218,7 @@ create or replace function public.team_online_members()
 returns table(user_id uuid,display_name text,online boolean)
 language sql stable security definer set search_path=''
 as $$ select m.user_id,m.display_name,exists(select 1 from public.member_presence p where p.user_id=m.user_id and p.last_seen>now()-interval '90 seconds')
-  from public.team_members m where public.is_team_member() order by m.display_name; $$;
+  from public.team_members m where public.access_admin() order by m.display_name; $$;
 
 revoke all on function public.access_admin(),public.shared_access_for(uuid),public.project_access_for(uuid,uuid),
  public.can_access_project(uuid),public.can_create_project(),public.my_dashboard_access(),public.list_member_access(),

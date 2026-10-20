@@ -19,6 +19,9 @@ with sync_playwright() as p:
   return r.fulfill(body='',content_type='text/css')
  page.route('**/*',route);page.goto('http://dashboard.test/');page.wait_for_function('window.ready&&!document.querySelector("#privateChatNavSection").hidden')
  assert page.locator('#dustedShortcut').is_hidden()
+ assert page.locator('.sidebar [data-view=members]').is_hidden()
+ page.evaluate("accessTest.navigate('members')")
+ assert page.locator('#members').is_hidden()
  assert page.locator('.sidebar [data-view=discussions]').is_hidden()
  assert page.locator('#privateChatNav button').count()==1
  page.locator('#privateChatNav button').click();page.wait_for_function('!document.querySelector("#privateChatSend").disabled')

@@ -27,8 +27,11 @@ becomes the Dusted team chat available only to Quan and Josh. Membership is tied
 to auth user IDs, never display names. Owner assignments belong in the private
 installation file rather than this public repository.
 
-Members lists online status and gives the owner project checkboxes and a shared
-areas toggle. Permissions are fetched before the signed-in UI is displayed and
+Only the owner can open Members, view online status or use its project checkboxes
+and shared areas toggle. Non-owners cannot fetch the online list through the RPC;
+their heartbeats still update so the owner can see their status. Normal names
+used for message authors and task assignments remain available in their projects.
+Permissions are fetched before the signed-in UI is displayed and
 rechecked every 30 seconds and on data refresh. Missing/unavailable permission
 checks fail closed to Home. Revocation clears cached studios, notes, dialogs and
 notifications on the next refresh. Data previously read cannot be recalled from
