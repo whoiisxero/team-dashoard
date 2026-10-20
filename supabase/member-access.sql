@@ -75,6 +75,14 @@ as $$ select jsonb_build_object('ready',true,'is_admin',coalesce(a.is_admin,fals
   'project_mode',coalesce(a.project_mode,'selected'))
   from public.team_members m left join public.member_access a using(user_id) where m.user_id=auth.uid(); $$;
 
+-- Signing in needs only the caller's own membership, independently of roster RLS.
+create or replace function public.my_team_profile()
+returns jsonb language sql stable security definer set search_path=''
+as $$ select jsonb_build_object('user_id',m.user_id,'display_name',m.display_name)
+  from public.team_members m where m.user_id=auth.uid(); $$;
+revoke all on function public.my_team_profile() from public,anon,authenticated;
+grant execute on function public.my_team_profile() to authenticated;
+
 create or replace function public.list_member_access()
 returns jsonb language plpgsql stable security definer set search_path=''
 as $$ begin

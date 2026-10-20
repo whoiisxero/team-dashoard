@@ -31,6 +31,11 @@ Only the owner can open Members, view online status or use its project checkboxe
 and shared areas toggle. Non-owners cannot fetch the online list through the RPC;
 their heartbeats still update so the owner can see their status. Normal names
 used for message authors and task assignments remain available in their projects.
+Sign-in reads `my_team_profile()`, which returns only the authenticated caller's
+own membership through a secure function. Hiding the general roster with RLS must
+not prevent an existing member from signing in. Unknown accounts still return no
+profile. The client checks the returned user ID and falls back to the original
+own-row lookup only when the new function has not been installed yet.
 Permissions are fetched before the signed-in UI is displayed and
 rechecked every 30 seconds and on data refresh. Missing/unavailable permission
 checks fail closed to Home. Revocation clears cached studios, notes, dialogs and

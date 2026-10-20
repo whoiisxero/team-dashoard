@@ -12,10 +12,11 @@ const accessible=id=>state.profiles[user.id].is_admin||state.rules[user.id]?.inc
 function query(table){let filters=[],single=false,limit=Infinity,head=false,inserting=null;
  const q={select:(fields,options={})=>{head=!!options.head;return q},eq:(key,value)=>{filters.push(row=>row[key]===value);return q},gte:()=>q,is:(key,value)=>{filters.push(row=>row[key]===value);return q},order:()=>q,limit:n=>{limit=n;return q},maybeSingle:()=>{single=true;return q},insert:values=>{inserting=values;return q},then:(resolve,reject)=>Promise.resolve().then(()=>{
  if(inserting){state.writes.push({table,values:inserting});records[table].push({...inserting,id:'posted',created_at:'2026-10-20T10:00:00Z'});return {error:null};}
- let data=(records[table]||[]).filter(row=>table==='projects'?accessible(row.id):table==='team_members'||table==='team_notifications'?true:row.project_id?accessible(row.project_id):state.profiles[user.id].shared_access).filter(row=>filters.every(f=>f(row))).map(row=>({...row}));
+ let data=(records[table]||[]).filter(row=>table==='projects'?accessible(row.id):table==='team_members'?!state.hideRoster:table==='team_notifications'?true:row.project_id?accessible(row.project_id):state.profiles[user.id].shared_access).filter(row=>filters.every(f=>f(row))).map(row=>({...row}));
  return {data:head?null:single?(data[0]||null):data.slice(0,limit),count:data.length,error:null};}).then(resolve,reject)};return q;
 }
 db={from:query,channel:()=>{const c={on:()=>c,subscribe:()=>c};return c},removeChannel:()=>{},rpc:async(name,args={})=>{
+ if(name==='my_team_profile')return state.profileRpcMissing?{error:{code:'PGRST202'}}:{data:records.team_members.find(m=>m.user_id===user.id)||null};
  if(name==='my_dashboard_access')return state.failAccess?{error:{code:'PGRST202'}}:{data:{...state.profiles[user.id]}};
  if(name==='touch_member_presence'){state.heartbeats.push(user.id);if(state.failPresence)return {error:{message:'Offline'}};state.online.add(user.id);return {data:null};}
  if(name==='leave_member_presence'){state.online.delete(user.id);return {data:null};}

@@ -50,7 +50,10 @@ for(const member of [tertius,josh]){
  await assert.rejects(db.exec(`insert into project_member_access values('${member}','${forbidden}',true)`),/permission denied/);
  assert.equal((await rows(`select * from team_notifications where project_id='${forbidden}'`)).length,0,'historical notification guard');
 }
+await actor(null);await db.exec('create policy owner_only_roster on team_members as restrictive for select to authenticated using(public.access_admin())');
 await actor(josh);
+assert.equal((await rows('select my_team_profile() as profile'))[0].profile.user_id,josh);
+assert.equal((await rows('select * from team_members')).length,0,'A hidden roster must not block the own-profile RPC');
 assert.equal((await rows('select * from discussion_messages')).length,0);assert.equal((await rows('select * from team_settings')).length,0);
 assert.equal((await rows('select * from tasks where project_id is null')).length,0);
 await assert.rejects(db.exec(`insert into discussion_messages(body,user_id) values('Bypass','${josh}')`),/row-level security/);
@@ -83,6 +86,7 @@ await actor(quan);assert((await rows('select * from team_online_members()')).fin
 await actor(null);await db.exec(`update member_presence set last_seen=now()-interval '91 seconds'`);
 await actor(quan);assert(!(await rows('select * from team_online_members()')).find(m=>m.user_id===josh).online);
 await actor(stranger);assert.equal((await rows('select * from team_online_members()')).length,0);
+assert.equal((await rows('select my_team_profile() as profile'))[0].profile,null);
 await assert.rejects(db.exec(`select touch_member_presence('${uid(43)}')`),/Team access/);
 await actor(null);await db.exec('set role anon');await assert.rejects(db.exec('select my_dashboard_access()'),/permission denied/);
 // Removing a private project must not expose its SET NULL children as shared.

@@ -22,6 +22,11 @@ with sync_playwright() as p:
  assert page.locator('.online-member').count()==3
  assert 'Online' in page.locator('.online-member').filter(has_text='Quan').inner_text()
  assert page.locator('#membersOnlineCount').inner_text()=='2'
+ # Existing projects without the new RPC can still use the original own-row check.
+ page.evaluate("accessTest.profileRpcMissing=true;accessTest.switchUser('quan')")
+ page.wait_for_function('!document.querySelector("#appShell").hidden')
+ page.evaluate('accessTest.profileRpcMissing=false')
+ page.locator('.sidebar [data-view=members]').click();page.wait_for_function('document.querySelectorAll(".member-access-card").length===3')
  owner=page.locator('[data-member-id=quan]');assert owner.locator('select').count()==0
  t=page.locator('[data-member-id=tertius]');assert not t.locator('[value=dusted]').is_checked()
  t.locator('select').select_option('selected');t.locator('[name=shared]').uncheck();t.get_by_role('button',name='Save access').click()
@@ -43,7 +48,11 @@ with sync_playwright() as p:
  assert page.locator('#memberAccessList').inner_text()==''
  assert page.locator('#onlineMemberList').inner_text()==''
 
- page.evaluate("accessTest.switchUser('josh')");page.wait_for_function('!document.querySelector("#dustedPrivateChatShortcut").hidden')
+ # Own-profile lookup still signs in when the general roster is hidden by RLS.
+ page.evaluate("accessTest.hideRoster=true;accessTest.switchUser('josh')");page.wait_for_function('!document.querySelector("#dustedPrivateChatShortcut").hidden')
+ assert page.locator('#userName').inner_text()=='Josh'
+ assert page.locator('#appShell').is_visible()
+ page.evaluate('accessTest.hideRoster=false;accessTest.refresh()')
  assert page.locator('#fragileShortcut').is_hidden()
  assert page.locator('.sidebar [data-view=members]').is_hidden()
  assert page.locator('.sidebar [data-view=discussions]').is_hidden()
