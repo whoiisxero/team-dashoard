@@ -52,3 +52,6 @@ Brand chat has no new external email trigger.
 Validation: `tests/member-access-db.mjs` uses PGlite with real roles/RLS;
 `tests/member-access-browser.py` tests actual screens with a scoped transport.
 Legacy feature tests use `full_access_fixture.py` for an explicit owner session.
+
+Invite-only conversations add an independent room-membership requirement; see
+`PRIVATE-CHATS.md`. Jen's account is scoped to Fragile and the Quan & Jen room.

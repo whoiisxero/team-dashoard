@@ -1,0 +1,7 @@
+#privateChatNav button{overflow-wrap:anywhere;line-height:1.5}
+.private-chat-card{max-width:850px;margin:0 auto}.private-chat-card .composer{margin-top:18px}
+.private-chat-card .post-head{flex-wrap:wrap}.private-chat-card time{color:var(--muted);font-size:11px}
+.private-chat-card .post-head .button{margin-left:auto}.private-chat-card .private-message-body{white-space:pre-wrap;overflow-wrap:anywhere}
+.private-chat-note{display:inline-block;border:1px solid var(--line);border-radius:20px;padding:5px 10px;color:var(--green2);font-size:11px}
+#privateChatStatus{color:var(--muted);font-size:12px;line-height:1.6}
+@media(max-width:680px){.private-chat-card .composer{flex-direction:column}.private-chat-card .composer textarea{width:100%}.private-chat-card .composer .button{align-self:flex-end}}
