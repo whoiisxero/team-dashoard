@@ -11,6 +11,8 @@ Object.defineProperty(testState,'events',{get:()=>calendarEvents});monthCursor=n
 db={from:table=>({update:values=>{const q={eq:()=>q,select:()=>q,maybeSingle:async()=>{testState.writes.push({table,values});if(testState.fail)return {error:{message:'Access denied'}};if(testState.zero)return {data:null};Object.assign(calendarEvents[0],values);return {data:{id:'event'}}}};return q},insert:async values=>{testState.writes.push({table,values});calendarEvents.push({...values,id:'new'});return {error:null}}})};
 document.querySelector('#loginScreen').hidden=true;document.querySelector('#appShell').hidden=false;showView('calendar');window.ready=true;
 </script></body>''')
+from full_access_fixture import full_access_fixture
+html=full_access_fixture(html)
 with sync_playwright() as p:
  browser=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox'])
  page=browser.new_page(timezone_id='Africa/Johannesburg');page.clock.install(time=__import__('datetime').datetime(2026,10,17,23,30,tzinfo=__import__('datetime').timezone.utc));errors=[];page.on('pageerror',lambda e:errors.append(str(e)))

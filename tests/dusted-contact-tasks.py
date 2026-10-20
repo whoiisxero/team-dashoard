@@ -17,6 +17,8 @@ refreshAll=async()=>{render();if(document.querySelector('#dusted').classList.con
 const contactFrom=db.from;state.contactCalls=[];state.failContactNotes=false;state.failContactLead=null;
 db.from=table=>{const q=contactFrom(table);if(!['tasks','project_notes','projects'].includes(table))return q;q.upsert=async(values,options)=>{state.contactCalls.push({table,values:{...values},options});await new Promise(resolve=>setTimeout(resolve,2));if(table==='project_notes'&&state.failContactNotes)return {error:{code:'PGRST205'}};if(table==='tasks'&&values.title.includes(state.failContactLead||'!never!'))return {error:{message:'Contact task save denied'}};const rows=table==='tasks'?tasks:table==='projects'?projects:state.notes;if(!rows.some(row=>row.id===values.id))rows.push({...values,created_at:new Date().toISOString()});return {error:null}};return q};
 </script></body>""")
+from full_access_fixture import full_access_fixture
+html=full_access_fixture(html)
 with sync_playwright() as p:
  b=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox']);page=b.new_page(viewport={'width':1280,'height':1000});errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
  def route(r):

@@ -1,5 +1,5 @@
 /* Per-recipient activity inbox. Database triggers create trusted actor snapshots. */
-window.createNotificationCenter = ({getClient, getUser, navigate, openEvent, toast}) => {
+window.createNotificationCenter = ({getClient, getUser, getProjects=()=>[], navigate, openEvent, toast}) => {
   const $ = id => document.getElementById(id);
   const destinations = {brand_messages:'fragile',brand_moodboard_items:'fragile',project_notes:'projects',projects:'projects',tasks:'tasks',expenses:'expenses',goals:'goals',discussion_messages:'discussions',calendar_events:'calendar',team_settings:'expenses',team_members:'dashboard'};
   const labels = {brand_messages:'brand message',brand_moodboard_items:'moodboard pin',project_notes:'project note',projects:'project',tasks:'task',expenses:'expense',goals:'goal',discussion_messages:'message',calendar_events:'event',team_settings:'budget',team_members:'team member'};
@@ -21,7 +21,8 @@ window.createNotificationCenter = ({getClient, getUser, navigate, openEvent, toa
       const open=document.createElement('button');open.type='button';open.className='notification-open';
       const verb=row.action==='INSERT'?(row.source_table==='discussion_messages'?'sent':'added'):row.action==='DELETE'?'removed':'updated';
       open.append(text(document.createElement('strong'),`${row.actor_name} ${verb} ${labels[row.source_table]||'an item'}`));
-      open.append(text(document.createElement('span'),row.source_table==='brand_messages'?'Fragile brand chat':row.item_title));
+      const project=getProjects().find(p=>p.id===row.project_id);
+      open.append(text(document.createElement('span'),row.source_table==='brand_messages'?(project?project.name+' team chat':'Brand chat'):row.item_title));
       const time=document.createElement('time');time.dateTime=row.created_at;time.textContent=new Date(row.created_at).toLocaleString(undefined,{dateStyle:'medium',timeStyle:'short'});open.append(time);
       open.onclick=()=>void openNotification(row);article.append(open);
       if (!row.read_at) {
@@ -75,7 +76,12 @@ window.createNotificationCenter = ({getClient, getUser, navigate, openEvent, toa
     if(busy)return;const current=session;
     if(!row.read_at)await writeRead([row.id]);
     if(current!==session)return;
-    const target=destinations[row.source_table];if(!target)return;
+    let target=destinations[row.source_table];if(!target)return;
+    if(['brand_messages','brand_moodboard_items'].includes(row.source_table)){
+      const project=getProjects().find(p=>p.id===row.project_id);
+      if(!project){toast('This project is no longer available.');return;}
+      target=project.name.trim().toLowerCase().replace(/\.$/,'')==='dusted'?'dusted':'fragile';
+    }
     navigate(target);
     if(row.action==='DELETE'){toast('This item was removed.');return;}
     if(row.source_table==='calendar_events')openEvent(row.source_id,row.event_date);

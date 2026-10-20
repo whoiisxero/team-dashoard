@@ -11,6 +11,8 @@ state.pins=[{id:'pin1',project_id:'p1',created_by:'tertius',title:'Warm rust',no
 db.from=table=>{if(!table.startsWith('brand_'))return baseFrom(table);let filters=[],inserting=null,deleting=false,single=false,limit=Infinity;const rows=()=>table==='brand_messages'?state.brandMessages:state.pins;const q={select:()=>q,eq:(key,value)=>{filters.push(row=>row[key]===value);return q},order:()=>q,limit:n=>{limit=n;return q},insert:values=>{inserting=values;return q},delete:()=>{deleting=true;return q},maybeSingle:()=>{single=true;return q},then:(resolve,reject)=>Promise.resolve().then(()=>{if(state.brandError)return {error:{code:state.brandError}};if((inserting||deleting)&&state.failBrand)return {error:{message:'Brand save denied'}};if(inserting){rows().push({...inserting,id:'new-'+state.writes.length,created_at:new Date().toISOString()});state.writes.push({table,values:inserting});return {error:null}}let found=rows().filter(row=>filters.every(f=>f(row))).sort((a,b)=>b.created_at.localeCompare(a.created_at));if(deleting){for(const row of found)rows().splice(rows().indexOf(row),1);return {data:single?found[0]:found,error:null}}return {data:found.slice(0,limit).map(row=>({...row})),error:null}}).then(resolve,reject)};return q;};render();
 '''
 html=html.replace('</script></body>',fixture+'</script></body>')
+from full_access_fixture import full_access_fixture
+html=full_access_fixture(html)
 with sync_playwright() as p:
  b=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox']);page=b.new_page(viewport={'width':1440,'height':1000});errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
  def route(r):

@@ -11,6 +11,8 @@ db={from:table=>{let cutoff='',filters=[],deleting=false,single=false;const q={s
 refreshAll=async()=>{render();await loadGoals()};document.querySelector('#loginScreen').hidden=true;document.querySelector('#appShell').hidden=false;showView('goals');window.ready=true;
 '''
 html=html.replace('</script></body>',fixture+'</script></body>')
+from full_access_fixture import full_access_fixture
+html=full_access_fixture(html)
 with sync_playwright() as p:
  b=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox']);page=b.new_page(timezone_id='Africa/Johannesburg');page.clock.install(time=datetime.datetime(2026,10,18,12,tzinfo=datetime.timezone.utc));errors=[];page.on('pageerror',lambda e:(errors.append(str(e)),print('Browser error:',e)))
  def route(r):

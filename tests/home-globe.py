@@ -5,6 +5,8 @@ from playwright.sync_api import sync_playwright
 root=Path(__file__).resolve().parents[1]
 html=(root/'index.html').read_text().replace("import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/+esm';", "const createClient=()=>({auth:{getSession:async()=>({data:{session:null}}),onAuthStateChange:()=>{}}});")
 html=html.replace('</script></body>', "document.querySelector('#loginScreen').hidden=true;document.querySelector('#appShell').hidden=false;document.querySelector('#userName').textContent='Quan';window.ready=true;</script></body>")
+from full_access_fixture import full_access_fixture
+html=full_access_fixture(html)
 with sync_playwright() as p:
  b=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox'])
  page=b.new_page(timezone_id='Africa/Johannesburg',viewport={'width':1280,'height':900})

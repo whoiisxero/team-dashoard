@@ -1,0 +1,14 @@
+.online-member{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid var(--line)}
+.presence-dot{display:inline-block;width:9px;height:9px;flex:none;border-radius:50%;background:var(--muted);opacity:.5}
+.presence-dot.online{background:var(--green2);box-shadow:0 0 10px color-mix(in srgb,var(--green2) 40%,transparent);opacity:1}
+.presence-label{margin-left:auto;color:var(--muted);font-size:12px}
+.member-access-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:14px}
+.member-access-card{padding:18px;border:1px solid var(--line);border-radius:12px;background:var(--panel2);min-width:0}
+.member-access-card h3{margin:0 0 16px}.member-access-card label{display:block;margin:10px 0;line-height:1.5}
+.member-access-card select{margin-top:6px}.member-access-card fieldset{border:1px solid var(--line);margin:16px 0;padding:10px;border-radius:8px}
+.member-access-card .member-project-choice{display:flex;gap:9px;align-items:flex-start}.member-project-choice input{margin-top:4px;accent-color:var(--green2)}
+.member-access-card .hint{line-height:1.5;margin-bottom:16px}.member-access-card legend{color:var(--muted);padding:0 6px}
+.team-access-notice{border:1px solid var(--warn);border-radius:10px;padding:14px;color:var(--ink);margin-bottom:20px;line-height:1.6}
+#memberAccessStatus,#memberPresenceStatus{color:var(--muted);font-size:12px;line-height:1.6}
+.members-layout{display:grid;gap:22px}.online-nav-count{font-size:11px;margin-left:auto;color:var(--green2)}
+@media(max-width:680px){.top-right #topUser{display:none}}

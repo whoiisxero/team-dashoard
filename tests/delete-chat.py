@@ -11,6 +11,8 @@ db={from:table=>{let filters=[],deleting=false,single=false;const q={select:()=>
 document.querySelector('#loginScreen').hidden=true;document.querySelector('#appShell').hidden=false;showView('discussions');window.ready=true;
 '''
 html=html.replace('</script></body>',fixture+'</script></body>')
+from full_access_fixture import full_access_fixture
+html=full_access_fixture(html)
 with sync_playwright() as p:
  b=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox']);page=b.new_page();errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
  def route(r):

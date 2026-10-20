@@ -6,6 +6,8 @@ root=Path(__file__).resolve().parents[1]
 html=(root/'index.html').read_text().replace("import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/+esm';", "const createClient=()=>({auth:{getSession:async()=>({data:{session:null}}),onAuthStateChange:()=>{}}});")
 fixture=(root/'tests/workspace-fixture.js').read_text()+"\nprojects[0].name='Fragile';projects[0].priority='very_important';projects[0].priority_color='red';render();"
 html=html.replace('</script></body>',fixture+'</script></body>')
+from full_access_fixture import full_access_fixture
+html=full_access_fixture(html)
 with sync_playwright() as p:
  b=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox']);page=b.new_page(viewport={'width':1280,'height':900});errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
  def route(r):
