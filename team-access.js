@@ -1,5 +1,5 @@
 /* Database permissions are authoritative; these checks keep the UI in sync. */
-window.createTeamAccess = ({getData, refresh, toast}) => {
+window.createTeamAccess = ({getData, refresh, toast, request:runRequest=async value=>value}) => {
   const $=id=>document.getElementById(id);
   let policy=null,epoch=0,profiles=[],saving=false,presenceTimer=null,presenceOwner=null;
   let sessionKey=null,presenceBusy=false,accessRequest=0;
@@ -31,7 +31,7 @@ window.createTeamAccess = ({getData, refresh, toast}) => {
     const request=++accessRequest,current=epoch,uid=getData().user?.id;
     if(!uid)return false;
     try {
-      const result=await getData().db.rpc('my_dashboard_access');
+      const result=await runRequest(getData().db.rpc('my_dashboard_access'),'Member permission check timed out. Check your connection and retry.');
       if(current!==epoch||request!==accessRequest||getData().user?.id!==uid)return false;
       if(result.error||!result.data?.ready)throw result.error||new Error('Membership access is unavailable.');
       policy=result.data;apply();return true;

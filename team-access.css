@@ -12,3 +12,5 @@
 #memberAccessStatus,#memberPresenceStatus{color:var(--muted);font-size:12px;line-height:1.6}
 .members-layout{display:grid;gap:22px}.online-nav-count{font-size:11px;margin-left:auto;color:var(--green2)}
 @media(max-width:680px){.top-right #topUser{display:none}}
+
+.dashboard-load-notice{margin-bottom:18px}.dashboard-load-notice p{margin-top:0;line-height:1.6;overflow-wrap:anywhere}
