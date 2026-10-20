@@ -1,7 +1,7 @@
 -- Run this once in Supabase SQL Editor.
 create table if not exists public.team_members (
   user_id uuid primary key references auth.users(id) on delete cascade,
-  display_name text not null check (display_name in ('Quan', 'Tertius')),
+  display_name text not null check (char_length(btrim(display_name)) between 1 and 80),
   created_at timestamptz not null default now()
 );
 
