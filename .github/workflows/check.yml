@@ -1,0 +1,50 @@
+name: Quest checks
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  app-and-permissions:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install test dependencies
+        run: |
+          python -m pip install playwright==1.62.0 pillow
+          python -m playwright install --with-deps chromium
+          npm install --prefix "$RUNNER_TEMP/quest-db" --no-save @electric-sql/pglite@0.3.14
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          from playwright.sync_api import sync_playwright
+          with sync_playwright() as p:
+              with Path(os.environ['GITHUB_ENV']).open('a') as f:
+                  f.write('CHROMIUM_EXECUTABLE='+p.chromium.executable_path+'\n')
+                  f.write('PGLITE_MODULE='+os.environ['RUNNER_TEMP']+'/quest-db/node_modules/@electric-sql/pglite/dist/index.js\n')
+          PY
+      - name: Build and test database permissions
+        run: |
+          node scripts/build.mjs
+          node tests/member-access-db.mjs
+          node tests/private-chats-db.mjs
+          node tests/daily-workflow-db.mjs
+      - name: Test browser workflows
+        run: |
+          python tests/session-startup-browser.py
+          python tests/member-access-browser.py
+          python tests/private-chats-browser.py
+          python tests/calendar-edit.py
+          python tests/notifications-browser.py
+          python tests/daily-workflow-browser.py
+          python tests/installable-browser.py

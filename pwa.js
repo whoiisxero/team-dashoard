@@ -7,6 +7,7 @@
   function hasUnsentWork(){
     if(document.querySelector('dialog[open]:not(#appInstallDialog)'))return true;
     if(document.querySelector('[data-app-saving="true"]'))return true;
+    if([...document.querySelectorAll('form[data-app-dirty="true"]')].some(form=>form.offsetParent))return true;
     return ['messageText','privateChatText','fragileChatText','dustedChatText'].some(id=>$(id)?.value.trim())||
       (!$('#loginScreen')?.hidden&&['email','password','resetEmail','newPassword','confirmPassword'].some(id=>$(id)?.offsetParent&&$(id).value));
   }
@@ -54,7 +55,8 @@
     reloadRequested=true;registration.waiting.postMessage({type:'ACTIVATE_UPDATE'});
   };
   async function checkUpdate(){if(navigator.onLine===false||!registration)return;try{await registration.update();watchWaiting();}catch{}}
-  document.addEventListener('input',updateState);document.addEventListener('change',updateState);
+  const changed=event=>{const form=event.target.closest('form');if(form&&form.id!=='workflowSearchForm'&&!['messageForm','privateChatForm','fragileChatForm','dustedChatForm'].includes(form.id))form.dataset.appDirty='true';updateState();};
+  document.addEventListener('input',changed);document.addEventListener('change',changed);
   window.addEventListener('online',()=>void checkUpdate());
   window.addEventListener('focus',()=>void checkUpdate());
   if('serviceWorker' in navigator&&window.isSecureContext){

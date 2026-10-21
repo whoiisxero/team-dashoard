@@ -2,6 +2,7 @@
 from pathlib import Path
 import mimetypes
 from playwright.sync_api import sync_playwright
+from browser_config import CHROMIUM
 
 root=Path(__file__).resolve().parents[1]
 source=(root/'index.html').read_text()
@@ -25,7 +26,7 @@ window.startupReady=true;
 '''
 html=html.replace('</script></body>',fixture.replace('</script','<\\/script')+'</script></body>')
 with sync_playwright() as p:
- b=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox'])
+ b=p.chromium.launch(executable_path=CHROMIUM,args=['--no-sandbox'])
  page=b.new_page(viewport={'width':390,'height':844},is_mobile=True,has_touch=True)
  errors=[];page.on('pageerror',lambda error:errors.append(str(error)))
  # Keep timeout checks fast without changing production timeouts.

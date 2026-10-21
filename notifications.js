@@ -1,8 +1,8 @@
 /* Per-recipient activity inbox. Database triggers create trusted actor snapshots. */
 window.createNotificationCenter = ({getClient, getUser, getProjects=()=>[], openPrivateChat=()=>{}, navigate, openEvent, toast}) => {
   const $ = id => document.getElementById(id);
-  const destinations = {brand_messages:'fragile',brand_moodboard_items:'fragile',project_notes:'projects',projects:'projects',tasks:'tasks',expenses:'expenses',goals:'goals',discussion_messages:'discussions',calendar_events:'calendar',team_settings:'expenses',team_members:'dashboard'};
-  const labels = {private_chat_messages:'private message',brand_messages:'brand message',brand_moodboard_items:'moodboard pin',project_notes:'project note',projects:'project',tasks:'task',expenses:'expense',goals:'goal',discussion_messages:'message',calendar_events:'event',team_settings:'budget',team_members:'team member'};
+  const destinations = {project_files:'files',brand_messages:'fragile',brand_moodboard_items:'fragile',project_notes:'projects',projects:'projects',tasks:'tasks',expenses:'expenses',goals:'goals',discussion_messages:'discussions',calendar_events:'calendar',team_settings:'expenses',team_members:'dashboard'};
+  const labels = {project_files:'project file',private_chat_messages:'private message',brand_messages:'brand message',brand_moodboard_items:'moodboard pin',project_notes:'project note',projects:'project',tasks:'task',expenses:'expense',goals:'goal',discussion_messages:'message',calendar_events:'event',team_settings:'budget',team_members:'team member'};
   let session = 0, owner = null, channel = null, poll = null, rows = [], limit = 50, unread = 0;
   let fetching = false, refreshAgain = false, online = false, busy = false;
   const status = text => { $('notificationStatus').textContent=text; };
@@ -20,7 +20,7 @@ window.createNotificationCenter = ({getClient, getUser, getProjects=()=>[], open
       const article=document.createElement('article');article.className=`notification-item${row.read_at?'':' unread'}`;
       const open=document.createElement('button');open.type='button';open.className='notification-open';
       const verb=row.action==='INSERT'?(['discussion_messages','private_chat_messages'].includes(row.source_table)?'sent':'added'):row.action==='DELETE'?'removed':'updated';
-      open.append(text(document.createElement('strong'),`${row.actor_name} ${verb} ${labels[row.source_table]||'an item'}`));
+      open.append(text(document.createElement('strong'),row.notification_type==='reminder'?`Reminder · ${labels[row.source_table]||'your work'}`:`${row.actor_name} ${verb} ${labels[row.source_table]||'an item'}`));
       const project=getProjects().find(p=>p.id===row.project_id);
       open.append(text(document.createElement('span'),row.source_table==='brand_messages'?(project?project.name+' team chat':'Brand chat'):row.item_title));
       const time=document.createElement('time');time.dateTime=row.created_at;time.textContent=new Date(row.created_at).toLocaleString(undefined,{dateStyle:'medium',timeStyle:'short'});open.append(time);
@@ -47,7 +47,7 @@ window.createNotificationCenter = ({getClient, getUser, getProjects=()=>[], open
       if(current!==session)return;
       if(items.error||count.error)throw items.error||count.error;
       rows=items.data||[];unread=count.count||0;online=true;
-      status('Updates from other team members. Your own changes are excluded.');render();
+      status('Team updates and your reminders. Your own activity changes are excluded.');render();
     } catch(error) {
       if(current!==session)return;
       online=false;

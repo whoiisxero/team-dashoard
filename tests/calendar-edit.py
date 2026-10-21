@@ -1,6 +1,7 @@
 """Browser regression check using a simulated database; no remote writes."""
 from pathlib import Path
 from playwright.sync_api import sync_playwright
+from browser_config import CHROMIUM
 html=(Path(__file__).resolve().parents[1]/'index.html').read_text()
 html=html.replace("import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/+esm';", "const createClient=()=>({auth:{getSession:async()=>({data:{session:null}}),onAuthStateChange:()=>{}}});")
 html=html.replace('</script></body>', '''
@@ -14,7 +15,7 @@ document.querySelector('#loginScreen').hidden=true;document.querySelector('#appS
 from full_access_fixture import full_access_fixture
 html=full_access_fixture(html)
 with sync_playwright() as p:
- browser=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox'])
+ browser=p.chromium.launch(executable_path=CHROMIUM,args=['--no-sandbox'])
  page=browser.new_page(timezone_id='Africa/Johannesburg');page.clock.install(time=__import__('datetime').datetime(2026,10,17,23,30,tzinfo=__import__('datetime').timezone.utc));errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
  def route(r):
   if r.request.url=='http://dashboard.test/':r.fulfill(body=html,content_type='text/html')

@@ -5,6 +5,7 @@ from urllib.parse import urlparse
 from threading import Thread
 import json, re, subprocess
 from playwright.sync_api import sync_playwright
+from browser_config import CHROMIUM
 from PIL import Image
 
 root=Path(__file__).resolve().parents[1]
@@ -39,7 +40,7 @@ server=ThreadingHTTPServer(('127.0.0.1',0),Handler);Thread(target=server.serve_f
 base=f'http://127.0.0.1:{server.server_port}'
 try:
  with sync_playwright() as p:
-  b=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox'])
+  b=p.chromium.launch(executable_path=CHROMIUM,args=['--no-sandbox'])
   context=b.new_context(viewport={'width':390,'height':844},is_mobile=True,has_touch=True,service_workers='allow')
   context.route('https://**/*',lambda r:r.fulfill(body='',content_type='text/css'))
   page=context.new_page();errors=[];page.on('pageerror',lambda error:errors.append(str(error)))

@@ -2,12 +2,13 @@
 from pathlib import Path
 import mimetypes
 from playwright.sync_api import sync_playwright
+from browser_config import CHROMIUM
 root=Path(__file__).resolve().parents[1]
 html=(root/'index.html').read_text().replace("import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/+esm';", "const createClient=()=>({auth:{getSession:async()=>({data:{session:null}}),onAuthStateChange:()=>{}}});")
 fixture=((root/'tests/member-access-fixture.js').read_text()+(root/'tests/private-chats-fixture.js').read_text()).replace('</script','<\\/script')
 html=html.replace('</script></body>',fixture+'</script></body>')
 with sync_playwright() as p:
- b=p.chromium.launch(executable_path='/usr/bin/chromium',args=['--no-sandbox'])
+ b=p.chromium.launch(executable_path=CHROMIUM,args=['--no-sandbox'])
  page=b.new_page(viewport={'width':1280,'height':1000});errors=[];page.on('pageerror',lambda e:(errors.append(str(e)),print('Browser error:',str(e))))
  def route(r):
   url=r.request.url

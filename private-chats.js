@@ -33,11 +33,11 @@ window.createPrivateChats=({getData,navigate,toast})=>{
   async function refreshRooms(){if(navigator.onLine===false)return;const uid=getData().user?.id;if(!uid)return;if(owner!==uid){reset();owner=uid;}
     const session=epoch,request=++roomsRequest;
     try{const result=await getData().db.from('private_chat_rooms').select('id,name,project_id').order('created_at');if(!current(session,uid)||request!==roomsRequest)return;if(result.error)throw result.error;
-      rooms=(result.data||[]).filter(room=>room.id&&room.name&&getData().projects.some(p=>p.id===room.project_id));renderNav();
+      const oldRoomIds=rooms.map(room=>room.id).sort().join(',');rooms=(result.data||[]).filter(room=>room.id&&room.name&&getData().projects.some(p=>p.id===room.project_id));renderNav();if(oldRoomIds!==rooms.map(room=>room.id).sort().join(','))window.dispatchEvent(new Event('quest:private-access-changed'));
       if(selected&&!rooms.some(r=>r.id===selected)){clearSelected();$('privateChatStatus').textContent='This conversation is no longer available to your account.';if($('privateChat').classList.contains('active'))navigate('overview');}
       else if(selected&&$('privateChat').classList.contains('active'))await loadMessages();
       if(!poll)poll=setInterval(()=>{if(!document.hidden)void refreshRooms();},30000);
-    }catch{if(current(session,uid)&&request===roomsRequest){rooms=[];clearSelected();$('privateChatStatus').textContent='Private chats could not be loaded. Ask the owner to finish setup, or press Refresh to retry.';}}
+    }catch{if(current(session,uid)&&request===roomsRequest){rooms=[];clearSelected();window.dispatchEvent(new Event('quest:private-access-changed'));$('privateChatStatus').textContent='Private chats could not be loaded. Ask the owner to finish setup, or press Refresh to retry.';}}
   }
   async function open(id){if(!rooms.some(r=>r.id===id))await refreshRooms();if(!rooms.some(r=>r.id===id)){toast('This private chat is not available to your account.');return;}
     if(selected!==id){clearSelected();selected=id;$('privateChatStatus').textContent='Loading your private conversation…';render();const session=epoch;
@@ -61,5 +61,5 @@ window.createPrivateChats=({getData,navigate,toast})=>{
   function reset(){epoch++;roomsRequest++;owner=null;rooms=[];if(poll)clearInterval(poll);poll=null;clearSelected();$('privateChatStatus').textContent='Private conversations are visible only to invited participants.';}
   $('privateChatRefresh').onclick=()=>void refreshRooms();
   window.addEventListener('focus',()=>{if(owner)void refreshRooms();});
-  render();return {refreshRooms,open,reset};
+  render();return {refreshRooms,open,reset,hasRoom:id=>rooms.some(room=>room.id===id)};
 };
