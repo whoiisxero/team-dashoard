@@ -4,6 +4,10 @@
 
 Build the complete SQL setup with `node scripts/prepare-workflow-setup.mjs`. Its default destination is `/workspace/outputs/quest-daily-workflow-setup.sql`; pass a different output filename as an argument if needed.
 
+For an existing Quest installation with project permissions already enabled, use `node scripts/prepare-workflow-setup.mjs --upgrade` instead. This shorter file installs the private-chat prerequisite and daily workflow migration without replaying the older setup scripts. A preflight checks the required tables, permission functions and restrictive guards before making changes; use the complete setup if those are missing. Both paths preserve existing access assignments.
+
+The command also creates an adjacent `-copy.html` file. Download/open that file in a browser and use **Copy complete SQL** to avoid copying only part of a file preview. Paste into a new SQL Editor query, clear any selection, confirm the last line is `-- END QUEST SETUP`, then Run. An **unterminated dollar-quoted string** error means the submitted query ended inside a function or `DO` block; replace the incomplete query with the complete file rather than adding a closing delimiter to a partial migration.
+
 Run the whole file in the Quest Supabase project's SQL Editor using the normal administrator connection. It clears an aborted transaction and resets any impersonated query role first. The setup includes the current project, brand, notification and private-chat prerequisites, followed by the ordered migration `supabase/migrations/20261021_daily_workflow.sql`. It preserves existing memberships, access assignments, messages and project content. The database changes commit together; a failed statement rolls them back together.
 
 The final result must say **Quest daily workflow ready**, with version **20261021_daily_workflow**. Refresh Quest afterward. No account-specific email matching or Fragile project-name lookup is required.
@@ -37,4 +41,4 @@ An upload writes the object first and metadata second. If metadata fails, the cl
 - `python tests/daily-workflow-browser.py`: scoped UI flows, a Johannesburg midnight boundary, cross-zone events, assignments, reminders, phone file selection, moodboard previews, cleanup/retry, search/history, account switches and setup failures.
 - `python tests/installable-browser.py`: the built app and real service worker, including private-cache exclusion and reconnecting after access revocation.
 
-The full SQL setup bundle is also applied in the database test to verify that it preserves existing access rules and uploaded-file metadata. Actual phone installation and a live upload/download should be checked with a permitted test project after setup.
+The full SQL setup bundle and shorter upgrade are also applied in the database test to verify that they preserve existing access rules and uploaded-file metadata. The shorter upgrade is tested with missing private-chat tables, a query editor impersonating `authenticated`, repeat application and missing permission prerequisites. Actual phone installation and a live upload/download should be checked with a permitted test project after setup.

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {prepareWorkflowSetup} from '../scripts/prepare-workflow-setup.mjs';
+import {prepareWorkflowSetup,prepareWorkflowUpgrade} from '../scripts/prepare-workflow-setup.mjs';
 process.on('uncaughtException',error=>{console.error(error.message,error.where||'',error.position||'');process.exit(1);});
 const {PGlite}=await import(process.env.PGLITE_MODULE||'@electric-sql/pglite');
 const db=new PGlite(),id=n=>`00000000-0000-4000-8000-${String(n).padStart(12,'0')}`;
@@ -14,14 +14,25 @@ alter table storage.objects enable row level security;grant usage on schema stor
 create policy legacy_storage on storage.objects for all to authenticated using(true) with check(true);create policy legacy_anon on storage.objects for select to anon using(true);`);
 const sql=async name=>readFile(new URL('../supabase/'+name,import.meta.url),'utf8');
 await db.exec((await sql('schema.sql')).replaceAll('\r\n','\n').replaceAll('do $\n','do $$$$\n').replaceAll('end $;','end $$$$;'));
-for(const name of ['project-workspaces.sql','fragile-studio.sql','notifications.sql','member-access.sql','private-chats.sql'])await db.exec(await sql(name));
+for(const name of ['project-workspaces.sql','fragile-studio.sql','notifications.sql'])await db.exec(await sql(name));
+const upgrade=await prepareWorkflowUpgrade();
+await assert.rejects(db.exec(upgrade),/Missing prerequisite table: public.member_access/);
+await db.exec('rollback');
+assert.equal((await db.query("select to_regclass('public.private_chat_messages') name")).rows[0].name,null);
+await db.exec(await sql('member-access.sql'));
 await db.exec(`insert into auth.users values('${quan}'),('${tertius}'),('${josh}'),('${jen}'),('${stranger}');
 insert into team_members(user_id,display_name) values('${quan}','Quan'),('${tertius}','Tertius'),('${josh}','Josh'),('${jen}','Jen');
 insert into projects(id,name) values('${fragile}','Fragile'),('${dusted}','Dusted.');
 insert into member_access(user_id,is_admin,project_mode,shared_access) values('${quan}',true,'all',true),('${tertius}',false,'all',true),('${josh}',false,'selected',false),('${jen}',false,'selected',false);
 update projects set access_restricted=true where id='${dusted}';
 insert into project_member_access values('${tertius}','${dusted}',false),('${josh}','${dusted}',true),('${jen}','${fragile}',true);`);
-const migration=await sql('migrations/20261021_daily_workflow.sql');await db.exec(migration);await db.exec(migration);
+const existingAssignments=(await db.query('select * from member_access order by user_id')).rows;
+assert.equal((await db.query("select to_regclass('public.private_chat_messages') name")).rows[0].name,null);
+// Recover a query editor left impersonating authenticated, and install missing
+// private-chat prerequisites without rerunning the older permission migration.
+await db.exec('set role authenticated');await db.exec(upgrade);await db.exec(upgrade);
+assert.deepEqual((await db.query('select * from member_access order by user_id')).rows,existingAssignments);
+const migration=await sql('migrations/20261021_daily_workflow.sql');await db.exec(migration);
 const actor=async uid=>{await db.exec('reset role');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[uid||'']);if(uid)await db.exec('set role authenticated');};
 const rows=async(query,args=[])=>(await db.query(query,args)).rows;
 await actor(quan);
