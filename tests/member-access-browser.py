@@ -37,7 +37,7 @@ with sync_playwright() as p:
 
  page.evaluate("accessTest.profiles.tertius.shared_access=true;accessTest.switchUser('tertius')")
  page.wait_for_function('document.querySelector("#dustedShortcut").hidden')
- assert page.locator('#dustedPrivateChatShortcut').is_hidden()
+ assert page.locator('#dustedPrivateChatShortcut').count()==0
  assert page.locator('#fragileShortcut').is_visible()
  page.evaluate("accessTest.navigate('dusted')")
  assert not page.locator('#dusted').evaluate('(el)=>el.classList.contains("active")')
@@ -50,7 +50,7 @@ with sync_playwright() as p:
  assert page.locator('#onlineMemberList').inner_text()==''
 
  # Own-profile lookup still signs in when the general roster is hidden by RLS.
- page.evaluate("accessTest.hideRoster=true;accessTest.switchUser('josh')");page.wait_for_function('!document.querySelector("#dustedPrivateChatShortcut").hidden')
+ page.evaluate("accessTest.hideRoster=true;accessTest.switchUser('josh')");page.wait_for_function('!document.querySelector("#dustedShortcut").hidden')
  assert page.locator('#userName').inner_text()=='Josh'
  assert page.locator('#appShell').is_visible()
  page.evaluate('accessTest.hideRoster=false;accessTest.refresh()')
@@ -60,7 +60,7 @@ with sync_playwright() as p:
  page.locator('.sidebar [data-view=projects]').click()
  assert page.locator('#allProjects .project-card').count()==1
  assert 'Dusted.' in page.locator('#allProjects').inner_text()
- page.locator('#dustedPrivateChatShortcut').click();page.wait_for_function('document.querySelector("#dustedMessages").textContent.includes("Dusted owner")')
+ page.locator('#dustedShortcut').click();page.locator('#dusted [data-studio-tab=chat]').click();page.wait_for_function('document.querySelector("#dustedMessages").textContent.includes("Dusted owner")')
  assert page.locator('#dustedChatPanel .fragile-toolbar h2').inner_text()=='Dusted. team chat'
  assert 'Fragile private team' not in page.locator('#dustedMessages').inner_text()
  page.locator('#dustedChatText').fill('Josh private message');page.locator('#dustedChatSend').click()
@@ -73,12 +73,12 @@ with sync_playwright() as p:
  page.locator('#cancelDialog').click()
  page.locator('.sidebar [data-view=dashboard]').click()
  assert page.locator('#recentMessages').is_hidden();assert page.locator('#budgetSpent').is_hidden()
- page.locator('#dustedPrivateChatShortcut').click();page.wait_for_function('document.querySelector("#dustedMessages").textContent.includes("Josh private message")')
+ page.locator('#dustedShortcut').click();page.locator('#dusted [data-studio-tab=chat]').click();page.wait_for_function('document.querySelector("#dustedMessages").textContent.includes("Josh private message")')
  # Revocation clears open private views/cached chat and closes dialogs.
  page.evaluate("accessTest.rules.josh=[];accessTest.refresh()")
  page.wait_for_function('document.querySelector("#overview").classList.contains("active")')
  assert page.locator('#dustedMessages').inner_text()==''
- assert page.locator('#dustedPrivateChatShortcut').is_hidden()
+ assert page.locator('#dustedShortcut').is_hidden()
  page.evaluate('accessTest.failAccess=true;accessTest.refresh()')
  page.wait_for_function('!document.querySelector("#teamAccessNotice").hidden')
  assert page.locator('.sidebar [data-view=projects]').is_hidden()

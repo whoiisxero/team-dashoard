@@ -91,6 +91,39 @@ try:
   assert 'Safari' in phone.locator('#appInstallSteps').inner_text();assert 'Share' in phone.locator('#appInstallSteps').inner_text()
   phone.screenshot(path='/tmp/quest-install-phone.png',full_page=True)
   assert phone.evaluate('document.documentElement.scrollWidth<=innerWidth')
+  # Installation belongs to the device/window, not an owner's access level.
+  desktop=b.new_context(viewport={'width':1280,'height':1000},service_workers='block')
+  desktop.route('https://**/*',lambda r:r.fulfill(body='',content_type='text/css'))
+  desktop.add_init_script("""const originalMatchMedia=window.matchMedia.bind(window);
+    window.testAppDisplay=Object.assign(new EventTarget(),{matches:false,media:'(display-mode: standalone)'});
+    window.matchMedia=query=>query==='(display-mode: standalone)'?window.testAppDisplay:originalMatchMedia(query);""")
+  member_page=desktop.new_page();member_page.goto(base);member_page.wait_for_function('window.ready&&window.QuestApp')
+  for uid in ['quan','tertius','josh','jen']:
+   member_page.evaluate('(id)=>accessTest.switchUser(id)',uid)
+   assert member_page.locator('#userName').inner_text()==uid.title()
+   assert member_page.locator('#appInstallMenu').is_visible()
+   member_page.locator('#appInstallMenu').click();assert member_page.locator('#appInstallDialog').is_visible()
+   assert 'Install app' in member_page.locator('#appInstallSteps').inner_text()
+   member_page.locator('#appInstallClose').click()
+  member_page.evaluate("testAppDisplay.matches=true;testAppDisplay.dispatchEvent(new Event('change'))")
+  assert member_page.locator('#appInstallMenu').is_hidden()
+  member_page.evaluate("testAppDisplay.matches=false;testAppDisplay.dispatchEvent(new Event('change'))")
+  assert member_page.locator('#appInstallMenu').is_visible()
+  member_page.evaluate("dispatchEvent(new Event('appinstalled'))")
+  assert member_page.locator('#appInstallMenu').is_hidden()
+  assert member_page.locator('#appInstallLogin').evaluate('(el)=>el.hidden')
+  member_page.evaluate("accessTest.switchUser('quan')")
+  assert member_page.locator('#appInstallMenu').is_hidden()
+  # Emulate opening/reopening an installed standalone window, without relying
+  # on a flag saved by a different member or a previous browser visit.
+  app=b.new_context(viewport={'width':1280,'height':1000},service_workers='block')
+  app.route('https://**/*',lambda r:r.fulfill(body='',content_type='text/css'))
+  app.add_init_script("""const originalMatchMedia=window.matchMedia.bind(window);
+    window.matchMedia=query=>{const media=originalMatchMedia(query);if(query==='(display-mode: standalone)')Object.defineProperty(media,'matches',{value:true});return media;};""")
+  installed=app.new_page();installed.goto(base);installed.wait_for_function('window.ready&&window.QuestApp')
+  assert installed.locator('#appInstallMenu').is_hidden()
+  installed.reload();installed.wait_for_function('window.ready&&window.QuestApp')
+  assert installed.locator('#appInstallMenu').is_hidden()
   b.close()
- print('PASS installable build: manifest/icons, hashed assets, Android/desktop prompt, iPhone help, real service worker, private-cache exclusion, offline launch/API failure, draft-safe updates, reconnect and permission revocation. Phone layouts emulated; real-device installation still needs manual checking.')
+ print('PASS installable build: all four member roles can install, installed windows hide installation entries across reopening/account switches, manifest/icons, hashed assets, Android/desktop prompt, iPhone help, real service worker, private-cache exclusion, offline launch/API failure, draft-safe updates, reconnect and permission revocation. Phone layouts and installed-window state emulated; real-device installation still needs manual checking.')
 finally:server.shutdown();server.server_close()

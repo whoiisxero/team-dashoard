@@ -14,11 +14,11 @@ A new worker waits for an explicit Update Quest action. The action is disabled w
 
 ## Installation
 
-Use **Install Quest** from sign-in or the sidebar.
+Every member can use **Install Quest** from sign-in or the sidebar on the website; installation does not require owner privileges. The installation entries disappear after the browser reports installation and when Quest opens in its installed app window, including after reopening it.
 
 - Android/desktop: use the supported browser installation prompt, address-bar icon or browser menu.
 - iPhone/iPad: open Quest in Safari, choose Share, then Add to Home Screen.
-- Already installed: the help dialog recognizes standalone mode where the browser exposes it.
+- Already installed: installation entries are hidden in standalone mode where the browser exposes it.
 
 Installation and prompts depend on the browser and operating system. Browser push notifications and app-store distribution are separate future milestones.
 

@@ -25,7 +25,6 @@ window.createTeamAccess = ({getData, refresh, toast, request:runRequest=async va
     $('memberAccessControls').hidden=!policy?.is_admin;
     $('members').hidden=!policy?.is_admin;
     if(!policy?.is_admin){profiles=[];$('memberAccessList').replaceChildren();renderOnline();}
-    $('dustedPrivateChatShortcut').hidden=!policy||!getData().projects.some(p=>normal(p.name)==='dusted');
   }
   async function load() {
     const request=++accessRequest,current=epoch,uid=getData().user?.id;

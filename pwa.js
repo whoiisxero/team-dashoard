@@ -1,8 +1,9 @@
 /* Installation and connection UX. Private data and drafts are never written to caches. */
 (() => {
   const RELEASE='__QUEST_RELEASE__',$=id=>document.getElementById(id);
-  let prompt=null,registration=null,reloadRequested=false,waitingTimer=null;
-  const standalone=()=>matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+  let prompt=null,registration=null,reloadRequested=false,waitingTimer=null,installedThisPage=false;
+  const appDisplay=matchMedia('(display-mode: standalone)');
+  const standalone=()=>appDisplay.matches||navigator.standalone===true;
   const ios=()=>/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
   function hasUnsentWork(){
     if(document.querySelector('dialog[open]:not(#appInstallDialog)'))return true;
@@ -12,7 +13,8 @@
       (!$('#loginScreen')?.hidden&&['email','password','resetEmail','newPassword','confirmPassword'].some(id=>$(id)?.offsetParent&&$(id).value));
   }
   function renderInstall(){
-    const installed=standalone();$('appInstallNative').hidden=installed||!prompt;
+    const installed=installedThisPage||standalone();$('appInstallNative').hidden=installed||!prompt;
+    for(const id of ['appInstallMenu','appInstallLogin'])$(id)?.toggleAttribute('hidden',installed);
     $('appInstallTitle').textContent=installed?'Quest is installed':'Install Quest';
     $('appInstallIntro').textContent=installed?'You’re using Quest in its own app window.':'Keep your team workspace one tap away with a Quest icon on your home screen.';
     $('appInstallSteps').hidden=installed;
@@ -30,7 +32,8 @@
     renderInstall();
   };
   window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();prompt=event;renderInstall();});
-  window.addEventListener('appinstalled',()=>{prompt=null;renderInstall();$('appInstallIntro').textContent='Quest is installed. Look for its icon on your home screen or app launcher.';});
+  window.addEventListener('appinstalled',()=>{installedThisPage=true;prompt=null;renderInstall();$('appInstallIntro').textContent='Quest is installed. Look for its icon on your home screen or app launcher.';});
+  appDisplay.addEventListener('change',renderInstall);
   function connection(){
     const offline=navigator.onLine===false;$('appConnection').hidden=!offline;
     $('appConnectionText').textContent='You’re offline. New changes can’t be sent yet. Keep this page open to keep your unsent work.';
@@ -67,5 +70,5 @@
       });
     }).catch(()=>{});
   }
-  connection();window.QuestApp={openInstall,hasUnsentWork,release:RELEASE};
+  renderInstall();connection();window.QuestApp={openInstall,hasUnsentWork,release:RELEASE};
 })();
