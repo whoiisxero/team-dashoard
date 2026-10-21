@@ -30,7 +30,7 @@ window.createPrivateChats=({getData,navigate,toast})=>{
       messages=(items.data||[]).reverse();members=participants.data||[];ready=true;$('privateChatStatus').textContent='Only invited participants can read this conversation · latest 100 messages.';render();
     }catch{if(current(session,uid,id)&&request===messagesRequest){ready=false;messages=[];members=[];render();$('privateChatStatus').textContent='Could not load this conversation. Press Refresh to retry. Your unsent message is still here.';}}
   }
-  async function refreshRooms(){const uid=getData().user?.id;if(!uid)return;if(owner!==uid){reset();owner=uid;}
+  async function refreshRooms(){if(navigator.onLine===false)return;const uid=getData().user?.id;if(!uid)return;if(owner!==uid){reset();owner=uid;}
     const session=epoch,request=++roomsRequest;
     try{const result=await getData().db.from('private_chat_rooms').select('id,name,project_id').order('created_at');if(!current(session,uid)||request!==roomsRequest)return;if(result.error)throw result.error;
       rooms=(result.data||[]).filter(room=>room.id&&room.name&&getData().projects.some(p=>p.id===room.project_id));renderNav();

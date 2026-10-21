@@ -32,6 +32,22 @@
           "value": "no-cache, max-age=0, must-revalidate"
         }
       ]
+    },
+    {
+      "source": "/service-worker.js",
+      "headers": [
+        {
+          "key": "Service-Worker-Allowed",
+          "value": "/"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
     }
-  ]
+  ],
+  "buildCommand": "node scripts/build.mjs",
+  "outputDirectory": "dist",
+  "framework": null
 }
