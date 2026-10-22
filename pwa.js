@@ -5,6 +5,21 @@
   const appDisplay=matchMedia('(display-mode: standalone)');
   const standalone=()=>appDisplay.matches||navigator.standalone===true;
   const ios=()=>/iPad|iPhone|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  let viewportFrame=null;
+  function fitViewport(){
+    if(viewportFrame!==null)return;
+    viewportFrame=requestAnimationFrame(()=>{
+      viewportFrame=null;const viewport=window.visualViewport;
+      if(viewport&&viewport.scale!==1)return;
+      const style=document.documentElement.style;
+      style.setProperty('--quest-viewport-height',`${Math.floor(viewport?.height||innerHeight)}px`);
+      style.setProperty('--quest-viewport-top',`${Math.max(0,viewport?.offsetTop||0)}px`);
+    });
+  }
+  window.addEventListener('resize',fitViewport);
+  window.visualViewport?.addEventListener('resize',fitViewport);
+  window.visualViewport?.addEventListener('scroll',fitViewport);
+  fitViewport();
   function hasUnsentWork(){
     if(document.querySelector('dialog[open]:not(#appInstallDialog)'))return true;
     if(document.querySelector('[data-app-saving="true"]'))return true;

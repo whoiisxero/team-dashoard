@@ -26,6 +26,8 @@ Installation and prompts depend on the browser and operating system. Browser pus
 
 `python tests/installable-browser.py` builds and serves the real output over local HTTP. It tests service-worker installation, cache boundaries, offline navigation, blocked offline writes, unsent messages, explicit updates, reconnection and permission revocation. Existing member-access, private-chat and session-startup suites cover account separation and sign-in recovery. Browser tests emulate phone viewports; they do not replace testing on actual phones.
 
+`python tests/mobile-layout-browser.py` checks 320–430 pixel phone widths and landscape across the main views and every brand tab. It covers a seven-column calendar without horizontal scrolling, labelled expense cards, long content, scrollable navigation, readable form inputs, date selection and draft-preserving changes in the height available above a keyboard. It also checks that desktop navigation and tables keep their earlier layout. Keyboard and installed-window dimensions are emulated; safe-area insets and actual keyboard behaviour still need the device checks below.
+
 Before announcing device support, check on a real iPhone and Android phone: install, sign in, close/reopen, navigate with the keyboard open, reconnect after losing a signal, receive a release update, and revoke a member's access from another session. Use test accounts for these checks.
 
 No database migration, DNS change, paid account or email/push delivery is required for this milestone.

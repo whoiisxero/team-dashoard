@@ -47,4 +47,5 @@ jobs:
           python tests/calendar-edit.py
           python tests/notifications-browser.py
           python tests/daily-workflow-browser.py
+          python tests/mobile-layout-browser.py
           python tests/installable-browser.py
