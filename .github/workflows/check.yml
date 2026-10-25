@@ -53,4 +53,5 @@ jobs:
           python tests/trading-browser.py
           python tests/assistant-browser.py
           python tests/assistant-tools-browser.py
+          python tests/assistant-personality-browser.py
           python tests/installable-browser.py
