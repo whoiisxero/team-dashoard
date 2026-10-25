@@ -19,7 +19,7 @@ with sync_playwright() as p:
  page=browser.new_page(timezone_id='Africa/Johannesburg');page.clock.install(time=__import__('datetime').datetime(2026,10,17,23,30,tzinfo=__import__('datetime').timezone.utc));errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
  def route(r):
   if r.request.url=='http://dashboard.test/':r.fulfill(body=html,content_type='text/html')
-  elif r.request.url.endswith(('/date-picker.js','/date-picker.css')):
+  elif r.request.url.endswith(('/date-picker.js','/date-picker.css','/cyberpunk.css')):
    name=r.request.url.rsplit('/',1)[-1];r.fulfill(body=(Path(__file__).resolve().parents[1]/name).read_text(),content_type='application/javascript' if name.endswith('.js') else 'text/css')
   elif r.request.url.endswith('/project-workspace.js'):r.fulfill(body=(Path(__file__).resolve().parents[1]/'project-workspace.js').read_text(),content_type='application/javascript')
   else:r.fulfill(body='',content_type='application/javascript' if r.request.url.endswith('.js') else 'text/css')
@@ -94,21 +94,21 @@ with sync_playwright() as p:
  page.locator('.nav [data-view=overview]').click()
  page.locator('#colourButton').click()
  assert page.locator('#layoutColour').is_visible()
- original=page.locator('.button.primary').first.evaluate('(el)=>getComputedStyle(el).backgroundColor')
- for colour in ['blue','violet','rose','amber']:
+ original_theme=page.evaluate('document.documentElement.dataset.theme');original=page.locator('.button.primary').first.evaluate('(el)=>getComputedStyle(el).backgroundColor')
+ for colour in ['cyberpunk','blue','violet','rose','amber']:
   page.locator('#layoutColour').select_option(colour)
   assert page.evaluate('document.documentElement.dataset.theme')==colour
-  assert page.locator('.button.primary').first.evaluate('(el)=>getComputedStyle(el).backgroundColor')!=original
+  assert page.locator('.button.primary').first.evaluate('(el)=>getComputedStyle(el).backgroundColor')!=original,(colour,original,page.locator('.button.primary').first.evaluate('(el)=>getComputedStyle(el).backgroundColor'))
  page.reload();page.wait_for_function('window.ready')
  assert page.evaluate('document.documentElement.dataset.theme')=='amber'
  assert page.locator('#layoutColour').input_value()=='amber'
  page.evaluate("document.querySelector('.nav [data-view=overview]').click()")
  page.locator('#colourButton').click()
- page.locator('#layoutColour').select_option('green')
+ page.locator('#layoutColour').select_option(original_theme)
  assert page.locator('.button.primary').first.evaluate('(el)=>getComputedStyle(el).backgroundColor')==original
  page.set_viewport_size({'width':390,'height':844})
  page.evaluate("document.querySelector('.nav [data-view=calendar]').click()")
  page.locator('.mobile-brand[data-view=overview]').click()
  assert page.locator('#overview').is_visible()
  assert not errors,errors
- browser.close();print('PASS: clickable day/date selection, day event editing, shared Events/chat lists, desktop/mobile home logos, editing, notes round-trip/clearing, dates, project clearing, cancel, errors, zero-row updates, creator access, new event defaults to actual local date despite browsed month; five colour themes, persistence, reset and mobile picker.')
+ browser.close();print('PASS: clickable day/date selection, day event editing, shared Events/chat lists, desktop/mobile home logos, editing, notes round-trip/clearing, dates, project clearing, cancel, errors, zero-row updates, creator access, new event defaults to actual local date despite browsed month; six colour themes, persistence, reset and mobile picker.')
