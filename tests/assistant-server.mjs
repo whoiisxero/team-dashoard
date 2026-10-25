@@ -3,7 +3,7 @@ import {createAssistantService} from '../server/assistant-core.mjs';
 const uid='00000000-0000-4000-8000-000000000001',pid='00000000-0000-4000-8000-000000000010';
 const token='test-user-token-0123456789012345',url='https://test-project.supabase.co';
 const calls=[],env={OPENAI_API_KEY:'test-only-not-a-real-secret'};
-let member=true,admin=false,denyContext=false,badProvider=false,modelActions=[];
+let member=true,admin=false,denyContext=false,badProvider=false,providerError=null,modelActions=[];
 const json=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json'}});
 const fakeFetch=async(address,options)=>{
  calls.push({address,options});
@@ -18,8 +18,9 @@ const fakeFetch=async(address,options)=>{
   if(address.includes('/calendar_events?'))return json([{id:'event',title:'Tokyo call',project_id:pid,event_date:'2026-10-26',event_time:'09:00',time_zone:'Asia/Tokyo',event_starts_at:'2026-10-26T00:00:00Z'}]);
   throw Error('Unexpected workspace URL');
  }
- assert.equal(address,'https://api.openai.com/v1/responses');assert.equal(options.headers.Authorization,'Bearer '+env.OPENAI_API_KEY);
+ assert.equal(address,'https://api.openai.com/v1/responses');assert.equal(options.headers.Authorization,'Bearer '+env.OPENAI_API_KEY.trim());
  if(badProvider)return json({error:{message:'Do not expose provider errors or credentials'}},401);
+ if(providerError)return json({error:providerError.error},providerError.status);
  const payload=JSON.parse(options.body);assert.equal(payload.store,false);assert(payload.text.format.strict);assert.equal(payload.text.format.schema.additionalProperties,false);
  const snapshot=JSON.parse(payload.input[0].content.split('\n').slice(1).join('\n'));
  assert.equal(snapshot.time_zone,'Africa/Johannesburg');assert.equal(snapshot.today,'2026-10-25');assert.equal(snapshot.projects[0].id,pid);
@@ -44,8 +45,26 @@ modelActions=[{type:'navigate',view:'dusted'},{type:'draft_event',project_id:pid
 result=await service(request());assert.equal(result.body.actions.length,1);assert.equal(result.body.actions[0].view,'trading');
 admin=true;modelActions=[{type:'navigate',view:'members'}];result=await service(request());assert.equal(result.body.actions[0].view,'members');admin=false;
 const before=calls.filter(call=>call.address.includes('openai')).length;denyContext=true;result=await service(request());assert.equal(result.status,503);assert.equal(calls.filter(call=>call.address.includes('openai')).length,before);denyContext=false;
-badProvider=true;result=await service(request());assert.equal(result.status,502);assert(!JSON.stringify(result.body).includes('Do not expose'));badProvider=false;
+badProvider=true;result=await service(request());assert.equal(result.status,503);assert.equal(result.body.code,'ai_key_invalid');assert(!JSON.stringify(result.body).includes('Do not expose'));badProvider=false;
 modelActions=[{type:'draft_event',project_id:pid,title:'Fitting',date:'2026-10-26',time:'15:30',time_zone:'Africa/Johannesburg'}];result=await service(request());assert.equal(result.body.actions[0].time,'15:30');
 modelActions=[{type:'draft_event',project_id:pid,title:'Bad time',time:'25:00'},{type:'draft_event',project_id:pid,title:'Bad zone',time_zone:'Invalid/Zone'}];result=await service(request());assert.equal(result.body.actions.length,0);
 const limited=make();modelActions=[];for(let i=0;i<8;i++)assert.equal((await limited(request())).status,200);assert.equal((await limited(request())).status,429);
-console.log('PASS assistant server: authenticated team membership, own-JWT RLS reads, scoped context/assigned tasks, no client-forged context, owner-only navigation, reviewed drafts, valid dates, bounded history, missing-key truthfulness, failure isolation, no-store responses and warm-instance request limits. Providers are mocked; no real key or workspace was used.');
+const cases=[
+ [429,{code:'insufficient_quota'},'ai_billing_required',503,'billing'],
+ [429,{code:'billing_hard_limit_reached'},'ai_billing_required',503,'billing'],
+ [401,{code:'invalid_api_key'},'ai_key_invalid',503,'api_key'],
+ [403,{code:'insufficient_permissions'},'ai_permission_denied',503,'api_key'],
+ [404,{code:'model_not_found'},'ai_model_unavailable',503,'model'],
+ [429,{code:'rate_limit_exceeded'},'ai_rate_limited',429,undefined],
+ [400,{code:'invalid_json_schema'},'ai_request_rejected',502,'configuration'],
+ [500,{code:'server_error'},'ai_provider_unavailable',502,undefined]
+];
+admin=true;
+for(const [status,error,code,expected,help] of cases){providerError={status,error:{...error,message:'Never expose raw key sk-secret-private or upstream text'}};result=await make()(request());assert.equal(result.status,expected);assert.equal(result.body.code,code);assert.equal(result.body.help,help);assert(!JSON.stringify(result.body).includes('sk-secret'));}
+admin=false;providerError={status:429,error:{code:'insufficient_quota'}};result=await make()(request());assert.equal(result.body.code,'ai_billing_required');assert.equal(result.body.help,undefined);assert(result.body.message.includes('owner'));
+providerError=null;env.OPENAI_API_KEY='  test-only-not-a-real-secret\n';result=await make()(request());assert.equal(result.status,200);env.OPENAI_API_KEY=env.OPENAI_API_KEY.trim();
+const withProvider=provider=>createAssistantService({getConfig:async()=>({url,key:'public-test-key'}),env,now:()=>Date.parse('2026-10-25T10:00:00Z'),fetchImpl:(address,options)=>address.includes('api.openai.com')?provider():fakeFetch(address,options)});
+result=await withProvider(()=>json({status:'incomplete'}))(request());assert.equal(result.body.code,'ai_reply_incomplete');
+result=await withProvider(()=>{throw new DOMException('Timed out','TimeoutError');})(request());assert.equal(result.status,504);assert.equal(result.body.code,'ai_timeout');
+result=await withProvider(()=>json({output_text:JSON.stringify({reply:'Ready to help.',actions:[]})}))(request());assert.equal(result.status,200);assert.equal(result.body.reply,'Ready to help.');
+console.log('PASS assistant server: authenticated membership and member-JWT context, scoped reviewed drafts, dates/history, no-store and rate limits; distinct billing, key, permission, model, schema, rate-limit and outage errors; no raw provider/secret leakage and copied-key whitespace handling. Providers mocked.');
