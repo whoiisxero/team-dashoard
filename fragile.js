@@ -29,3 +29,80 @@ window.createFragileStudio=({getData,openProject,openEntry,createProject,reloadP
     pinning=true;for(const field of $('fragilePinForm').querySelectorAll('input,select,textarea,button'))field.disabled=true;$('fragilePinError').textContent='';try{const {error}=await getData().db.from('brand_moodboard_items').insert({project_id:id,created_by:uid,kind,title,notes,image_url:url,colour:kind==='colour'?$('fragilePinColour').value:null});if(error)throw error;if(session!==epoch||getData().user?.id!==uid)return;$('fragilePinDialog').close();await refresh();toast(`Added to ${brandName} moodboard`);}catch(error){if(session===epoch&&getData().user?.id===uid)$('fragilePinError').textContent=error?.message||'Could not save pin. Your reference is still here.';}finally{if(session===epoch){pinning=false;for(const field of $('fragilePinForm').querySelectorAll('input,select,textarea,button'))field.disabled=false;}}};
   return {activate,renderWork,reset,setTab};
 };
+
+
+/* FRAGILE catalogue extension: scoped to the Fragile studio only. */
+(()=>{
+ const base=window.createFragileStudio;
+ window.createFragileStudio=function(options){
+  const studio=base(options);
+  if(options.prefix&&options.prefix!=='fragile')return studio;
+  const oldActivate=studio.activate;
+  let loadedProject=null,items=[],selected=null;
+  const e=(tag,cls,txt)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(txt!==undefined)n.textContent=txt;return n;};
+  const money=n=>n==null?'—':'R '+Number(n).toLocaleString('en-ZA');
+  const root=document.getElementById('fragile');
+  if(!root)return studio;
+  const tabs=root.querySelector('.fragile-tabs');
+  const btn=e('button','','Catalogue');btn.type='button';btn.dataset.studioTab='catalogue';btn.setAttribute('aria-pressed','false');tabs?.append(btn);
+  const panel=e('section','fragile-panel');panel.id='fragileCatalogPanel';panel.hidden=true;
+  panel.innerHTML='<div class="fragile-toolbar"><div><h2>Collection catalogue</h2><p class="fragile-status">Concepts, samples, product imagery and commercial specifications · Beautiful Ruin</p></div><div class="fragile-actions"><button class="button" id="fragileCatalogRefresh">Refresh</button><button class="button primary" id="fragileCatalogAdd">+ New design</button></div></div><div id="fragileCatalogStats" class="fragile-summary"></div><div class="fragile-catalog-grid" id="fragileCatalogGrid"></div><div id="fragileCatalogEditor"></div>';
+  root.append(panel);
+  const grid=panel.querySelector('#fragileCatalogGrid'),editor=panel.querySelector('#fragileCatalogEditor');
+  const assetCache=new Map();
+  const originalSetTab=studio.setTab;
+  studio.setTab=function(tab){originalSetTab(tab);panel.hidden=tab!=='catalogue';btn.setAttribute('aria-pressed',String(tab==='catalogue'));if(tab==='catalogue')void refresh();};
+  btn.addEventListener('click',()=>studio.setTab('catalogue'));
+  function current(){const d=options.getData();return {db:d.db,user:d.user,project:d.projects.find(p=>p.name?.trim().toLowerCase()==='fragile')};}
+  async function refresh(){
+   const {db,project}=current();if(!db||!project){grid.textContent='Connect the Fragile project first.';return;}
+   loadedProject=project.id;grid.textContent='Loading designs…';
+   const {data,error}=await db.from('fragile_catalog_items').select('*').eq('project_id',project.id).order('sku');
+   if(error){grid.textContent='Catalogue could not load: '+error.message;return;}
+   items=data||[];const {data:assets}=await db.from('fragile_catalog_assets').select('*').eq('project_id',project.id).order('created_at',{ascending:false});assetCache.clear();for(const asset of assets||[]){const list=assetCache.get(asset.catalog_item_id)||[];list.push(asset);assetCache.set(asset.catalog_item_id,list);}render();
+  }
+  function render(){
+   grid.replaceChildren();panel.querySelector('#fragileCatalogStats').textContent=items.length+' designs · '+items.filter(i=>i.status==='Concept').length+' concepts · '+items.filter(i=>i.image_url).length+' with imagery';
+   for(const item of items){
+    const card=e('article','fragile-catalog-card'),visual=e('div','fragile-catalog-visual');
+    const mainImage=item.image_url||assetCache.get(item.id)?.[0]?.image_url;
+    if(mainImage){const img=e('img');img.src=mainImage;img.alt=item.name;img.loading='lazy';visual.append(img);img.onerror=()=>visual.replaceChildren(e('span','','Image unavailable'));img.onclick=()=>window.open(mainImage,'_blank','noopener');}
+    else visual.append(e('span','','IMAGE PENDING'));
+    card.append(visual,e('small','',item.sku+' · '+item.category),e('h3','',item.name),e('p','',item.collection+' · '+item.status));
+    card.append(e('p','',money(item.target_price)+' target retail · '+money(item.estimated_cost)+' est. cost'));
+    const action=e('button','button','View / edit design');action.onclick=()=>edit(item);card.append(action);const count=assetCache.get(item.id)?.length||0;card.append(e('small','',count+' gallery images'));grid.append(card);
+   }
+   if(!items.length)grid.textContent='No designs yet. Add the first product.';
+  }
+  function edit(item){
+   selected=item||null;editor.replaceChildren();
+   const dialog=e('dialog','dialog fragile-catalog-dialog');const form=e('form');form.method='dialog';
+   const title=e('h2','',item?'Edit '+item.name:'New catalogue design');form.append(title);
+   const fields=[['name','Design name','text'],['sku','SKU','text'],['category','Category','text'],['collection','Collection','text'],['status','Status','text'],['image_url','Image URL (HTTPS)','url'],['target_price','Target retail (ZAR)','number'],['estimated_cost','Estimated cost (ZAR)','number'],['planned_units','Planned units','number'],['description','Design brief / specifications','textarea']];
+   const controls={};
+   for(const [key,label,type] of fields){const wrap=e('div','field'),lab=e('label','',label),input=type==='textarea'?e('textarea'):e('input');if(type!=='textarea')input.type=type;input.value=item?.[key]??'';if(key==='name')input.required=true;if(type==='number'){input.min='0';input.step=key==='planned_units'?'1':'0.01';}wrap.append(lab,input);form.append(wrap);controls[key]=input;}
+   if(item){
+    const gallery=e('section','fragile-catalog-gallery');gallery.append(e('h3','','Product image gallery'));
+    const photos=e('div','fragile-gallery-images');for(const asset of assetCache.get(item.id)||[]){const tile=e('div','fragile-gallery-tile'),img=e('img');img.src=asset.image_url;img.alt=asset.asset_type+' — '+item.name;img.onclick=()=>window.open(asset.image_url,'_blank','noopener');tile.append(img,e('small','',asset.asset_type));photos.append(tile);}gallery.append(photos);
+    const upload=e('input');upload.type='file';upload.accept='image/png,image/jpeg,image/webp';upload.multiple=true;const type=e('select');for(const value of ['concept','front','back','detail','fabric','campaign','technical']){const opt=e('option','',value);opt.value=value;type.append(opt);}const up=e('button','button','Upload selected images');up.type='button';const progress=e('p','fragile-status','PNG, JPG or WebP · 10 MB maximum per file · concept images must be marked as such.');
+    up.onclick=async()=>{const {db,user,project}=current();if(!upload.files?.length||!db||!user||!project)return;up.disabled=true;let count=0;try{for(const file of upload.files){if(file.size>10*1024*1024||!['image/png','image/jpeg','image/webp'].includes(file.type))throw new Error('Unsupported file or larger than 10 MB');const safe=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');const path='catalogue/'+project.id+'/'+item.id+'/'+crypto.randomUUID()+'-'+safe;progress.textContent='Uploading '+file.name+'…';const {error:uploadError}=await db.storage.from('fragile-assets').upload(path,file,{contentType:file.type,upsert:false});if(uploadError)throw uploadError;const url=db.storage.from('fragile-assets').getPublicUrl(path).data.publicUrl;const {error:assetError}=await db.from('fragile_catalog_assets').insert({project_id:project.id,catalog_item_id:item.id,created_by:user.id,asset_type:type.value,image_url:url,caption:file.name});if(assetError)throw assetError;count++;}progress.textContent=count+' images uploaded.';await refresh();dialog.close();}catch(err){progress.textContent='Upload failed: '+err.message;}finally{up.disabled=false;}};
+    gallery.append(type,upload,up,progress);form.append(gallery);
+   }
+   const actions=e('div','dialog-actions'),cancel=e('button','button','Cancel'),save=e('button','button primary','Save design');cancel.type='button';save.type='submit';cancel.onclick=()=>dialog.close();actions.append(cancel,save);form.append(actions);dialog.append(form);editor.append(dialog);dialog.showModal();
+   form.onsubmit=async ev=>{ev.preventDefault();const {db,user,project}=current();if(!db||!user||!project)return;
+    const record={};for(const [key,,type] of fields){const value=controls[key].value.trim();record[key]=type==='number'?(value===''?null:Number(value)):(value||null);}
+    if(record.image_url&&!/^https:\/\/[^\s]+$/i.test(record.image_url)){alert('Use a full HTTPS image URL.');return;}
+    save.disabled=true;save.textContent='Saving…';
+    const query=item?db.from('fragile_catalog_items').update(record).eq('id',item.id).eq('project_id',project.id):db.from('fragile_catalog_items').insert({...record,project_id:project.id,created_by:user.id});
+    const {error}=await query;if(error){alert(error.message);save.disabled=false;save.textContent='Save design';return;}
+    dialog.close();await refresh();
+   };
+  }
+  panel.querySelector('#fragileCatalogRefresh').onclick=()=>void refresh();
+  panel.querySelector('#fragileCatalogAdd').onclick=()=>edit(null);
+  studio.activate=function(){oldActivate();if(!panel.hidden)void refresh();};
+  // Image lightbox for moodboard: click the image to view full-size.
+  root.addEventListener('click',ev=>{const img=ev.target.closest('.fragile-pin-visual img');if(img&&img.src)window.open(img.src,'_blank','noopener');});
+  return studio;
+ };
+})();
