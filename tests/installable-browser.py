@@ -67,6 +67,10 @@ try:
   page.locator('#appUpdate').wait_for(state='visible');assert page.locator('#appUpdateNow').is_disabled()
   assert page.locator('#privateChatText').input_value()=='Unsent private draft'
   page.locator('#privateChatText').fill('');page.wait_for_function('!document.querySelector("#appUpdateNow").disabled')
+  page.evaluate("document.querySelector('#qaInput').value='Unsent assistant question';document.querySelector('#qaInput').dispatchEvent(new Event('input',{bubbles:true}))")
+  assert page.locator('#appUpdateNow').is_disabled()
+  page.evaluate("document.querySelector('#qaInput').value='';document.querySelector('#qaInput').dispatchEvent(new Event('input',{bubbles:true}))")
+  page.wait_for_function('!document.querySelector("#appUpdateNow").disabled')
   with page.expect_navigation(wait_until='domcontentloaded'):
    page.locator('#appUpdateNow').click()
   page.wait_for_function('window.ready&&window.QuestApp');page.evaluate('navigator.serviceWorker.ready')

@@ -39,6 +39,7 @@ jobs:
           node tests/member-access-db.mjs
           node tests/private-chats-db.mjs
           node tests/daily-workflow-db.mjs
+          node tests/assistant-server.mjs
       - name: Test browser workflows
         run: |
           python tests/session-startup-browser.py
@@ -49,4 +50,5 @@ jobs:
           python tests/daily-workflow-browser.py
           python tests/mobile-layout-browser.py
           python tests/trading-browser.py
+          python tests/assistant-browser.py
           python tests/installable-browser.py
