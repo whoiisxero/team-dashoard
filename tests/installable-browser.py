@@ -67,7 +67,9 @@ try:
   page.locator('#appUpdate').wait_for(state='visible');assert page.locator('#appUpdateNow').is_disabled()
   assert page.locator('#privateChatText').input_value()=='Unsent private draft'
   page.locator('#privateChatText').fill('');page.wait_for_function('!document.querySelector("#appUpdateNow").disabled')
-  page.locator('#appUpdateNow').click();page.wait_for_function('window.ready&&window.QuestApp');page.evaluate('navigator.serviceWorker.ready')
+  with page.expect_navigation(wait_until='domcontentloaded'):
+   page.locator('#appUpdateNow').click()
+  page.wait_for_function('window.ready&&window.QuestApp');page.evaluate('navigator.serviceWorker.ready')
   # Access revoked while offline is rechecked and cleared on reconnect.
   page.locator('#menuButton').click();page.locator('#privateChatNav button').click();page.wait_for_function('!document.querySelector("#privateChatSend").disabled')
   page.locator('#privateChatText').fill('Must clear on revocation');context.set_offline(True)

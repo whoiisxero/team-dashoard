@@ -39,7 +39,7 @@ with sync_playwright() as p:
         assert abs(result['width']-width)<=1 and result['root']<=width+1,(label,result)
         assert not result['clipped'],(label,result)
 
-    views=['overview','myDay','dashboard','projects','tasks','calendar','events','expenses','goals','notifications','files','search','activity','discussions','members','fragile','dusted']
+    views=['overview','myDay','dashboard','projects','tasks','calendar','events','expenses','goals','notifications','files','search','activity','discussions','members','fragile','dusted','trading']
     for width,height in [(320,740),(360,800),(390,844),(430,932),(844,390)]:
         page.set_viewport_size({'width':width,'height':height})
         page.wait_for_function('(height)=>document.documentElement.style.getPropertyValue("--quest-viewport-height")===height+"px"',arg=height)

@@ -48,4 +48,5 @@ jobs:
           python tests/notifications-browser.py
           python tests/daily-workflow-browser.py
           python tests/mobile-layout-browser.py
+          python tests/trading-browser.py
           python tests/installable-browser.py
