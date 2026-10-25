@@ -19,7 +19,7 @@ with sync_playwright() as p:
  page=browser.new_page(timezone_id='Africa/Johannesburg');page.clock.install(time=__import__('datetime').datetime(2026,10,17,23,30,tzinfo=__import__('datetime').timezone.utc));errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
  def route(r):
   if r.request.url=='http://dashboard.test/':r.fulfill(body=html,content_type='text/html')
-  elif r.request.url.endswith(('/date-picker.js','/date-picker.css','/cyberpunk.css')):
+  elif r.request.url.endswith(('/date-picker.js','/date-picker.css','/cyberpunk.css','/cryptic.css')):
    name=r.request.url.rsplit('/',1)[-1];r.fulfill(body=(Path(__file__).resolve().parents[1]/name).read_text(),content_type='application/javascript' if name.endswith('.js') else 'text/css')
   elif r.request.url.endswith('/project-workspace.js'):r.fulfill(body=(Path(__file__).resolve().parents[1]/'project-workspace.js').read_text(),content_type='application/javascript')
   else:r.fulfill(body='',content_type='application/javascript' if r.request.url.endswith('.js') else 'text/css')

@@ -21,7 +21,7 @@ window.QuestNavigation=(()=>{
  function decorate(button,kind,name,id){
   const [emoji,colour,label]=appearance(kind,name,id),badges=[...button.children].filter(node=>node.matches('.count,.online-nav-count'));
   const icon=document.createElement('span');icon.className='nav-emoji';icon.textContent=emoji;icon.setAttribute('aria-hidden','true');
-  const title=document.createElement('span');title.className='nav-title';title.textContent=label;
+  const title=document.createElement('span');title.className='nav-title';title.textContent=label;if(String(label).trim().toLowerCase()==='fragile')title.classList.add('fragile-wordmark');
   button.classList.add('quest-nav-item');button.style.setProperty('--nav-colour',colour);button.replaceChildren(icon,title,...badges);return button;
  }
  function init(){

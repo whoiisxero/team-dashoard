@@ -2,23 +2,24 @@
 :root{color-scheme:dark;--cyber-accent:var(--green);--cyber-secondary:#ff43cf;--cyber-shadow:color-mix(in srgb,var(--cyber-accent) 14%,transparent);--cyber-edge:color-mix(in srgb,var(--cyber-accent) 32%,#182136)}
 :root[data-theme=rose]{--cyber-secondary:#44edff}
 :root[data-theme=violet]{--cyber-secondary:#55fbe9}
+/* The default cyberpunk preset uses a phosphor-green console palette. */
 :root[data-theme=cyberpunk],:root:not([data-theme]){
- --theme-0:#050711;--theme-1:#0b1020;--theme-2:#11182c;--theme-3:#244054;--theme-4:#e7f4ff;--theme-5:#a5b4cc;
- --theme-6:#28efff;--theme-7:#75f8ff;--theme-8:#102343;--theme-9:#2ceeff12;--theme-10:#021017;--theme-11:#28efff55;
- --theme-12:#0e1729;--theme-13:#080c19;--theme-14:#286478;--theme-15:#28efff16;--theme-16:#eefaff;--theme-17:#b6d4e5;
- --theme-18:#080e1b;--theme-19:#2a4b62;--theme-20:#101a2b;--theme-21:#d8f6ff;--theme-22:#75f8ff;--theme-23:#14293a;
- --theme-24:#28efff28;--theme-25:#91a6c0;--theme-26:#070a15;--theme-27:#93a9c3;--theme-28:#d4e5f5;--theme-29:#102032;
- --theme-30:#e7f4ff;--theme-31:#122b3c;--theme-32:#e7f4ff;--theme-33:#28efff18;--theme-34:#142234;--theme-35:#28efff;
- --theme-36:#112a3a;--theme-37:#a6faff;--theme-38:#31667a;--theme-39:#d0e9f5;--theme-40:#070b17ed;--theme-41:#d8edf8;
- --theme-42:#10192a;--theme-43:#080e1b;--theme-44:#cfff69;--theme-45:#a0b4cb;--theme-46:#75f8ff;--theme-47:#0c1524;
- --theme-48:#294a60;--theme-49:#b3faff;--theme-50:#143341;--theme-51:#19293a;--theme-52:#28efff;--theme-53:#162537;
- --theme-54:#28efff;--theme-55:#20364a;--theme-56:#0a1220;--theme-57:#40738b;--theme-58:#0a1120;--theme-59:#29475e;
- --theme-60:#0b1322;--theme-61:#101d30;--theme-62:#b3c4d9;--theme-63:#24394e;--theme-64:#c7e8f5;--theme-65:#0a1423;
- --theme-66:#2b5168;--theme-67:#99afc5;--theme-68:#233c51;--theme-69:#d4e3f1;--theme-70:#0a1120;--theme-71:#34748a;
- --theme-72:#02040bd9;--theme-73:#b9ccde;--theme-74:#e7f4ff;--theme-75:#28efff;--theme-76:#021017;--theme-77:#28efff55;
- --theme-78:#e2f8ff;--theme-79:#080f1c;--theme-80:#b1c5da;--theme-81:#20394d;--theme-82:#0c1525;--theme-83:#8395ad;
- --theme-84:#c8deee;--theme-85:#15384a;--warn:#ffe581;
- --globe-ocean:#071d31;--globe-land:#154354;--globe-grid:#275b79;--globe-coast:#74b2c7;
+ --theme-0:#040704;--theme-1:#0b110c;--theme-2:#121b13;--theme-3:#344a32;--theme-4:#e1e9db;--theme-5:#a8b5a0;
+ --theme-6:#b4ff39;--theme-7:#a2ed7b;--theme-8:#163417;--theme-9:#91ff3212;--theme-10:#0a1204;--theme-11:#a6ff3255;
+ --theme-12:#121e11;--theme-13:#070d08;--theme-14:#527440;--theme-15:#9eff3216;--theme-16:#edf5e7;--theme-17:#c2d2b4;
+ --theme-18:#060c07;--theme-19:#3a5130;--theme-20:#141f12;--theme-21:#e0f1cd;--theme-22:#b8ff79;--theme-23:#20331a;
+ --theme-24:#a6ff3228;--theme-25:#9aae8c;--theme-26:#070b07;--theme-27:#9bad90;--theme-28:#d9e6d0;--theme-29:#182514;
+ --theme-30:#e1e9db;--theme-31:#20351a;--theme-32:#e1e9db;--theme-33:#9dff3218;--theme-34:#1b2a16;--theme-35:#b4ff39;
+ --theme-36:#20341a;--theme-37:#d0ff9c;--theme-38:#526b3d;--theme-39:#d9e8ca;--theme-40:#080e08ed;--theme-41:#dceacf;
+ --theme-42:#172014;--theme-43:#080f09;--theme-44:#caff82;--theme-45:#aebea1;--theme-46:#b9f888;--theme-47:#0d160c;
+ --theme-48:#3a5130;--theme-49:#c7f6a0;--theme-50:#223a1a;--theme-51:#1e2e18;--theme-52:#b4ff39;--theme-53:#1b2c16;
+ --theme-54:#b4ff39;--theme-55:#2b4024;--theme-56:#091008;--theme-57:#6b874d;--theme-58:#0b130b;--theme-59:#3b5030;
+ --theme-60:#0c140c;--theme-61:#192416;--theme-62:#c2d2b5;--theme-63:#304428;--theme-64:#d4e9c4;--theme-65:#0c160b;
+ --theme-66:#3f5a31;--theme-67:#a1b791;--theme-68:#30482a;--theme-69:#dae8cf;--theme-70:#0b130c;--theme-71:#607e49;
+ --theme-72:#020502dc;--theme-73:#cbdcbf;--theme-74:#e1e9db;--theme-75:#b4ff39;--theme-76:#091204;--theme-77:#a6ff3255;
+ --theme-78:#e6f6d7;--theme-79:#081009;--theme-80:#b7cca8;--theme-81:#2e4426;--theme-82:#101b0f;--theme-83:#8b9e7d;
+ --theme-84:#d1e3c1;--theme-85:#26421c;--warn:#e5f48c;--cyber-secondary:#6fbc6a;
+ --globe-ocean:#031006;--globe-land:#143b1b;--globe-grid:#326337;--globe-coast:#83bc69;
 }
 body{background:radial-gradient(ellipse at 90% 0%,color-mix(in srgb,var(--cyber-secondary) 11%,transparent),transparent 42%),radial-gradient(ellipse at 12% 20%,color-mix(in srgb,var(--cyber-accent) 8%,transparent),transparent 48%),var(--bg)}
 ::selection{background:var(--cyber-accent);color:#021017}
