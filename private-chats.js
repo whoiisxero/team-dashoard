@@ -7,7 +7,7 @@ window.createPrivateChats=({getData,navigate,toast})=>{
   const person=id=>getData().roster.find(m=>m.user_id===id)?.display_name||'Team member';
   const current=(session,uid,id)=>session===epoch&&getData().user?.id===uid&&(!id||id===selected);
   function renderNav(){const root=$('privateChatNav');root.replaceChildren();$('privateChatNavSection').hidden=!rooms.length;
-    for(const room of rooms){const button=el('button',room.name);button.type='button';button.dataset.privateChat=room.id;button.classList.toggle('active',selected===room.id&&$('privateChat').classList.contains('active'));button.onclick=()=>void open(room.id);root.append(button);}}
+    for(const room of rooms){const button=el('button',room.name);button.type='button';button.dataset.privateChat=room.id;window.QuestNavigation?.decorate(button,'room',room.name,room.id);button.classList.toggle('active',selected===room.id&&$('privateChat').classList.contains('active'));button.onclick=()=>void open(room.id);root.append(button);}}
   function render(){const room=rooms.find(r=>r.id===selected);$('privateChatTitle').textContent=room?.name||'Private chat';
     const project=getData().projects.find(p=>p.id===room?.project_id);
     $('privateChatParticipants').textContent=room?`${project?.name||'Project'} · ${members.map(m=>person(m.user_id)).join(' & ')||'Checking participants…'}`:'Choose a conversation from Private chats.';

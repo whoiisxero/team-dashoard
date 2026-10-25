@@ -1,0 +1,12 @@
+.sidebar .nav button.quest-nav-item,.sidebar>.quest-nav-item{--nav-colour:#b9d7ed;gap:9px;min-height:42px;padding:6px 9px;border:1px solid transparent;border-radius:10px;line-height:1.4;color:color-mix(in srgb,var(--nav-colour) 82%,var(--ink));background:transparent;font-weight:500}
+.nav-emoji{display:grid;place-items:center;flex:0 0 28px;width:28px;height:28px;border-radius:9px;border:1px solid color-mix(in srgb,var(--nav-colour) 25%,transparent);background:color-mix(in srgb,var(--nav-colour) 11%,transparent);font:17px/1 'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif}
+.nav-title{min-width:0;flex:1;overflow-wrap:anywhere}
+.sidebar .nav button.quest-nav-item:hover,.sidebar>.quest-nav-item:hover{background:color-mix(in srgb,var(--nav-colour) 8%,var(--panel));border-color:color-mix(in srgb,var(--nav-colour) 25%,transparent);color:var(--nav-colour)}
+.sidebar .nav button.quest-nav-item.active{background:color-mix(in srgb,var(--nav-colour) 13%,var(--panel));border-color:color-mix(in srgb,var(--nav-colour) 26%,transparent);color:var(--nav-colour);box-shadow:inset 3px 0 var(--nav-colour)}
+.sidebar .nav button.quest-nav-item.active .nav-emoji{border-color:color-mix(in srgb,var(--nav-colour) 55%,transparent);background:color-mix(in srgb,var(--nav-colour) 19%,transparent)}
+.sidebar .quest-nav-item:focus-visible{outline:2px solid var(--nav-colour);outline-offset:2px}
+.sidebar .quest-nav-item .count,.sidebar .quest-nav-item .online-nav-count{flex-shrink:0;color:var(--nav-colour);background:color-mix(in srgb,var(--nav-colour) 13%,var(--panel));border-radius:7px}
+.sidebar>.app-install-entry.quest-nav-item{display:flex;align-items:center;text-align:left;font-size:12px}
+@media screen and (max-width:900px){.sidebar .nav button.quest-nav-item,.sidebar>.quest-nav-item{min-height:44px}.sidebar>.app-install-entry.quest-nav-item{font-size:14px}}
+@media(display-mode:standalone){.sidebar>.app-install-entry.quest-nav-item{display:none}}
+@media(forced-colors:active){.sidebar .nav button.quest-nav-item.active{outline:2px solid Highlight;outline-offset:-2px}.nav-emoji{border-color:ButtonText}}
