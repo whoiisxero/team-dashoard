@@ -26,12 +26,12 @@ insert into projects(id,name) values('${fragile}','Fragile'),('${dusted}','Duste
 insert into member_access(user_id,is_admin,project_mode,shared_access) values('${quan}',true,'all',true),('${tertius}',false,'all',true),('${josh}',false,'selected',false),('${jen}',false,'selected',false);
 update projects set access_restricted=true where id='${dusted}';
 insert into project_member_access values('${tertius}','${dusted}',false),('${josh}','${dusted}',true),('${jen}','${fragile}',true);`);
-const existingAssignments=(await db.query('select * from member_access order by user_id')).rows;
+const existingAssignments=(await db.query('select user_id,is_admin,project_mode,shared_access from member_access order by user_id')).rows;
 assert.equal((await db.query("select to_regclass('public.private_chat_messages') name")).rows[0].name,null);
 // Recover a query editor left impersonating authenticated, and install missing
 // private-chat prerequisites without rerunning the older permission migration.
 await db.exec('set role authenticated');await db.exec(upgrade);await db.exec(upgrade);
-assert.deepEqual((await db.query('select * from member_access order by user_id')).rows,existingAssignments);
+assert.deepEqual((await db.query('select user_id,is_admin,project_mode,shared_access from member_access order by user_id')).rows,existingAssignments);
 const migration=await sql('migrations/20261021_daily_workflow.sql');await db.exec(migration);
 const actor=async uid=>{await db.exec('reset role');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[uid||'']);if(uid)await db.exec('set role authenticated');};
 const rows=async(query,args=[])=>(await db.query(query,args)).rows;
@@ -82,5 +82,5 @@ await actor(jen);assert(!(await rows("select * from search_quest('Needle')")).so
 await actor(null);await db.query('delete from project_member_access where user_id=$1',[jen]);
 await actor(jen);assert.equal((await rows('select * from project_files')).length,0);assert.equal((await rows('select * from storage.objects')).length,0);assert.equal((await rows('select * from project_activity')).length,0);assert.equal((await rows("select * from search_quest('Needle')")).length,0);assert.equal((await rows("select * from team_notifications where notification_type='reminder'")).length,0);
 await actor(stranger);assert.equal((await rows("select * from search_quest('Needle')")).length,0);await assert.rejects(db.query('select refresh_my_reminders()'),/membership required/);
-await actor(null);await db.exec(migration);const beforeBundle=(await rows('select * from member_access order by user_id'));await db.exec(await prepareWorkflowSetup());assert.deepEqual(await rows('select * from member_access order by user_id'),beforeBundle);assert.equal((await rows('select * from quest_schema_migrations')).length,1);assert.equal((await rows('select * from project_files')).length,1);
+await actor(null);await db.exec(migration);await db.query('update member_access set editable_project_ids=$1 where user_id=$2',[[],jen]);const beforeBundle=(await rows('select * from member_access order by user_id'));await db.exec(await prepareWorkflowSetup());assert.deepEqual(await rows('select * from member_access order by user_id'),beforeBundle);assert.equal((await rows('select * from quest_schema_migrations')).length,1);assert.equal((await rows('select * from project_files')).length,1);
 await db.close();console.log('PASS daily workflow DB: scoped/private search, own reminder preferences, timezone conversion and deduplication, reminder cleanup, private file storage/metadata/ownership, restrictive legacy-policy guards, activity history, revocation, anonymous denial and repeat-safe migration. Storage API is modelled with real PostgreSQL RLS.');

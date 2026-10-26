@@ -5,6 +5,13 @@ window.createTeamAccess = ({getData, refresh, toast, request:runRequest=async va
   let sessionKey=null,presenceBusy=false,accessRequest=0;
   const node=(tag,value,cls='')=>{const el=document.createElement(tag);el.textContent=value;if(cls)el.className=cls;return el;};
   const normal=name=>name.trim().toLowerCase().replace(/\.$/,'');
+  function canEdit(project=null) {
+    if(!policy)return false;
+    if(policy.is_admin)return true;
+    if(!project)return !!policy.shared_access;
+    if(!getData().projects.some(p=>p.id===project))return false;
+    return policy.editable_project_ids==null||policy.editable_project_ids.includes(project);
+  }
   function canView(view) {
     if(view==='overview')return true;
     if(!policy)return false;
@@ -17,6 +24,13 @@ window.createTeamAccess = ({getData, refresh, toast, request:runRequest=async va
     for(const button of document.querySelectorAll('[data-view]'))button.hidden=!canView(button.dataset.view);
     $('fragileShortcut').hidden=!canView('fragile');$('fragileShortcutStatus').hidden=true;
     for(const button of document.querySelectorAll('[data-add="project"]'))button.hidden=!policy?.can_create_projects;
+    const writable=canEdit()||getData().projects.some(p=>canEdit(p.id));
+    for(const button of document.querySelectorAll('[data-add]:not([data-add="project"])'))button.hidden=!writable;
+    for(const button of document.querySelectorAll('[data-complete],[data-priority-kind]')){
+      const id=button.dataset.complete||button.dataset.priorityId;
+      const project=button.dataset.priorityKind==='project'?getData().projects.find(p=>p.id===id):getData().tasks?.find(t=>t.id===id);
+      if(project)button.hidden=!canEdit(button.dataset.priorityKind==='project'?project.id:project.project_id||project.access_project_id);
+    }
     for(const id of ['budgetSpent','recentMessages'])$(id)?.closest('.card')?.toggleAttribute('hidden',!policy?.shared_access);
     $('budgetNote').textContent=policy?.shared_access?$('budgetNote').textContent:'Your accessible projects';
     $('remainingStat')?.closest('.stat')?.toggleAttribute('hidden',!policy?.shared_access);
@@ -87,11 +101,23 @@ window.createTeamAccess = ({getData, refresh, toast, request:runRequest=async va
       for(const [value,text] of [['selected','Selected projects only'],['all','All projects, with exceptions']]){const option=node('option',text);option.value=value;mode.append(option);}mode.value=member.project_mode;label.append(mode);form.append(label);
       const group=node('fieldset','');group.append(node('legend','Allow access to'));
       for(const project of getData().projects){const rule=member.project_rules.find(x=>x.project_id===project.id);const row=node('label','','member-project-choice');const check=document.createElement('input');check.type='checkbox';check.name='project';check.value=project.id;check.checked=rule?.allowed??(member.project_mode==='all'&&!project.access_restricted);row.append(check,node('span',project.name));group.append(row);}form.append(group);
+      let editMode;
+      if(policy.access_levels_ready){
+        const editLabel=node('label','Editing access');editMode=document.createElement('select');editMode.className='input';editMode.name='edit_mode';
+        for(const [value,text] of [['all','Edit all accessible projects'],['selected','Edit selected projects; view the others']]){const option=node('option',text);option.value=value;editMode.append(option);}
+        editMode.value=member.editable_project_ids==null?'all':'selected';editLabel.append(editMode);form.append(editLabel);
+        const editGroup=node('fieldset','');editGroup.append(node('legend','Can edit'));
+        for(const project of getData().projects){const row=node('label','','member-project-choice'),check=document.createElement('input');check.type='checkbox';check.name='editable_project';check.value=project.id;check.checked=member.editable_project_ids?.includes(project.id)||false;row.append(check,node('span',project.name));editGroup.append(row);}
+        const syncEdits=()=>{editGroup.hidden=editMode.value!=='selected';const allowed=new Set([...group.querySelectorAll('input:checked')].map(x=>x.value));for(const check of editGroup.querySelectorAll('input')){check.disabled=!allowed.has(check.value);if(check.disabled)check.checked=false;}};
+        editMode.onchange=syncEdits;group.onchange=syncEdits;syncEdits();form.append(editGroup);
+      }
       const sharedRow=node('label','','member-project-choice'),shared=document.createElement('input');shared.type='checkbox';shared.name='shared';shared.checked=member.shared_access;sharedRow.append(shared,node('span','General team chat, team budget and items without a project'));form.append(sharedRow);
       form.append(node('p','Private projects require an explicit selection. In “all projects” mode, future public projects are included.','hint'));
       const save=node('button','Save access','button primary');save.type='submit';form.append(save);root.append(form);
       form.onsubmit=async event=>{event.preventDefault();if(saving)return;saving=true;const current=epoch;save.disabled=true;
-        try{const result=await getData().db.rpc('set_member_access',{target:member.user_id,mode:mode.value,shared:shared.checked,allowed_projects:[...form.querySelectorAll('[name=project]:checked')].map(x=>x.value)});if(result.error)throw result.error;
+        try{const args={target:member.user_id,mode:mode.value,shared:shared.checked,allowed_projects:[...form.querySelectorAll('[name=project]:checked')].map(x=>x.value)};
+          if(editMode)args.editable_projects=editMode.value==='all'?null:[...form.querySelectorAll('[name=editable_project]:checked:not(:disabled)')].map(x=>x.value);
+          const result=await getData().db.rpc(editMode?'set_member_access_levels':'set_member_access',args);if(result.error)throw result.error;
           if(current!==epoch)return;toast(`Access updated for ${member.display_name}`);await loadMembers();await refresh();
         }catch(error){if(current===epoch)$('memberAccessStatus').textContent=error?.message||'Could not save access. Please retry.';}
         finally{if(current===epoch){saving=false;save.disabled=false;}}
@@ -106,5 +132,5 @@ window.createTeamAccess = ({getData, refresh, toast, request:runRequest=async va
   $('membersRefresh').onclick=()=>void loadMembers();
   window.addEventListener('online',()=>{void presenceTick();void refresh();});
   window.addEventListener('focus',()=>void presenceTick());
-  return {load,apply,canView,start,leave,reset,loadMembers,get policy(){return policy;}};
+  return {load,apply,canView,canEdit,start,leave,reset,loadMembers,get policy(){return policy;}};
 };

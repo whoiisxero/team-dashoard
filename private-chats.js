@@ -4,6 +4,7 @@ window.createPrivateChats=({getData,navigate,toast})=>{
   const el=(tag,text='',cls='')=>{const node=document.createElement(tag);node.textContent=text;if(cls)node.className=cls;return node;};
   let owner=null,epoch=0,roomsRequest=0,messagesRequest=0,selection=0,rooms=[],selected=null,messages=[],members=[];
   let ready=false,sending=false,channel=null,poll=null;const deleting=new Set();
+  const writable=()=>getData().canEditProject?.(rooms.find(r=>r.id===selected)?.project_id)??true;
   const person=id=>getData().roster.find(m=>m.user_id===id)?.display_name||'Team member';
   const current=(session,uid,id)=>session===epoch&&getData().user?.id===uid&&(!id||id===selected);
   function renderNav(){const root=$('privateChatNav');root.replaceChildren();$('privateChatNavSection').hidden=!rooms.length;
@@ -11,11 +12,11 @@ window.createPrivateChats=({getData,navigate,toast})=>{
   function render(){const room=rooms.find(r=>r.id===selected);$('privateChatTitle').textContent=room?.name||'Private chat';
     const project=getData().projects.find(p=>p.id===room?.project_id);
     $('privateChatParticipants').textContent=room?`${project?.name||'Project'} · ${members.map(m=>person(m.user_id)).join(' & ')||'Checking participants…'}`:'Choose a conversation from Private chats.';
-    $('privateChatSend').disabled=!ready||sending;$('privateChatText').disabled=!ready||sending;
+    $('privateChatSend').disabled=!ready||sending||!writable();$('privateChatText').disabled=!ready||sending||!writable();
     const root=$('privateChatMessages');root.replaceChildren();
     for(const message of messages){const post=el('article','','post');post.dataset.privateMessageId=message.id;const head=el('div','','post-head');head.append(el('b',person(message.user_id)));
       const time=el('time',new Date(message.created_at).toLocaleString(undefined,{dateStyle:'medium',timeStyle:'short'}));time.dateTime=message.created_at;head.append(time);
-      if(message.user_id===getData().user?.id){const remove=el('button',deleting.has(message.id)?'Deleting…':'Delete','button');remove.type='button';remove.disabled=deleting.has(message.id);remove.onclick=()=>void removeMessage(message.id);head.append(remove);}
+      if(message.user_id===getData().user?.id&&writable()){const remove=el('button',deleting.has(message.id)?'Deleting…':'Delete','button');remove.type='button';remove.disabled=deleting.has(message.id);remove.onclick=()=>void removeMessage(message.id);head.append(remove);}
       post.append(head,el('div',message.body,'post-body private-message-body'));root.append(post);}
     if(ready&&!messages.length)root.append(el('p','No messages yet. Start your private conversation.','empty'));renderNav();
   }
@@ -45,14 +46,14 @@ window.createPrivateChats=({getData,navigate,toast})=>{
     navigate('privateChat');await loadMessages();
   }
   $('privateChatForm').onsubmit=async event=>{event.preventDefault();const body=$('privateChatText').value.trim(),uid=getData().user?.id,id=selected,session=epoch,version=selection;
-    if(!body||body.length>4000||!uid||!id||!ready||sending)return;sending=true;render();
+    if(!body||body.length>4000||!uid||!id||!ready||sending||!writable())return;sending=true;render();
     try{const {error}=await getData().db.from('private_chat_messages').insert({room_id:id,user_id:uid,body});if(error)throw error;
       if(!current(session,uid,id)||version!==selection)return;$('privateChatText').value='';await loadMessages();
     }catch(error){if(current(session,uid,id)&&version===selection)$('privateChatStatus').textContent=error?.message||'Could not send. Your message is still here; please try again.';}
     finally{if(current(session,uid,id)&&version===selection){sending=false;render();}}
   };
   async function removeMessage(id){const record=messages.find(m=>m.id===id),uid=getData().user?.id,room=selected,session=epoch,version=selection;
-    if(!uid||record?.user_id!==uid||deleting.has(id)||!confirm('Delete this private message? This cannot be undone.'))return;deleting.add(id);render();
+    if(!uid||!writable()||record?.user_id!==uid||deleting.has(id)||!confirm('Delete this private message? This cannot be undone.'))return;deleting.add(id);render();
     try{const result=await getData().db.from('private_chat_messages').delete().eq('id',id).eq('room_id',room).eq('user_id',uid).select('id').maybeSingle();if(result.error)throw result.error;if(!result.data)throw new Error('Message could not be deleted. Refresh to check your access.');
       if(current(session,uid,room)&&version===selection){toast('Message deleted');await loadMessages();}
     }catch(error){if(current(session,uid,room)&&version===selection)$('privateChatStatus').textContent=error?.message||'Could not delete this message. Please retry.';}

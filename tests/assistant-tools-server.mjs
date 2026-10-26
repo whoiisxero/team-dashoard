@@ -3,7 +3,7 @@ import {createTranscriptionService,MAX_AUDIO_BYTES} from '../server/transcriptio
 import {createEventAssistantService} from '../server/event-assistant-core.mjs';
 const uid='00000000-0000-4000-8000-000000000001',pid='00000000-0000-4000-8000-000000000010',id='00000000-0000-4000-8000-000000000020';
 const token='test-user-token-0123456789012345',url='https://test-project.supabase.co',env={OPENAI_API_KEY:'test-only-private-key'};
-let member=true,shared=false,admin=false,denyWrite=false,loseResponse=false,providerError=null,slots={},speech='Q, pull up calendar',rows=[],calls=[];
+let member=true,shared=false,admin=false,denyWrite=false,loseResponse=false,providerError=null,slots={},speech='Q, pull up calendar',rows=[],calls=[],editableProjects=null;
 const json=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json'}});
 const fakeFetch=async(address,options)=>{
  calls.push({address,options});assert.equal(options.cache,'no-store');
@@ -11,7 +11,7 @@ const fakeFetch=async(address,options)=>{
   assert.equal(options.headers.Authorization,'Bearer '+token);assert.equal(options.headers.apikey,'public-test-key');
   if(address.endsWith('/auth/v1/user'))return json({id:uid});
   if(address.endsWith('/rpc/my_team_profile'))return json(member?{user_id:uid,display_name:'Jen'}:null);
-  if(address.endsWith('/rpc/my_dashboard_access'))return json({ready:member,is_admin:admin,shared_access:shared});
+  if(address.endsWith('/rpc/my_dashboard_access'))return json({ready:member,is_admin:admin,shared_access:shared,editable_project_ids:editableProjects});
   if(address.includes('/projects?'))return json([{id:pid,name:'Fragile'}]);
   if(address.includes('/calendar_events?')){
    if(options.method==='POST'){
@@ -52,4 +52,6 @@ slots.cancel=true;r=await service(eventReq);assert.equal(r.body.state,'cancelled
 loseResponse=true;r=await service(eventReq);assert.equal(r.body.code,'event_save_uncertain');assert.equal(rows.length,1);
 const paidCalls=calls.filter(c=>c.address.includes('openai')).length;r=await service(eventReq);assert.equal(r.body.state,'created');assert.equal(rows.length,1);assert.equal(calls.filter(c=>c.address.includes('openai')).length,paidCalls);assert.equal(rows[0].time_zone,'Asia/Tokyo');assert.equal(rows[0].event_time,'15:30');assert.equal(rows[0].detail,'Where: Studio\nPurpose: Fit samples');assert.match(r.headers['Cache-Control'],/no-store/);
 rows=[];shared=true;slots={...slots,project_id:null,all_day:true,time:null};r=await service(eventReq);assert.equal(r.body.state,'created');assert.equal(rows[0].project_id,null);assert.equal(rows[0].event_time,null);
+rows=[];shared=false;editableProjects=[];calls=[];r=await service(eventReq);assert.equal(r.status,403);assert.equal(r.body.code,'event_view_only');assert(!calls.some(c=>c.address.includes('openai')),'No paid event extraction for view-only accounts');
+editableProjects=[pid];calls=[];slots.project_id=pid;r=await service(eventReq);assert.equal(r.body.state,'created');assert.equal(rows[0].project_id,pid);
 console.log('PASS voice and event services: membership before paid calls, audio bounds/FormData, safe billing errors/rate limits, required calendar details, valid dates/times/zones, member JWT/RLS writes, project isolation, all-day events, cancel and idempotent recovery after a lost save response. Providers mocked.');

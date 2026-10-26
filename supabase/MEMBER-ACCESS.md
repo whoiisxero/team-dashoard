@@ -63,3 +63,22 @@ Legacy feature tests use `full_access_fixture.py` for an explicit owner session.
 
 Invite-only conversations add an independent room-membership requirement; see
 `PRIVATE-CHATS.md`. Jen's account is scoped to Fragile and the Quan & Jen room.
+
+`migrations/20261026_project_edit_access.sql` adds independent project editing
+limits. An existing member's null `editable_project_ids` retains editing in all
+accessible projects. An explicit UUID array permits changes only in those
+projects, including tasks, events, notes, brand chat, moodboards, files and
+catalogue uploads. Viewing never grants invitation to a private room. The
+owner-only Members editor saves viewing and editing scopes atomically; older
+clients preserve editing limits. Server-side restrictive policies check both
+the source and destination when moving an item. Creator-only rules still apply.
+
+Invite/create an account in Supabase Authentication first. To prepare a scoped
+enrollment for an existing account, run
+`node scripts/prepare-member-enrollment.mjs EMAIL ACCOUNT_UUID EDIT_PROJECT OUTPUT.sql`.
+The private output validates the exact email/UUID and named project, installs
+the editing migration, adds membership, grants viewing of all current projects
+and editing of the named project. Future projects need a fresh owner assignment;
+general team areas and private rooms are not added. Run the entire output as
+postgres, then check the returned per-project access rows before asking the
+member to retry sign-in. No Auth password or service key belongs in that file.
