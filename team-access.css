@@ -14,3 +14,6 @@
 @media(max-width:680px){.top-right #topUser{display:none}}
 
 .dashboard-load-notice{margin-bottom:18px}.dashboard-load-notice p{margin-top:0;line-height:1.6;overflow-wrap:anywhere}
+/* Keep the owner's roster summary out of every ordinary member's dashboard. */
+.stats.without-team-summary{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media(max-width:680px){.stats.without-team-summary{grid-template-columns:repeat(2,minmax(0,1fr))}.stats.without-team-summary>.stat:nth-child(3){grid-column:1/-1}}

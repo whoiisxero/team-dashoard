@@ -23,6 +23,9 @@ with sync_playwright() as p:
  assert page.locator('.online-member').count()==3
  assert 'Online' in page.locator('.online-member').filter(has_text='Quan').inner_text()
  assert page.locator('#membersOnlineCount').inner_text()=='2'
+ page.locator('.sidebar [data-view=dashboard]').click()
+ assert page.locator('#memberCount').is_visible()
+ assert 'Josh' in page.locator('#memberNames').inner_text()
  # Existing projects without the new RPC can still use the original own-row check.
  page.evaluate("accessTest.profileRpcMissing=true;accessTest.switchUser('quan')")
  page.wait_for_function('!document.querySelector("#appShell").hidden')
@@ -39,6 +42,7 @@ with sync_playwright() as p:
  page.wait_for_function('document.querySelector("#dustedShortcut").hidden')
  assert page.locator('#dustedPrivateChatShortcut').count()==0
  assert page.locator('#fragileShortcut').is_visible()
+ assert page.locator('#lodenShortcut').is_visible()
  page.evaluate("accessTest.navigate('dusted')")
  assert not page.locator('#dusted').evaluate('(el)=>el.classList.contains("active")')
  page.locator('.sidebar [data-view=projects]').click()
@@ -48,6 +52,9 @@ with sync_playwright() as p:
  assert page.locator('#members').is_hidden()
  assert page.locator('#memberAccessList').inner_text()==''
  assert page.locator('#onlineMemberList').inner_text()==''
+ page.locator('.sidebar [data-view=dashboard]').click()
+ assert page.locator('#memberCount').is_hidden()
+ assert page.locator('#memberNames').inner_text()==''
 
  # Own-profile lookup still signs in when the general roster is hidden by RLS.
  page.evaluate("accessTest.hideRoster=true;accessTest.switchUser('josh')");page.wait_for_function('!document.querySelector("#dustedShortcut").hidden')
@@ -55,6 +62,9 @@ with sync_playwright() as p:
  assert page.locator('#appShell').is_visible()
  page.evaluate('accessTest.hideRoster=false;accessTest.refresh()')
  assert page.locator('#fragileShortcut').is_hidden()
+ assert page.locator('#lodenShortcut').is_hidden()
+ page.evaluate("accessTest.navigate('loden')")
+ assert not page.locator('#loden').evaluate('(el)=>el.classList.contains("active")')
  assert page.locator('.sidebar [data-view=members]').is_hidden()
  assert page.locator('.sidebar [data-view=discussions]').is_hidden()
  page.locator('.sidebar [data-view=projects]').click()

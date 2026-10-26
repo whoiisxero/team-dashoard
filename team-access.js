@@ -17,7 +17,7 @@ window.createTeamAccess = ({getData, refresh, toast, request:runRequest=async va
     if(!policy)return false;
     if(view==='members')return !!policy.is_admin;
     if(view==='discussions')return policy.shared_access;
-    if(['fragile','dusted'].includes(view))return getData().projects.some(p=>normal(p.name)===view)||policy.is_admin;
+    if(['fragile','loden','dusted'].includes(view))return getData().projects.some(p=>normal(p.name)===view)||policy.is_admin;
     return true;
   }
   function apply() {
@@ -38,6 +38,9 @@ window.createTeamAccess = ({getData, refresh, toast, request:runRequest=async va
     $('teamAccessNotice').hidden=!!policy;
     $('memberAccessControls').hidden=!policy?.is_admin;
     $('members').hidden=!policy?.is_admin;
+    $('memberCount')?.closest('.stat')?.toggleAttribute('hidden',!policy?.is_admin);
+    $('memberCount')?.closest('.stats')?.classList.toggle('without-team-summary',!policy?.is_admin);
+    if(!policy?.is_admin){$('memberCount').textContent='';$('memberNames').textContent='';}
     if(!policy?.is_admin){profiles=[];$('memberAccessList').replaceChildren();renderOnline();}
   }
   async function load() {

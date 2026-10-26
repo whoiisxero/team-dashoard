@@ -47,6 +47,7 @@ jobs:
           python tests/session-startup-browser.py
           python tests/member-access-browser.py
           python tests/project-edit-access-browser.py
+          python tests/loden-studio.py
           python tests/private-chats-browser.py
           python tests/calendar-edit.py
           python tests/notifications-browser.py

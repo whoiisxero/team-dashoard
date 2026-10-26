@@ -1,0 +1,23 @@
+/* Loden shares the studio tools while keeping its own phosphor-green identity. */
+.loden-studio{--brand-paper:var(--ink);--brand-orange:var(--green);--brand-line:var(--line);--brand-muted:var(--muted);background:var(--panel);border-radius:12px}
+.loden-studio .fragile-header{background:radial-gradient(ellipse at 95% 20%,#b4ff3912,transparent 55%),linear-gradient(125deg,var(--panel2),var(--bg));isolation:isolate}
+.loden-studio .fragile-header::before{content:'';position:absolute;inset:0;z-index:-1;background:repeating-linear-gradient(0deg,transparent 0 5px,#b4ff3904 5px 6px);pointer-events:none}
+.loden-title-row{display:flex;align-items:center;justify-content:space-between;gap:24px;margin-top:32px}
+.loden-system-label{font:10px 'Share Tech Mono',monospace;color:var(--green2);letter-spacing:3px}
+.loden-title-row h1{font:600 clamp(48px,7.5vw,104px)/1.2 Orbitron,sans-serif;letter-spacing:3px;text-transform:uppercase;margin:10px 0 4px;text-shadow:0 0 34px #b4ff3918}
+.loden-emblem{position:relative;flex:none;display:grid;place-items:center;width:112px;height:112px;background:linear-gradient(145deg,#b4ff3918,#b4ff3903);border:1px solid var(--green2);border-radius:16px 3px 16px 3px;box-shadow:0 0 32px #b4ff3910,inset 0 0 22px #b4ff3908;color:var(--green);transform:rotate(-5deg)}
+.loden-emblem span{font:400 90px/1 FragileGothic,serif;text-shadow:0 0 22px #b4ff3940;transform:rotate(5deg)}
+.loden-emblem::after{content:'';position:absolute;inset:8px;border:1px solid #b4ff3924;border-radius:10px 0 10px 0;pointer-events:none}
+.loden-studio .fragile-header>p{max-width:560px;font-size:14px}
+.loden-studio .fragile-summary{display:inline-block;border:1px solid var(--line);padding:7px 11px;border-radius:4px;font:11px 'Share Tech Mono',monospace}
+.loden-studio .fragile-work-card,.loden-studio .input{background:var(--bg);border-color:var(--line)}
+.loden-studio .fragile-work-card{border-top:2px solid var(--green2)}
+.loden-studio .button{background:var(--panel2);color:var(--ink);border-color:var(--line)}
+.loden-studio .button.primary{background:var(--green);color:var(--theme-10,#081008);border-color:var(--green)}
+.loden-studio .fragile-pin{background:var(--panel2);color:var(--ink);border-color:var(--line);border-radius:8px}
+.loden-studio .fragile-pin small,.loden-studio .fragile-pin-meta{color:var(--muted)}
+.loden-studio .fragile-pin a{color:var(--green2)}
+.sidebar .nav-emoji.loden-nav-mark{font:400 27px/1 FragileGothic,serif;color:var(--nav-colour);text-shadow:0 0 10px #b4ff3950;border-radius:7px 2px 7px 2px}
+#lodenPinDialog .input{background:var(--bg);border-color:var(--line);color:var(--ink)}
+#lodenPinDialog input[type=color]{height:45px;padding:4px}
+@media(max-width:680px){.loden-title-row{gap:12px;margin-top:24px}.loden-title-row h1{font-size:clamp(34px,10vw,58px);letter-spacing:1px}.loden-emblem{width:68px;height:68px;border-radius:11px 2px}.loden-emblem span{font-size:56px}.loden-system-label{font-size:9px;letter-spacing:1.5px}.loden-studio .fragile-header>p{font-size:13px}}
