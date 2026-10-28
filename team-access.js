@@ -8,6 +8,7 @@ window.createTeamAccess = ({getData, refresh, toast, request:runRequest=async va
   function canEdit(project=null) {
     if(!policy)return false;
     if(policy.is_admin)return true;
+    if(policy.personal_only)return false;
     if(!project)return !!policy.shared_access;
     if(!getData().projects.some(p=>p.id===project))return false;
     return policy.editable_project_ids==null||policy.editable_project_ids.includes(project);
@@ -15,6 +16,8 @@ window.createTeamAccess = ({getData, refresh, toast, request:runRequest=async va
   function canView(view) {
     if(view==='overview')return true;
     if(!policy)return false;
+    if(['personalHome','personalSetup','writing','business'].includes(view))return !!policy.personal_workspace_ready&&(policy.is_admin||policy.personal_only);
+    if(policy.personal_only)return ['notifications','privateChat'].includes(view);
     if(view==='members')return !!policy.is_admin;
     if(view==='discussions')return policy.shared_access;
     if(['fragile','loden','dusted'].includes(view))return getData().projects.some(p=>normal(p.name)===view)||policy.is_admin;
@@ -22,6 +25,8 @@ window.createTeamAccess = ({getData, refresh, toast, request:runRequest=async va
   }
   function apply() {
     for(const button of document.querySelectorAll('[data-view]'))button.hidden=!canView(button.dataset.view);
+    if(policy?.personal_only)for(const button of document.querySelectorAll('.sidebar [data-view="personalHome"]'))button.hidden=true;
+    for(const label of document.querySelectorAll('.sidebar .nav-label'))if(label.textContent==='Projects')label.parentElement.hidden=!!policy?.personal_only;
     $('fragileShortcut').hidden=!canView('fragile');$('fragileShortcutStatus').hidden=true;
     for(const button of document.querySelectorAll('[data-add="project"]'))button.hidden=!policy?.can_create_projects;
     const writable=canEdit()||getData().projects.some(p=>canEdit(p.id));
@@ -100,6 +105,12 @@ window.createTeamAccess = ({getData, refresh, toast, request:runRequest=async va
     const root=$('memberAccessList');root.replaceChildren();
     for(const member of profiles){const form=document.createElement('form');form.className='member-access-card';form.dataset.memberId=member.user_id;
       form.append(node('h3',member.display_name));if(member.is_admin){form.append(node('p','Owner · full access'));root.append(form);continue;}
+      if(member.personal_only){form.append(node('p','Personal workspace only · no team projects or shared chats. Writing and business notes stay private to this member.'));root.append(form);continue;}
+      if(policy.personal_workspace_ready){const personal=node('button','Create personal-only workspace','button');personal.type='button';personal.onclick=async()=>{
+        if(!confirm(`Make ${member.display_name} personal-only? This removes their project access and other private-chat invitations, and creates a conversation with you.`))return;
+        personal.disabled=true;const generation=epoch;try{const r=await getData().db.rpc('quest_make_personal_workspace',{target:member.user_id});if(r.error)throw r.error;if(generation!==epoch)return;toast('Private workspace created');await loadMembers();await refresh();}
+        catch(error){if(generation===epoch)$('memberAccessStatus').textContent=error?.message||'Could not create this workspace.';}finally{if(generation===epoch)personal.disabled=false;}
+      };form.append(personal);}
       const label=node('label','Project access');const mode=document.createElement('select');mode.className='input';mode.name='mode';
       for(const [value,text] of [['selected','Selected projects only'],['all','All projects, with exceptions']]){const option=node('option',text);option.value=value;mode.append(option);}mode.value=member.project_mode;label.append(mode);form.append(label);
       const group=node('fieldset','');group.append(node('legend','Allow access to'));

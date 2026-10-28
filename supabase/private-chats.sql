@@ -68,7 +68,7 @@ create policy message_delete_guard on public.private_chat_messages as restrictiv
 alter table public.team_notifications add column if not exists private_room_id uuid;
 alter table public.team_notifications drop constraint if exists team_notifications_access_scope_check;
 alter table public.team_notifications add constraint team_notifications_access_scope_check
-  check(access_scope in ('project','shared','admin','private_chat'));
+  check(access_scope in ('project','shared','admin','private_chat','personal'));
 drop policy if exists notification_access_guard on public.team_notifications;
 create policy notification_access_guard on public.team_notifications as restrictive for all to authenticated
 using(case access_scope when 'private_chat' then public.can_access_private_chat(private_room_id)

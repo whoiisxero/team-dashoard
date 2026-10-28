@@ -3,6 +3,7 @@ import {readFile,writeFile,readdir,mkdir,rm,cp} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import path from 'node:path';
+import {prepareProductivitySetup} from './prepare-productivity-setup.mjs';
 const root=fileURLToPath(new URL('../',import.meta.url)),output=path.join(root,'dist');
 const hash=value=>createHash('sha256').update(value).digest('hex').slice(0,16);
 const names=(await readdir(root)).filter(name=>/\.(js|css)$/.test(name)&&name!=='service-worker.js').sort();
@@ -29,6 +30,8 @@ for(const [name,target] of assets)html=html.replaceAll(`src="./${name}"`,`src="$
 html=html.replace('</head>',`<meta name="quest-release" content="${release}"></head>`);
 await writeFile(path.join(output,'index.html'),html);
 for(const name of ['offline.html','manifest.webmanifest','favicon.svg'])await cp(path.join(root,name),path.join(output,name));
+await cp(path.join(root,'setup-guide.html'),path.join(output,'setup-guide.html'));
+await prepareProductivitySetup(path.join(output,'setup/productivity.sql'));
 for(const name of ['assets','icons'])await cp(path.join(root,name),path.join(output,name),{recursive:true});
 const icons=(await readdir(path.join(root,'icons'))).filter(name=>/\.png$/.test(name)).map(name=>`/icons/${name}`);
 const precache=['/offline.html','/favicon.svg',...icons,...assets.values()];

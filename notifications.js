@@ -1,5 +1,5 @@
 /* Per-recipient activity inbox. Database triggers create trusted actor snapshots. */
-window.createNotificationCenter = ({getClient, getUser, getProjects=()=>[], openPrivateChat=()=>{}, navigate, openEvent, toast}) => {
+window.createNotificationCenter = ({getClient, getUser, getProjects=()=>[], openPrivateChat=()=>{}, openPersonalNote=()=>{}, navigate, openEvent, toast}) => {
   const $ = id => document.getElementById(id);
   const destinations = {project_files:'files',brand_messages:'fragile',brand_moodboard_items:'fragile',project_notes:'projects',projects:'projects',tasks:'tasks',expenses:'expenses',goals:'goals',discussion_messages:'discussions',calendar_events:'calendar',team_settings:'expenses',team_members:'dashboard'};
   const labels = {project_files:'project file',private_chat_messages:'private message',brand_messages:'brand message',brand_moodboard_items:'moodboard pin',project_notes:'project note',projects:'project',tasks:'task',expenses:'expense',goals:'goal',discussion_messages:'message',calendar_events:'event',team_settings:'budget',team_members:'team member'};
@@ -20,7 +20,7 @@ window.createNotificationCenter = ({getClient, getUser, getProjects=()=>[], open
       const article=document.createElement('article');article.className=`notification-item${row.read_at?'':' unread'}`;
       const open=document.createElement('button');open.type='button';open.className='notification-open';
       const verb=row.action==='INSERT'?(['discussion_messages','private_chat_messages'].includes(row.source_table)?'sent':'added'):row.action==='DELETE'?'removed':'updated';
-      open.append(text(document.createElement('strong'),row.notification_type==='reminder'?`Reminder · ${labels[row.source_table]||'your work'}`:`${row.actor_name} ${verb} ${labels[row.source_table]||'an item'}`));
+      open.append(text(document.createElement('strong'),row.notification_type==='reminder'?`Reminder · ${row.source_table==='personal_notes'?'your business item':labels[row.source_table]||'your work'}`:`${row.actor_name} ${verb} ${labels[row.source_table]||'an item'}`));
       const project=getProjects().find(p=>p.id===row.project_id);
       open.append(text(document.createElement('span'),row.source_table==='brand_messages'?(project?project.name+' team chat':'Brand chat'):row.item_title));
       const time=document.createElement('time');time.dateTime=row.created_at;time.textContent=new Date(row.created_at).toLocaleString(undefined,{dateStyle:'medium',timeStyle:'short'});open.append(time);
@@ -76,6 +76,7 @@ window.createNotificationCenter = ({getClient, getUser, getProjects=()=>[], open
     if(busy)return;const current=session;
     if(!row.read_at)await writeRead([row.id]);
     if(current!==session)return;
+    if(row.source_table==='personal_notes'){navigate('business');openPersonalNote(row.personal_note_id||row.source_id);return;}
     if(row.source_table==='private_chat_messages'){
       if(row.private_room_id)await openPrivateChat(row.private_room_id);
       else toast('This private chat is no longer available.');
@@ -85,7 +86,7 @@ window.createNotificationCenter = ({getClient, getUser, getProjects=()=>[], open
     if(['brand_messages','brand_moodboard_items'].includes(row.source_table)){
       const project=getProjects().find(p=>p.id===row.project_id);
       if(!project){toast('This project is no longer available.');return;}
-      target=project.name.trim().toLowerCase().replace(/\.$/,'')==='dusted'?'dusted':'fragile';
+      const brand=project.name.trim().toLowerCase().replace(/\.$/,'');target=['fragile','loden','dusted'].includes(brand)?brand:'projects';
     }
     navigate(target);
     if(row.action==='DELETE'){toast('This item was removed.');return;}

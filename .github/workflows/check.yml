@@ -38,6 +38,7 @@ jobs:
           node scripts/build.mjs
           node tests/member-access-db.mjs
           node tests/project-edit-access-db.mjs
+          node tests/personal-workspace-db.mjs
           node tests/private-chats-db.mjs
           node tests/daily-workflow-db.mjs
           node tests/assistant-server.mjs
@@ -47,6 +48,7 @@ jobs:
           python tests/session-startup-browser.py
           python tests/member-access-browser.py
           python tests/project-edit-access-browser.py
+          python tests/personal-workspace-browser.py
           python tests/loden-studio.py
           python tests/private-chats-browser.py
           python tests/calendar-edit.py

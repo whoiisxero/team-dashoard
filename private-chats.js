@@ -4,14 +4,14 @@ window.createPrivateChats=({getData,navigate,toast})=>{
   const el=(tag,text='',cls='')=>{const node=document.createElement(tag);node.textContent=text;if(cls)node.className=cls;return node;};
   let owner=null,epoch=0,roomsRequest=0,messagesRequest=0,selection=0,rooms=[],selected=null,messages=[],members=[];
   let ready=false,sending=false,channel=null,poll=null;const deleting=new Set();
-  const writable=()=>getData().canEditProject?.(rooms.find(r=>r.id===selected)?.project_id)??true;
-  const person=id=>getData().roster.find(m=>m.user_id===id)?.display_name||'Team member';
+  const writable=()=>{const room=rooms.find(r=>r.id===selected);return room?.room_kind==='personal'?true:getData().canEditProject?.(room?.project_id)??true;};
+  const person=id=>members.find(m=>m.user_id===id)?.display_name||getData().roster.find(m=>m.user_id===id)?.display_name||'Team member';
   const current=(session,uid,id)=>session===epoch&&getData().user?.id===uid&&(!id||id===selected);
   function renderNav(){const root=$('privateChatNav');root.replaceChildren();$('privateChatNavSection').hidden=!rooms.length;
     for(const room of rooms){const button=el('button',room.name);button.type='button';button.dataset.privateChat=room.id;window.QuestNavigation?.decorate(button,'room',room.name,room.id);button.classList.toggle('active',selected===room.id&&$('privateChat').classList.contains('active'));button.onclick=()=>void open(room.id);root.append(button);}}
   function render(){const room=rooms.find(r=>r.id===selected);$('privateChatTitle').textContent=room?.name||'Private chat';
     const project=getData().projects.find(p=>p.id===room?.project_id);
-    $('privateChatParticipants').textContent=room?`${project?.name||'Project'} · ${members.map(m=>person(m.user_id)).join(' & ')||'Checking participants…'}`:'Choose a conversation from Private chats.';
+    $('privateChatParticipants').textContent=room?`${room.room_kind==='personal'?'Private conversation':project?.name||'Project'} · ${members.map(m=>person(m.user_id)).join(' & ')||'Checking participants…'}`:'Choose a conversation from Private chats.';
     $('privateChatSend').disabled=!ready||sending||!writable();$('privateChatText').disabled=!ready||sending||!writable();
     const root=$('privateChatMessages');root.replaceChildren();
     for(const message of messages){const post=el('article','','post');post.dataset.privateMessageId=message.id;const head=el('div','','post-head');head.append(el('b',person(message.user_id)));
@@ -25,7 +25,7 @@ window.createPrivateChats=({getData,navigate,toast})=>{
   async function loadMessages(){const uid=getData().user?.id,id=selected;if(!uid||!id)return;const session=epoch,request=++messagesRequest;
     try{const [items,participants]=await Promise.all([
       getData().db.from('private_chat_messages').select('*').eq('room_id',id).order('created_at',{ascending:false}).order('id',{ascending:false}).limit(100),
-      getData().db.from('private_chat_members').select('room_id,user_id').eq('room_id',id)
+      getData().policy?.personal_workspace_ready?getData().db.rpc('private_chat_participants',{chat_id:id}):getData().db.from('private_chat_members').select('room_id,user_id').eq('room_id',id)
     ]);if(!current(session,uid,id)||request!==messagesRequest)return;if(items.error||participants.error)throw items.error||participants.error;
       if(!(participants.data||[]).some(m=>m.user_id===uid)){clearSelected();$('privateChatStatus').textContent='This conversation is no longer available to your account.';navigate('overview');return;}
       messages=(items.data||[]).reverse();members=participants.data||[];ready=true;$('privateChatStatus').textContent='Only invited participants can read this conversation · latest 100 messages.';render();
@@ -33,8 +33,8 @@ window.createPrivateChats=({getData,navigate,toast})=>{
   }
   async function refreshRooms(){if(navigator.onLine===false)return;const uid=getData().user?.id;if(!uid)return;if(owner!==uid){reset();owner=uid;}
     const session=epoch,request=++roomsRequest;
-    try{const result=await getData().db.from('private_chat_rooms').select('id,name,project_id').order('created_at');if(!current(session,uid)||request!==roomsRequest)return;if(result.error)throw result.error;
-      const oldRoomIds=rooms.map(room=>room.id).sort().join(',');rooms=(result.data||[]).filter(room=>room.id&&room.name&&getData().projects.some(p=>p.id===room.project_id));renderNav();if(oldRoomIds!==rooms.map(room=>room.id).sort().join(','))window.dispatchEvent(new Event('quest:private-access-changed'));
+    try{const result=await getData().db.from('private_chat_rooms').select(getData().policy?.personal_workspace_ready?'id,name,project_id,room_kind,personal_owner_id':'id,name,project_id').order('created_at');if(!current(session,uid)||request!==roomsRequest)return;if(result.error)throw result.error;
+      const oldRoomIds=rooms.map(room=>room.id).sort().join(',');rooms=(result.data||[]).filter(room=>room.id&&room.name&&(room.room_kind==='personal'||getData().projects.some(p=>p.id===room.project_id)));renderNav();if(oldRoomIds!==rooms.map(room=>room.id).sort().join(','))window.dispatchEvent(new Event('quest:private-access-changed'));
       if(selected&&!rooms.some(r=>r.id===selected)){clearSelected();$('privateChatStatus').textContent='This conversation is no longer available to your account.';if($('privateChat').classList.contains('active'))navigate('overview');}
       else if(selected&&$('privateChat').classList.contains('active'))await loadMessages();
       if(!poll)poll=setInterval(()=>{if(!document.hidden)void refreshRooms();},30000);
@@ -62,5 +62,5 @@ window.createPrivateChats=({getData,navigate,toast})=>{
   function reset(){epoch++;roomsRequest++;owner=null;rooms=[];if(poll)clearInterval(poll);poll=null;clearSelected();$('privateChatStatus').textContent='Private conversations are visible only to invited participants.';}
   $('privateChatRefresh').onclick=()=>void refreshRooms();
   window.addEventListener('focus',()=>{if(owner)void refreshRooms();});
-  render();return {refreshRooms,open,reset,hasRoom:id=>rooms.some(room=>room.id===id)};
+  render();return {refreshRooms,open,reset,hasRoom:id=>rooms.some(room=>room.id===id),get rooms(){return rooms.map(r=>({...r}));}};
 };
