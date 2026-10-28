@@ -161,7 +161,7 @@ grant execute on function public.quest_save_personal_note(uuid,text,text,text,te
 -- Personal work reminders use the existing inbox, not a shared project or chat.
 alter table public.team_notifications add column if not exists personal_note_id uuid references public.personal_notes(id) on delete cascade;
 alter table public.team_notifications drop constraint if exists team_notifications_access_scope_check;
-alter table public.team_notifications add constraint team_notifications_access_scope_check check(access_scope in ('project','shared','admin','private_chat','personal'));
+alter table public.team_notifications add constraint team_notifications_access_scope_check check(access_scope in ('project','shared','admin','private_chat','personal','personal_event'));
 drop policy if exists notification_access_guard on public.team_notifications;
 create policy notification_access_guard on public.team_notifications as restrictive for all to authenticated
 using(case access_scope when 'personal' then public.can_access_personal_note(personal_note_id)

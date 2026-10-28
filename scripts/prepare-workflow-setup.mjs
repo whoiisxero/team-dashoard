@@ -34,10 +34,10 @@ async function prepareSetup(sources,destination,upgrade=false){
   return sql;
 }
 export async function prepareWorkflowSetup(destination=null){
-  return prepareSetup(['project-workspaces.sql','fragile-studio.sql','notifications.sql','member-access.sql','private-chats.sql','migrations/20261021_daily_workflow.sql','migrations/20261026_project_edit_access.sql','migrations/20261028_personal_workspaces.sql'],destination);
+  return prepareSetup(['project-workspaces.sql','fragile-studio.sql','notifications.sql','member-access.sql','private-chats.sql','migrations/20261021_daily_workflow.sql','migrations/20261026_project_edit_access.sql','migrations/20261028_personal_workspaces.sql','migrations/20261028_personal_calendar.sql'],destination);
 }
 export async function prepareWorkflowUpgrade(destination=null){
-  return prepareSetup(['private-chats.sql','migrations/20261021_daily_workflow.sql','migrations/20261026_project_edit_access.sql','migrations/20261028_personal_workspaces.sql'],destination,true);
+  return prepareSetup(['private-chats.sql','migrations/20261021_daily_workflow.sql','migrations/20261026_project_edit_access.sql','migrations/20261028_personal_workspaces.sql','migrations/20261028_personal_calendar.sql'],destination,true);
 }
 export function prepareWorkflowCopyPage(sql){
   const escaped=sql.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;');

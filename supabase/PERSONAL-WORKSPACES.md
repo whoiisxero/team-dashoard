@@ -36,3 +36,23 @@ Validation: `tests/personal-workspace-db.mjs` exercises real PostgreSQL roles/RL
 private notes even from the owner, chat isolation, reminders, conflicting edits,
 time zones and account revocation. `tests/personal-workspace-browser.py` covers
 onboarding, personalised UI, private writing, business work and account changes.
+
+Private calendar: the complete setup also applies `20261028_personal_calendar.sql`.
+My calendar stores personal appointments separately from team calendar events,
+with date, optional time, time zone, location, notes and in-app reminders.
+Only the author can read or change an event; even a team owner cannot inspect
+another member’s calendar. Writes use a protected RPC with stable create IDs
+and revision checks. The server rejects nonexistent daylight-saving times;
+repeated times follow PostgreSQL’s standard-time interpretation. All-day
+events retain their local date and use 09:00 local for their internal instant.
+Deleting or rescheduling an event removes obsolete reminders.
+
+Private pages appear near Home for personal-only members and owners. Missing
+setup leaves those links visible with an explanation and disabled writes; no
+client-side grant or email allowlist bypasses database access. If the workspace
+is already personal-only, run the updated complete query and refresh; there is
+no need to convert the member again. Phone push remains deferred.
+
+`tests/personal-calendar-db.mjs` covers real RLS, private reminder delivery,
+revocation, time zones, replay and conflicts. `tests/personal-calendar-browser.py`
+covers private event CRUD, failed saves, date selection and mobile layout.

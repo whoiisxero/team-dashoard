@@ -1,8 +1,8 @@
 /* Per-recipient activity inbox. Database triggers create trusted actor snapshots. */
-window.createNotificationCenter = ({getClient, getUser, getProjects=()=>[], openPrivateChat=()=>{}, openPersonalNote=()=>{}, navigate, openEvent, toast}) => {
+window.createNotificationCenter = ({getClient, getUser, getProjects=()=>[], openPrivateChat=()=>{}, openPersonalNote=()=>{}, openPersonalEvent=()=>{}, navigate, openEvent, toast}) => {
   const $ = id => document.getElementById(id);
   const destinations = {project_files:'files',brand_messages:'fragile',brand_moodboard_items:'fragile',project_notes:'projects',projects:'projects',tasks:'tasks',expenses:'expenses',goals:'goals',discussion_messages:'discussions',calendar_events:'calendar',team_settings:'expenses',team_members:'dashboard'};
-  const labels = {project_files:'project file',private_chat_messages:'private message',brand_messages:'brand message',brand_moodboard_items:'moodboard pin',project_notes:'project note',projects:'project',tasks:'task',expenses:'expense',goals:'goal',discussion_messages:'message',calendar_events:'event',team_settings:'budget',team_members:'team member'};
+  const labels = {personal_calendar_events:'personal event',project_files:'project file',private_chat_messages:'private message',brand_messages:'brand message',brand_moodboard_items:'moodboard pin',project_notes:'project note',projects:'project',tasks:'task',expenses:'expense',goals:'goal',discussion_messages:'message',calendar_events:'event',team_settings:'budget',team_members:'team member'};
   let session = 0, owner = null, channel = null, poll = null, rows = [], limit = 50, unread = 0;
   let fetching = false, refreshAgain = false, online = false, busy = false;
   const status = text => { $('notificationStatus').textContent=text; };
@@ -77,6 +77,7 @@ window.createNotificationCenter = ({getClient, getUser, getProjects=()=>[], open
     if(!row.read_at)await writeRead([row.id]);
     if(current!==session)return;
     if(row.source_table==='personal_notes'){navigate('business');openPersonalNote(row.personal_note_id||row.source_id);return;}
+    if(row.source_table==='personal_calendar_events'){navigate('personalCalendar');openPersonalEvent(row.personal_event_id||row.source_id);return;}
     if(row.source_table==='private_chat_messages'){
       if(row.private_room_id)await openPrivateChat(row.private_room_id);
       else toast('This private chat is no longer available.');

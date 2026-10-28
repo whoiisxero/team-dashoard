@@ -4,6 +4,8 @@ window.createTeamAccess = ({getData, refresh, toast, request:runRequest=async va
   let policy=null,epoch=0,profiles=[],saving=false,presenceTimer=null,presenceOwner=null;
   let sessionKey=null,presenceBusy=false,accessRequest=0;
   const node=(tag,value,cls='')=>{const el=document.createElement(tag);el.textContent=value;if(cls)el.className=cls;return el;};
+  const workspaceSetup=node('p','','hint');workspaceSetup.id='memberWorkspaceSetup';
+  const workspaceSetupText=node('span',''),workspaceSetupLink=node('a','Open owner setup');workspaceSetupLink.href='/setup-guide.html';workspaceSetupLink.target='_blank';workspaceSetupLink.rel='noopener noreferrer';workspaceSetup.append(workspaceSetupText,workspaceSetupLink);$('memberAccessControls').prepend(workspaceSetup);
   const normal=name=>name.trim().toLowerCase().replace(/\.$/,'');
   function canEdit(project=null) {
     if(!policy)return false;
@@ -16,7 +18,7 @@ window.createTeamAccess = ({getData, refresh, toast, request:runRequest=async va
   function canView(view) {
     if(view==='overview')return true;
     if(!policy)return false;
-    if(['personalHome','personalSetup','writing','business'].includes(view))return !!policy.personal_workspace_ready&&(policy.is_admin||policy.personal_only);
+    if(['personalHome','personalSetup','writing','business','personalCalendar'].includes(view))return !!(policy.is_admin||policy.personal_only);
     if(policy.personal_only)return ['notifications','privateChat'].includes(view);
     if(view==='members')return !!policy.is_admin;
     if(view==='discussions')return policy.shared_access;
@@ -42,6 +44,7 @@ window.createTeamAccess = ({getData, refresh, toast, request:runRequest=async va
     $('budgetSubtitle')?.parentElement?.toggleAttribute('hidden',!policy?.shared_access);
     $('teamAccessNotice').hidden=!!policy;
     $('memberAccessControls').hidden=!policy?.is_admin;
+    workspaceSetupText.textContent=policy?.personal_workspace_ready?'Private workspace features are installed. Use the owner setup page for calendar updates. ':'Private notes and personal-only workspaces need the latest database setup. ';
     $('members').hidden=!policy?.is_admin;
     $('memberCount')?.closest('.stat')?.toggleAttribute('hidden',!policy?.is_admin);
     $('memberCount')?.closest('.stats')?.classList.toggle('without-team-summary',!policy?.is_admin);

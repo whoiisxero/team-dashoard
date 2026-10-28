@@ -8,7 +8,7 @@ window.QuestNavigation=(()=>{
   files:['📎','#93c5fd','Files'],search:['🔎','#fde68a','Search'],activity:['📜','#5eead4','Activity'],
   trading:['📈','#38bdf8','Trading view'],fragile:['🦋','#e9a8ff','Fragile'],loden:['L','#b4ff39','Loden'],dusted:['🍬','#fb923c','Dusted.'],
   install:['📲','#cbd5e1','Install Quest']
-  ,personalHome:['🌙','#c4b5fd','My workspace'],personalSetup:['🎛️','#f9a8d4','My settings'],writing:['✒️','#93c5fd','Writing & notes'],business:['📒','#fcd34d','Business & work']
+  ,personalCalendar:['🗓️','#67e8f9','My calendar'],personalHome:['🌙','#c4b5fd','My workspace'],personalSetup:['🎛️','#f9a8d4','My settings'],writing:['✒️','#93c5fd','Writing & notes'],business:['📒','#fcd34d','Business & work']
  };
  const hash=text=>Array.from(String(text)).reduce((value,letter)=>(Math.imul(value,31)+letter.codePointAt(0))>>>0,0);
  function appearance(kind,name,id){

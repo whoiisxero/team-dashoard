@@ -5,7 +5,11 @@ from playwright.sync_api import sync_playwright
 from browser_config import CHROMIUM
 root=Path(__file__).resolve().parents[1]
 html=(root/'index.html').read_text().replace("import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/+esm';", "const createClient=()=>({auth:{getSession:async()=>({data:{session:null}}),onAuthStateChange:()=>{}}});")
-fixture=(root/'tests/member-access-fixture.js').read_text()+(root/'tests/personal-workspace-fixture.js').read_text()
+fixture=(root/'tests/member-access-fixture.js').read_text()+(root/'tests/personal-workspace-fixture.js').read_text()+'''
+accessTest.personal.reads=[];
+const visibilityBaseFrom=db.from;
+db.from=table=>{if(['personal_profiles','personal_notes'].includes(table))accessTest.personal.reads.push({user:user?.id,table});return visibilityBaseFrom(table);};
+'''
 html=html.replace('</script></body>',fixture.replace('</script','<\\/script')+'</script></body>')
 with sync_playwright() as p:
  b=p.chromium.launch(executable_path=CHROMIUM,args=['--no-sandbox'])
@@ -60,5 +64,42 @@ with sync_playwright() as p:
  assert page.locator('#writingList').inner_text()==''
  assert page.locator('.sidebar [data-view=writing]').is_hidden()
  assert not page.evaluate('document.body.classList.contains("personal-large")')
+ # A team member cannot use the newly discoverable private routes.
+ page.set_viewport_size({'width':1280,'height':1000})
+ for view in ['personalHome','personalSetup','writing','business','personalCalendar']:
+  assert page.locator('.sidebar [data-view='+view+']').is_hidden(),view
+  page.evaluate('(v)=>accessTest.navigate(v)',view)
+  assert not page.locator('#'+view).evaluate('(el)=>el.classList.contains("active")'),view
+ assert page.locator('#personalWritingCount').text_content()=='0'
+ assert page.locator('#personalBusinessCount').text_content()=='0'
+ assert page.locator('#personalDueCount').text_content()=='0'
+ # Old database setup must not silently remove the owner's notes links.
+ page.evaluate("accessTest.profiles.quan.personal_workspace_ready=false;accessTest.switchUser('quan')")
+ page.wait_for_function('document.querySelector("#userName").textContent==="Quan"')
+ before=page.evaluate('({reads:accessTest.personal.reads.length,writes:accessTest.personal.writes.length})')
+ for view in ['writing','business','personalSetup']:
+  assert page.locator('.sidebar [data-view='+view+']').is_visible(),view
+  page.locator('.sidebar [data-view='+view+']').click()
+  assert page.locator('#'+view).is_visible()
+  status=page.locator('#'+('personalSetupStatus' if view=='personalSetup' else view+'Status'))
+  assert 'setup' in status.inner_text().lower()
+  assert status.locator('a').get_attribute('href')=='/setup-guide.html'
+ assert page.locator('#writingNew').is_disabled()
+ assert page.locator('#businessNew').is_disabled()
+ assert page.locator('#personalSetupSave').is_disabled()
+ assert page.locator('#personalPreferredName').is_disabled()
+ page.evaluate("document.querySelector('#personalSetupForm').dispatchEvent(new Event('submit',{cancelable:true,bubbles:true}));document.querySelector('#personalNoteForm').dispatchEvent(new Event('submit',{cancelable:true,bubbles:true}))")
+ page.locator('.sidebar [data-view=writing]').click();page.locator('#writingRefresh').click()
+ page.locator('.sidebar [data-view=members]').click()
+ assert page.locator('#memberWorkspaceSetup a').is_visible()
+ assert page.locator('#memberWorkspaceSetup a').get_attribute('href')=='/setup-guide.html'
+ assert page.evaluate('accessTest.personal.reads.length')==before['reads']
+ assert page.evaluate('accessTest.personal.writes.length')==before['writes']
+ # Detecting a completed migration restores usable notes without a new login.
+ page.evaluate("accessTest.profiles.quan.personal_workspace_ready=true;accessTest.refresh()")
+ page.wait_for_function('!document.querySelector("#writingNew").disabled')
+ page.locator('.sidebar [data-view=writing]').click()
+ assert 'Private thoughts' not in page.locator('#writingList').inner_text()
+ assert page.locator('#writingNew').is_enabled()
  assert not errors,errors
- b.close();print('PASS Cas browser: personalised onboarding, private home, excluded team/project views, owner-only room, writing and retry recovery, business reminders, escaped text, mobile layout and stale-account isolation.')
+ b.close();print('PASS Cas browser: personalised onboarding, private home, excluded team/project views, owner-only room, writing and retry recovery, business reminders, escaped text, mobile layout, stale-account isolation and setup visibility without unsafe reads/writes.')

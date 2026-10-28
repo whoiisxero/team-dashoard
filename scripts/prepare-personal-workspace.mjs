@@ -5,7 +5,7 @@ const quote=value=>"'"+String(value).replaceAll("'","''")+"'";
 export async function preparePersonalWorkspace({email,name,ownerId=null},destination=null){
   if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)||!name?.trim()||name.length>80)throw new Error('Supply an email and a display name of up to 80 characters.');
   if(ownerId&&!/^[a-f0-9-]{36}$/i.test(ownerId))throw new Error('Owner ID must be an account UUID.');
-  const migration=await readFile(new URL('../supabase/migrations/20261028_personal_workspaces.sql',import.meta.url),'utf8');
+  const migration=(await Promise.all(['20261028_personal_workspaces.sql','20261028_personal_calendar.sql'].map(file=>readFile(new URL('../supabase/migrations/'+file,import.meta.url),'utf8')))).join('\n');
   const sql=`-- Copy this ENTIRE query into the Quest Supabase SQL Editor. Run as postgres.
 -- Private notes remain visible only to their author, including when an owner signs in.
 rollback;
