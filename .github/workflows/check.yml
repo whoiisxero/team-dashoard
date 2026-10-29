@@ -47,6 +47,7 @@ jobs:
       - name: Test browser workflows
         run: |
           python tests/session-startup-browser.py
+          python tests/password-reset-browser.py
           python tests/member-access-browser.py
           python tests/project-edit-access-browser.py
           python tests/personal-workspace-browser.py
