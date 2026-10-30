@@ -29,7 +29,7 @@ window.createTeamAccess = ({getData, refresh, toast, request:runRequest=async va
   function apply() {
     for(const button of document.querySelectorAll('[data-view]'))button.hidden=!canView(button.dataset.view);
     if(policy?.personal_only)for(const button of document.querySelectorAll('.sidebar [data-view="personalHome"]'))button.hidden=true;
-    for(const label of document.querySelectorAll('.sidebar .nav-label'))if(label.textContent==='Projects')label.parentElement.hidden=!!policy?.personal_only;
+    $('projectNav').hidden=!policy||!!policy.personal_only;
     $('fragileShortcut').hidden=!canView('fragile');$('fragileShortcutStatus').hidden=true;
     for(const button of document.querySelectorAll('[data-add="project"]'))button.hidden=!policy?.can_create_projects;
     const writable=canEdit()||getData().projects.some(p=>canEdit(p.id));
@@ -51,6 +51,7 @@ window.createTeamAccess = ({getData, refresh, toast, request:runRequest=async va
     $('memberCount')?.closest('.stats')?.classList.toggle('without-team-summary',!policy?.is_admin);
     if(!policy?.is_admin){$('memberCount').textContent='';$('memberNames').textContent='';}
     if(!policy?.is_admin){profiles=[];$('memberAccessList').replaceChildren();renderOnline();}
+    window.QuestNavigation?.refreshSections();
   }
   async function load() {
     const request=++accessRequest,current=epoch,uid=getData().user?.id;

@@ -1,12 +1,17 @@
-.sidebar .nav button.quest-nav-item,.sidebar>.quest-nav-item{--nav-colour:#b9d7ed;gap:9px;min-height:42px;padding:6px 9px;border:1px solid transparent;border-radius:10px;line-height:1.4;color:var(--ink);background:transparent;font-weight:500}
+.sidebar .nav button.quest-nav-item,.sidebar .app-install-entry.quest-nav-item{--nav-colour:#b9d7ed;gap:9px;min-height:42px;padding:6px 9px;border:1px solid transparent;border-radius:10px;line-height:1.4;color:var(--ink);background:transparent;font-weight:500}
 .nav-emoji{display:grid;place-items:center;flex:0 0 28px;width:28px;height:28px;border-radius:9px;border:1px solid color-mix(in srgb,var(--nav-colour) 25%,transparent);background:color-mix(in srgb,var(--nav-colour) 11%,transparent);font:17px/1 'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif}
 .nav-title{min-width:0;flex:1;overflow-wrap:anywhere}
-.sidebar .nav button.quest-nav-item:hover,.sidebar>.quest-nav-item:hover{background:var(--theme-29,#0e2015);border-color:var(--line);color:var(--ink)}
+.sidebar .nav button.quest-nav-item:hover,.sidebar .app-install-entry.quest-nav-item:hover{background:var(--theme-29,#0e2015);border-color:var(--line);color:var(--ink)}
 .sidebar .nav button.quest-nav-item.active{background:var(--theme-31,#10271a);border-color:var(--line);color:var(--ink);box-shadow:inset 3px 0 var(--green)}
 .sidebar .nav button.quest-nav-item.active .nav-emoji{border-color:color-mix(in srgb,var(--nav-colour) 55%,transparent);background:color-mix(in srgb,var(--nav-colour) 19%,transparent)}
 .sidebar .quest-nav-item:focus-visible{outline:2px solid var(--green);outline-offset:2px}
 .sidebar .quest-nav-item .count,.sidebar .quest-nav-item .online-nav-count{flex-shrink:0;color:var(--ink);background:var(--panel2);border-radius:7px}
-.sidebar>.app-install-entry.quest-nav-item{display:flex;align-items:center;text-align:left;font-size:12px}
-@media screen and (max-width:900px){.sidebar .nav button.quest-nav-item,.sidebar>.quest-nav-item{min-height:44px}.sidebar>.app-install-entry.quest-nav-item{font-size:14px}}
-@media(display-mode:standalone){.sidebar>.app-install-entry.quest-nav-item{display:none}}
+.sidebar .app-install-entry.quest-nav-item{display:flex;align-items:center;text-align:left;font-size:12px}
+@media screen and (max-width:900px){.sidebar .nav button.quest-nav-item,.sidebar .app-install-entry.quest-nav-item{min-height:44px}.sidebar .app-install-entry.quest-nav-item{font-size:14px}}
+@media(display-mode:standalone){.sidebar .app-install-entry.quest-nav-item{display:none}}
 @media(forced-colors:active){.sidebar .nav button.quest-nav-item.active{outline:2px solid Highlight;outline-offset:-2px}.nav-emoji{border-color:ButtonText}}
+
+/* Collapsible navigation sections keep each member’s permitted tools together. */
+.sidebar{gap:18px}.sidebar-sections{display:grid;gap:9px;min-width:0}.sidebar-section{min-width:0;border-top:1px solid var(--line);padding-top:5px}.sidebar-section-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:38px;padding:8px 10px;list-style:none;cursor:pointer;color:var(--muted);font:11px 'Share Tech Mono',monospace;letter-spacing:1.2px;text-transform:uppercase;user-select:none;border-radius:6px}.sidebar-section-heading::-webkit-details-marker{display:none}.sidebar-section-heading::after{content:'⌄';font-size:17px;line-height:1;transform:rotate(-90deg);transition:transform .15s ease}.sidebar-section[open]>.sidebar-section-heading::after{transform:rotate(0)}.sidebar-section-heading:hover{color:var(--ink);background:var(--theme-29,#0e2015)}.sidebar-section-heading:focus-visible{outline:2px solid var(--green);outline-offset:2px}.sidebar-section-body{display:grid;gap:8px;padding:0 0 8px}.sidebar-section-body .nav{gap:3px}.sidebar-section-body #projectNav{margin:2px 0 0 12px;padding-left:8px;border-left:1px solid var(--line)}.sidebar-section-body #privateChatNavSection>.nav-label{font-size:9px;letter-spacing:1px;margin-top:6px}.sidebar-section-body .app-install-entry.quest-nav-item{width:100%}.sidebar-section-body .fragile-shortcut-status{margin:0 10px}.sidebar-section[hidden]{display:none}
+@media(max-width:900px){.sidebar-section-heading{min-height:44px}.sidebar-sections{gap:7px}}
+@media(prefers-reduced-motion:reduce){.sidebar-section-heading::after{transition:none}}
