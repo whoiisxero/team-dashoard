@@ -30,7 +30,7 @@ for(const [name,target] of assets)html=html.replaceAll(`src="./${name}"`,`src="$
 html=html.replace('</head>',`<meta name="quest-release" content="${release}"></head>`);
 await writeFile(path.join(output,'index.html'),html);
 for(const name of ['offline.html','manifest.webmanifest','favicon.svg'])await cp(path.join(root,name),path.join(output,name));
-await cp(path.join(root,'setup-guide.html'),path.join(output,'setup-guide.html'));
+let setupGuide=await readFile(path.join(root,'setup-guide.html'),'utf8');for(const [name,target] of assets)setupGuide=setupGuide.replaceAll(`src="./${name}"`,`src="${target}"`).replaceAll(`href="./${name}"`,`href="${target}"`);await writeFile(path.join(output,'setup-guide.html'),setupGuide);
 await prepareProductivitySetup(path.join(output,'setup/productivity.sql'));
 for(const name of ['assets','icons'])await cp(path.join(root,name),path.join(output,name),{recursive:true});
 const icons=(await readdir(path.join(root,'icons'))).filter(name=>/\.png$/.test(name)).map(name=>`/icons/${name}`);

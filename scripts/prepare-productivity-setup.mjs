@@ -3,7 +3,7 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 const root=fileURLToPath(new URL('../',import.meta.url));
 export async function prepareProductivitySetup(destination=null){
- const files=['20261028_personal_workspaces.sql','20261028_personal_calendar.sql'];
+ const files=['20261028_personal_workspaces.sql','20261028_personal_calendar.sql','20261030_private_quotes.sql'];
  let sql=`-- Quest private workspaces and in-app reminders. Copy the ENTIRE query.\nrollback;\nreset role;\nbegin;\ndo $$ begin\n if to_regprocedure('public.can_edit_project(uuid)') is null or to_regclass('public.notification_preferences') is null then\n raise exception 'Install the daily workflow and project-editing migrations first.'; end if;\nend $$;\n`;
  for(const file of files){const source=await readFile(path.join(root,'supabase/migrations',file),'utf8');sql+='\n-- '+file+'\n'+source.replace(/^(?:begin;|commit;)\s*$/gm,'')+'\n';}
  sql+=`\ncommit;\nselect 'Quest workspace setup ready' as result;\n-- END QUEST WORKSPACE SETUP\n`;
