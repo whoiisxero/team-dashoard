@@ -25,7 +25,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://s3.tradingview.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://api.coingecko.com https://open.er-api.com https://hpliemyxlvgtodmfpgos.supabase.co wss://hpliemyxlvgtodmfpgos.supabase.co; img-src 'self' data: blob: https:; frame-src https://www.tradingview-widget.com https://s.tradingview.com https://www.tradingview.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://s3.tradingview.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://speed.cloudflare.com https://api.coingecko.com https://open.er-api.com https://hpliemyxlvgtodmfpgos.supabase.co wss://hpliemyxlvgtodmfpgos.supabase.co; img-src 'self' data: blob: https:; frame-src https://www.tradingview-widget.com https://s.tradingview.com https://www.tradingview.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
         },
         {
           "key": "Cache-Control",
