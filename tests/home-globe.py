@@ -42,7 +42,7 @@ with sync_playwright() as p:
  assert page.locator('#countryName').inner_text()=='South Africa'
  page.locator('#globeSpin').click();assert page.locator('#globeSpin').inner_text()=='Pause rotation';page.locator('#globeSpin').click()
  page.locator('.nav [data-view=dashboard]').click();assert page.locator('#dashboard').is_visible()
- page.locator('.nav [data-view=overview]').click();page.wait_for_timeout(1100);assert 'Quan' in page.locator('#homeWelcome').inner_text()
+ page.locator('.nav [data-view=overview]').click();page.clock.run_for(1100);assert 'Quan' in page.locator('#homeWelcome').text_content()
  page.screenshot(path='/tmp/quest-home.png',full_page=True)
  page.set_viewport_size({'width':390,'height':844});assert page.evaluate('document.documentElement.scrollWidth<=innerWidth');page.locator('#globeSize').click();assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
  # An unavailable rate must not fabricate a conversion.

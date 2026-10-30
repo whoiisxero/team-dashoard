@@ -53,6 +53,12 @@ with sync_playwright() as p:
     page.goto('http://dashboard.test/')
     page.wait_for_function('window.previewReady')
     assert page.locator('#personalWelcome').text_content() == 'Welcome back, Carol'
+    assert page.locator('#personalHome #worldGlobe').count() == 1
+    assert page.locator('#personalGlobe').is_visible()
+    assert page.locator('#overview #worldGlobe').count() == 0
+    page.wait_for_function('document.querySelector("#countrySelect").options.length>200')
+    before_rotation = page.locator('#worldGlobe').evaluate('(canvas)=>canvas.toDataURL()')
+    page.wait_for_function('(before)=>document.querySelector("#worldGlobe").toDataURL()!==before', arg=before_rotation)
     page.locator('.sidebar [data-view=questPreview]').click()
     assert page.locator('#questPreview').is_visible()
     assert page.locator('#crumb').text_content() == 'Explore Quest'
@@ -91,9 +97,11 @@ with sync_playwright() as p:
     assert page.locator('#businessStudioTitle').text_content() == 'Ki Lifestyle'
     # Public tools do not redirect Home away from Carol's private dashboard.
     page.locator('.sidebar [data-view=globe]').click()
-    assert page.locator('#overview').is_visible()
-    assert page.locator('#crumb').text_content() == 'Globe'
-    assert page.locator('.sidebar [data-view=globe]').evaluate('(b)=>b.classList.contains("active")')
+    assert page.locator('#personalHome').is_visible()
+    assert page.locator('#personalHome #worldGlobe').is_visible()
+    assert page.locator('#overview').is_hidden()
+    assert page.locator('#crumb').text_content() == 'My workspace'
+    assert page.locator('#personalGlobeTitle').evaluate('(el)=>el===document.activeElement')
     page.wait_for_function('document.querySelector("#countrySelect").options.length>200')
     page.locator('#countrySelect').select_option('USA')
     page.wait_for_function('document.querySelector("#countryRates").textContent.includes("1 USD = R20")')
@@ -118,6 +126,8 @@ with sync_playwright() as p:
     assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
     page.evaluate("accessTest.navigate('globe')")
     assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
+    assert page.locator('#worldGlobe').count() == 1
+    page.screenshot(path='/tmp/quest-carol-workspace-globe.png', full_page=True)
     page.set_viewport_size({'width':1366,'height':1000})
     page.locator('.sidebar .nav [data-view=overview]').click()
     assert page.locator('#personalHome').is_visible()
@@ -126,11 +136,14 @@ with sync_playwright() as p:
     # Switching away from a personal account removes the tour entry and resets its local tab.
     page.evaluate("accessTest.switchUser('tertius')")
     page.wait_for_function('document.querySelector("#userName").textContent==="Tertius"')
+    assert page.locator('#overview #worldGlobe').count() == 1
+    assert page.locator('#personalGlobe').is_hidden()
     assert page.locator('.sidebar [data-view=questPreview]').is_hidden()
     page.evaluate("accessTest.navigate('questPreview')")
     assert page.locator('#questPreview').is_hidden()
     page.evaluate("accessTest.switchUser('quan')")
     page.wait_for_function('document.querySelector("#userName").textContent==="Quan"')
+    assert page.locator('#overview #worldGlobe').count() == 1
     page.locator('.sidebar [data-view=questPreview]').click()
     assert page.locator('#questPreviewOverview').is_visible()
     assert not errors, errors

@@ -31,7 +31,7 @@
   }
   function spinLabel() {$('globeSpin').textContent=paused?'Resume rotation':'Pause rotation';$('globeSpin').setAttribute('aria-pressed',String(paused));}
   function animate(t) {
-    const active = !document.hidden && !$('appShell').hidden && $('overview').classList.contains('active');
+    const active = !document.hidden && !$('appShell').hidden && canvas.closest('.view')?.classList.contains('active');
     if (active && t-lastPaint>32) {if(!paused&&!dragging&&lastFrame)rotation[0]+=(Math.min(t-lastFrame,100)/1000)*2;draw();lastPaint=t;}
     lastFrame=t;requestAnimationFrame(animate);
   }
@@ -81,7 +81,7 @@
   $('countrySelect').onchange=e=>{if(e.target.value)selectCountry(e.target.value);};
   $('countryZone').onchange=homeClock;$('retryRates').onclick=()=>void loadRates();
   $('globeSpin').onclick=()=>{paused=!paused;spinLabel();};
-  $('globeSize').onclick=()=>{const large=$('overview').querySelector('.world-layout').classList.toggle('globe-large');$('globeSize').textContent=large?'Make globe smaller':'Enlarge globe';$('globeSize').setAttribute('aria-pressed',String(large));};
+  $('globeSize').onclick=()=>{const large=canvas.closest('.world-layout').classList.toggle('globe-large');$('globeSize').textContent=large?'Make globe smaller':'Enlarge globe';$('globeSize').setAttribute('aria-pressed',String(large));};
   $('globeReset').onclick=()=>{rotation=[-25,-15,0];draw();};
   async function init() {
     try {
