@@ -54,6 +54,7 @@ jobs:
           python tests/personal-workspace-browser.py
           python tests/personal-calendar-browser.py
           python tests/private-quotes-browser.py
+          python tests/quest-preview-browser.py
           python tests/loden-studio.py
           python tests/private-chats-browser.py
           python tests/calendar-edit.py

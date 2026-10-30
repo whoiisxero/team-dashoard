@@ -1,6 +1,7 @@
 /* Shared sidebar appearance; page permissions and navigation stay with the app. */
 window.QuestNavigation=(()=>{
  const pages={
+  questPreview:['✨','#67e8f9','Explore Quest'],
   overview:['🏡','#7dd3fc','Home'],myDay:['☀️','#fcd34d','My day'],dashboard:['🧭','#a5b4fc','Dashboard'],
   projects:['🗂️','#c4b5fd','Projects'],tasks:['✅','#86efac','Tasks'],notifications:['🔔','#f9a8d4','Notifications'],
   members:['👥','#67e8f9','Members'],events:['🎟️','#fdba74','Events'],calendar:['🗓️','#fda4af','Calendar'],
