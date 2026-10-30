@@ -1,5 +1,5 @@
 import {authenticateMember} from './member-session.mjs';
-const VIEWS=['overview','personalHome','personalSetup','writing','business','personalCalendar','quotes','invoices','businessStudio','myDay','dashboard','projects','tasks','calendar','events','goals','expenses','discussions','files','search','activity','notifications','trading','fragile','loden','dusted','members'];
+const VIEWS=['overview','globe','personalHome','personalSetup','writing','business','personalCalendar','quotes','invoices','businessStudio','myDay','dashboard','projects','tasks','calendar','events','goals','expenses','discussions','files','search','activity','notifications','trading','fragile','loden','dusted','members'];
 const ACTIONS=['navigate','draft_task','draft_event','dance'];
 const schema={
  type:'object',additionalProperties:false,required:['reply','actions'],
@@ -59,7 +59,7 @@ export function createAssistantService({getConfig,env=process.env,fetchImpl=glob
    `calendar_events?select=id,title,event_date,event_time,time_zone,event_starts_at,project_id&event_date=gte.${lower}&event_date=lte.${upper}&order=event_starts_at.asc&limit=25`
   ];
   try{const results=await Promise.allSettled(queries.map(query=>getJson(config.url+'/rest/v1/'+query,{headers})));if(results.some(result=>result.status!=='fulfilled'||!Array.isArray(result.value)))throw new Error('Context unavailable');[projects,tasks,events]=results.map(result=>result.value);}catch{return fail(503,'context_unavailable','Q could not load your permitted workspace. Your question is still here; please retry.');}
-  const allowedViews=VIEWS.filter(view=>policy.personal_only?['overview','personalHome','personalSetup','writing','business','personalCalendar','quotes','invoices','businessStudio','notifications'].includes(view):['personalHome','personalSetup','writing','business','personalCalendar','quotes','invoices','businessStudio'].includes(view)?!!policy.is_admin:view==='members'?policy.is_admin:view==='discussions'?policy.shared_access:['fragile','loden','dusted'].includes(view)?projects.some(p=>String(p.name).trim().toLowerCase().replace(/\.$/,'')===view):true);
+  const allowedViews=VIEWS.filter(view=>policy.personal_only?['overview','globe','trading','personalHome','personalSetup','writing','business','personalCalendar','quotes','invoices','businessStudio','notifications'].includes(view):['personalHome','personalSetup','writing','business','personalCalendar','quotes','invoices','businessStudio','globe'].includes(view)?!!policy.is_admin:view==='members'?policy.is_admin:view==='discussions'?policy.shared_access:['fragile','loden','dusted'].includes(view)?projects.some(p=>String(p.name).trim().toLowerCase().replace(/\.$/,'')===view):true);
   const short=(value,length)=>typeof value==='string'?value.slice(0,length):value;
   projects=projects.slice(0,60).map(project=>({id:project.id,name:short(project.name,120),status:short(project.status,40)}));
   tasks=tasks.slice(0,35).map(task=>({id:task.id,title:short(task.title,300),status:short(task.status,40),due_date:task.due_date,project_id:task.project_id}));

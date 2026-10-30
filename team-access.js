@@ -19,8 +19,8 @@ window.createTeamAccess = ({getData, refresh, toast, request:runRequest=async va
     if(view==='overview')return true;
     if(!policy)return false;
     if(['kiMassage','kiLymphatic','kiMyofascial','kiFrequency','kiBodyRecovery','kiSports'].includes(view))return !!(policy.is_admin||policy.personal_only)&&/^ki\s+lifestyle/i.test(getData().businessName||'');
-    if(['personalHome','personalSetup','writing','business','personalCalendar','quotes','invoices','businessStudio','questPreview'].includes(view))return !!(policy.is_admin||policy.personal_only);
-    if(policy.personal_only)return ['notifications','privateChat'].includes(view);
+    if(['personalHome','personalSetup','writing','business','personalCalendar','quotes','invoices','businessStudio','questPreview','globe'].includes(view))return !!(policy.is_admin||policy.personal_only);
+    if(policy.personal_only)return ['notifications','privateChat','trading'].includes(view);
     if(view==='members')return !!policy.is_admin;
     if(view==='discussions')return policy.shared_access;
     if(['fragile','loden','dusted'].includes(view))return getData().projects.some(p=>normal(p.name)===view)||policy.is_admin;

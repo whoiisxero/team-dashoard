@@ -3,7 +3,7 @@ import {createAssistantService} from '../server/assistant-core.mjs';
 const uid='00000000-0000-4000-8000-000000000001',pid='00000000-0000-4000-8000-000000000010';
 const token='test-user-token-0123456789012345',url='https://test-project.supabase.co';
 const calls=[],env={OPENAI_API_KEY:'test-only-not-a-real-secret'};
-let member=true,admin=false,denyContext=false,badProvider=false,providerError=null,modelActions=[];
+let member=true,admin=false,personal=false,denyContext=false,badProvider=false,providerError=null,modelActions=[];
 const json=(body,status=200)=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json'}});
 const fakeFetch=async(address,options)=>{
  calls.push({address,options});
@@ -11,11 +11,11 @@ const fakeFetch=async(address,options)=>{
   assert.equal(options.headers.Authorization,'Bearer '+token);assert.equal(options.headers.apikey,'public-test-key');assert.equal(options.cache,'no-store');
   if(address.endsWith('/auth/v1/user'))return json({id:uid});
   if(address.endsWith('/rpc/my_team_profile'))return json(member?{user_id:uid,display_name:'Jen'}:null);
-  if(address.endsWith('/rpc/my_dashboard_access'))return json(member?{ready:true,is_admin:admin,shared_access:false}:null);
+  if(address.endsWith('/rpc/my_dashboard_access'))return json(member?{ready:true,is_admin:admin,personal_only:personal,shared_access:false}:null);
   if(denyContext)return json({error:'Private internal detail'},403);
-  if(address.includes('/projects?'))return json([{id:pid,name:'Fragile',status:'Active'}]);
-  if(address.includes('/tasks?')){assert(address.includes('assigned_to=eq.'+uid));return json([{id:'task',title:'Prepare samples',project_id:pid,due_date:'2026-10-25'}]);}
-  if(address.includes('/calendar_events?'))return json([{id:'event',title:'Tokyo call',project_id:pid,event_date:'2026-10-26',event_time:'09:00',time_zone:'Asia/Tokyo',event_starts_at:'2026-10-26T00:00:00Z'}]);
+  if(address.includes('/projects?'))return json(personal?[]:[{id:pid,name:'Fragile',status:'Active'}]);
+  if(address.includes('/tasks?')){assert(address.includes('assigned_to=eq.'+uid));return json(personal?[]:[{id:'task',title:'Prepare samples',project_id:pid,due_date:'2026-10-25'}]);}
+  if(address.includes('/calendar_events?'))return json(personal?[]:[{id:'event',title:'Tokyo call',project_id:pid,event_date:'2026-10-26',event_time:'09:00',time_zone:'Asia/Tokyo',event_starts_at:'2026-10-26T00:00:00Z'}]);
   throw Error('Unexpected workspace URL');
  }
  assert.equal(address,'https://api.openai.com/v1/responses');assert.equal(options.headers.Authorization,'Bearer '+env.OPENAI_API_KEY.trim());
@@ -23,8 +23,9 @@ const fakeFetch=async(address,options)=>{
  if(providerError)return json({error:providerError.error},providerError.status);
  const payload=JSON.parse(options.body);assert.equal(payload.store,false);assert(payload.text.format.strict);assert.equal(payload.text.format.schema.additionalProperties,false);
  const snapshot=JSON.parse(payload.input[0].content.split('\n').slice(1).join('\n'));
- assert.equal(snapshot.time_zone,'Africa/Johannesburg');assert.equal(snapshot.today,'2026-10-25');assert.equal(snapshot.projects[0].id,pid);
- assert(snapshot.allowed_views.includes('fragile'));assert(!snapshot.allowed_views.includes('dusted'));assert.equal(snapshot.allowed_views.includes('members'),admin);
+ assert.equal(snapshot.time_zone,'Africa/Johannesburg');assert.equal(snapshot.today,'2026-10-25');assert.equal(snapshot.projects.length,personal?0:1);if(!personal)assert.equal(snapshot.projects[0].id,pid);
+ if(personal){assert.equal(snapshot.assigned_tasks.length,0);assert.equal(snapshot.upcoming_events.length,0);}
+ assert.equal(snapshot.allowed_views.includes('fragile'),!personal);assert(!snapshot.allowed_views.includes('dusted'));assert.equal(snapshot.allowed_views.includes('members'),admin);
  assert(!JSON.stringify(payload).includes(token));assert(!JSON.stringify(payload).includes('forged-client-project'));
  return json({output:[{content:[{type:'output_text',text:JSON.stringify({reply:'Your fitting is tomorrow. Review the task before saving.',actions:modelActions})}]}]});
 };
@@ -67,4 +68,5 @@ const withProvider=provider=>createAssistantService({getConfig:async()=>({url,ke
 result=await withProvider(()=>json({status:'incomplete'}))(request());assert.equal(result.body.code,'ai_reply_incomplete');
 result=await withProvider(()=>{throw new DOMException('Timed out','TimeoutError');})(request());assert.equal(result.status,504);assert.equal(result.body.code,'ai_timeout');
 result=await withProvider(()=>json({output_text:JSON.stringify({reply:'Ready to help.',actions:[]})}))(request());assert.equal(result.status,200);assert.equal(result.body.reply,'Ready to help.');
+personal=true;modelActions=[{type:'navigate',view:'trading'},{type:'navigate',view:'globe'},{type:'navigate',view:'dashboard'}];result=await make()(request());assert.deepEqual(result.body.actions.map(a=>a.view),['trading','globe']);personal=false;
 console.log('PASS assistant server: authenticated membership and member-JWT context, scoped reviewed drafts, dates/history, no-store and rate limits; distinct billing, key, permission, model, schema, rate-limit and outage errors; no raw provider/secret leakage and copied-key whitespace handling. Providers mocked.');

@@ -24,7 +24,7 @@ with sync_playwright() as p:
    return r.fulfill(body=path.read_bytes() if path.is_file() else b'',content_type=mimetypes.guess_type(path)[0] or 'text/plain')
   return r.fulfill(body='',content_type='text/css')
  page.route('**/*',route);page.goto('http://dashboard.test/');page.wait_for_function('window.personalReady&&document.querySelector("#personalSetup").classList.contains("active")')
- for view in ['projects','tasks','dashboard','discussions','calendar','expenses','goals','members','files','search','activity','trading']:
+ for view in ['projects','tasks','dashboard','discussions','calendar','expenses','goals','members','files','search','activity']:
   assert page.locator('.sidebar [data-view='+view+']').is_hidden(),view
   page.evaluate('(v)=>accessTest.navigate(v)',view)
   assert not page.locator('#'+view).evaluate('(el)=>el.classList.contains("active")'),view
