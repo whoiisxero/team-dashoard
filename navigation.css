@@ -15,3 +15,14 @@
 .sidebar{gap:18px}.sidebar-sections{display:grid;gap:9px;min-width:0}.sidebar-section{min-width:0;border-top:1px solid var(--line);padding-top:5px}.sidebar-section-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:38px;padding:8px 10px;list-style:none;cursor:pointer;color:var(--muted);font:11px 'Share Tech Mono',monospace;letter-spacing:1.2px;text-transform:uppercase;user-select:none;border-radius:6px}.sidebar-section-heading::-webkit-details-marker{display:none}.sidebar-section-heading::after{content:'⌄';font-size:17px;line-height:1;transform:rotate(-90deg);transition:transform .15s ease}.sidebar-section[open]>.sidebar-section-heading::after{transform:rotate(0)}.sidebar-section-heading:hover{color:var(--ink);background:var(--theme-29,#0e2015)}.sidebar-section-heading:focus-visible{outline:2px solid var(--green);outline-offset:2px}.sidebar-section-body{display:grid;gap:8px;padding:0 0 8px}.sidebar-section-body .nav{gap:3px}.sidebar-section-body #projectNav{margin:2px 0 0 12px;padding-left:8px;border-left:1px solid var(--line)}.sidebar-section-body #privateChatNavSection>.nav-label{font-size:9px;letter-spacing:1px;margin-top:6px}.sidebar-section-body .app-install-entry.quest-nav-item{width:100%}.sidebar-section-body .fragile-shortcut-status{margin:0 10px}.sidebar-section[hidden]{display:none}
 @media(max-width:900px){.sidebar-section-heading{min-height:44px}.sidebar-sections{gap:7px}}
 @media(prefers-reduced-motion:reduce){.sidebar-section-heading::after{transition:none}}
+
+/* Desktop navigation scrolls within the viewport, independently of the page. */
+@media screen and (min-width:901px){
+ .sidebar{position:sticky;top:0;align-self:start;height:100vh;height:100dvh;max-height:100dvh;overflow:hidden}
+ .sidebar>.sidebar-sections{flex:1 1 auto;min-height:0;align-content:start;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;scrollbar-gutter:stable;scrollbar-width:thin;scrollbar-color:var(--line) transparent;padding:3px 4px 3px 2px}
+ .sidebar>.logo,.sidebar>.sidebar-bottom{flex:0 0 auto}
+ .sidebar>.sidebar-bottom{margin-top:0}
+ .sidebar-sections::-webkit-scrollbar{width:6px}
+ .sidebar-sections::-webkit-scrollbar-thumb{background:var(--line);border-radius:8px}
+ .sidebar-sections::-webkit-scrollbar-track{background:transparent}
+}

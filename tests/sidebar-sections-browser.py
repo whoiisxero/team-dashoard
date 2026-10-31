@@ -33,6 +33,28 @@ with sync_playwright() as p:
     page.goto('http://dashboard.test/')
     page.wait_for_function('window.sidebarReady')
     assert page.locator('.sidebar-section').count() == 8
+    # On desktop only the menu scrolls; the page, logo and account controls stay put.
+    menu=page.locator('.sidebar-sections')
+    assert menu.evaluate('(s)=>s.scrollHeight>s.clientHeight')
+    assert page.locator('#sidebar').evaluate('(s)=>Math.abs(s.getBoundingClientRect().height-innerHeight)<1')
+    logo=page.locator('#sidebar>.logo').bounding_box()
+    footer=page.locator('.sidebar-bottom').bounding_box()
+    assert footer['y']+footer['height']<=1000
+    menu.hover();page.mouse.wheel(0,650)
+    page.wait_for_function('document.querySelector(".sidebar-sections").scrollTop>100')
+    assert page.evaluate('scrollY')==0
+    assert page.locator('#sidebar>.logo').bounding_box()==logo
+    assert page.locator('.sidebar-bottom').bounding_box()==footer
+    page.evaluate('document.querySelector(".sidebar-sections").scrollTop=1e6')
+    page.mouse.wheel(0,500)
+    assert page.evaluate('scrollY')==0
+    # Long main content can scroll without moving the menu or the pinned sidebar.
+    page.evaluate("const filler=document.createElement('div');filler.id='scrollTestFiller';filler.style.height='1800px';document.querySelector('.main').append(filler);window.scrollTo(0,700)")
+    page.wait_for_function('scrollY===700')
+    assert page.locator('#sidebar').evaluate('(s)=>Math.abs(s.getBoundingClientRect().top)<1')
+    assert page.locator('#sidebar>.logo').bounding_box()==logo
+    assert page.locator('.sidebar-bottom').bounding_box()==footer
+    page.evaluate('document.querySelector("#scrollTestFiller").remove();window.scrollTo(0,0);document.querySelector(".sidebar-sections").scrollTop=0')
     expected = {'overview':'daily','dashboard':'daily','myDay':'daily','notifications':'daily',
                 'tasks':'planning','calendar':'planning','events':'planning','goals':'planning',
                 'quotes':'business','invoices':'business','expenses':'business','writing':'business',
@@ -96,6 +118,8 @@ with sync_playwright() as p:
     page.set_viewport_size({'width':390,'height':844})
     page.locator('#menuButton').click()
     page.wait_for_function('document.querySelector("#sidebar").getBoundingClientRect().left>=-0.5')
+    assert page.locator('#sidebar').evaluate('(s)=>getComputedStyle(s).position')=='fixed'
+    assert menu.evaluate('(s)=>getComputedStyle(s).overflowY')=='visible'
     assert page.locator('#sidebar').evaluate('(s)=>s.scrollWidth<=s.clientWidth')
     assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
     page.screenshot(path='/tmp/quest-sidebar-sections-phone.png')
@@ -104,4 +128,4 @@ with sync_playwright() as p:
     assert page.locator('#menuButton').get_attribute('aria-expanded') == 'false'
     assert not errors, errors
     browser.close()
-    print('PASS sidebar sections: all routes grouped once, badges/handlers retained, collapse/keyboard/persistence, active-route expansion, member visibility, dynamic private rooms, installation and phone navigation.')
+    print('PASS sidebar: independent desktop menu scrolling, pinned logo/account controls, page scrolling, grouped routes/badges, collapse/persistence, permissions/private rooms, installation and unchanged phone drawer.')
