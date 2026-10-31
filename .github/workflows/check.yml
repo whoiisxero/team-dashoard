@@ -57,6 +57,7 @@ jobs:
           python tests/quest-preview-browser.py
           python tests/sidebar-sections-browser.py
           python tests/home-globe.py
+          python tests/starfall-browser.py
           python tests/connection-speed-browser.py
           python tests/loden-studio.py
           python tests/private-chats-browser.py
