@@ -5,14 +5,53 @@ window.createQuestStarfall=({getData})=>{
   panel.setAttribute('aria-labelledby','starfallTitle');
   panel.innerHTML=`<header class="starfall-heading"><div><div class="eyebrow">Take a break / Arcade</div><h2 id="starfallTitle">✦ STARFALL</h2><p>One pilot. Endless space.</p></div><dl class="starfall-stats"><div><dt>Score</dt><dd id="starfallScore">00000</dd></div><div><dt>Your best</dt><dd id="starfallBest">00000</dd></div></dl></header><div class="starfall-arena"><canvas id="starfallCanvas" tabindex="0" aria-label="Space fighter. Arrow keys move, Space fires, P pauses. Escape leaves the game." aria-describedby="starfallInstructions"></canvas><div class="starfall-hud"><span id="starfallWave">SECTOR 01</span><span id="starfallShield">SHIELD ▰ ▰ ▰</span></div><div class="starfall-overlay" id="starfallOverlay"><div class="starfall-eyebrow" id="starfallStatus">FIGHTER READY</div><h3 id="starfallHeading">Into the unknown.</h3><p id="starfallMessage">Clear enemy waves and see how far you can go.</p><button type="button" class="button primary" id="starfallStart">Launch fighter ↗</button></div></div><footer class="starfall-footer"><p id="starfallInstructions"><kbd>← ↑ ↓ →</kbd> Move <kbd>Space</kbd> Fire <kbd>P</kbd> Pause <kbd>Esc</kbd> Leave</p><div class="actions"><button type="button" class="button" id="starfallPause" disabled>Pause</button><button type="button" class="button" id="starfallSound" aria-pressed="false">Sound off</button></div></footer><div class="starfall-touch" aria-label="Touch game controls"><button type="button" class="button" data-starfall-key="ArrowLeft" aria-label="Move fighter left">←</button><button type="button" class="button" data-starfall-key="ArrowUp" aria-label="Move fighter up">↑</button><button type="button" class="button" data-starfall-key="ArrowDown" aria-label="Move fighter down">↓</button><button type="button" class="button" data-starfall-key="ArrowRight" aria-label="Move fighter right">→</button><button type="button" class="button primary" data-starfall-key="Space">Fire</button></div><p class="starfall-note" id="starfallNotice" role="status">Click Launch fighter to play. The game pauses when you leave it.</p>`;
   const $=id=>panel.querySelector('#'+id),canvas=$('starfallCanvas'),ctx=canvas.getContext('2d');
+  panel.insertAdjacentHTML('beforeend',`<section class="starfall-log" aria-labelledby="starfallLogTitle"><div class="starfall-log-heading"><h3 id="starfallLogTitle">Your flight log</h3><span id="starfallLogCount">0 flights</span></div><p id="starfallLogEmpty" class="starfall-note">Complete a flight to record your score.</p><div id="starfallLogTable" class="starfall-log-scroll" hidden><table><thead><tr><th scope="col">Date · SAST</th><th scope="col">Score</th><th scope="col">Sector</th><th scope="col">Flight time</th></tr></thead><tbody id="starfallLogRows"></tbody></table></div><p id="starfallLogStatus" class="starfall-note" role="status">Your latest 20 completed flights, saved on this browser.</p></section>`);
   document.getElementById('overview').append(panel);
   if(!ctx){$('starfallNotice').textContent='This browser does not support the game canvas.';$('starfallStart').disabled=true;return {sync(){panel.hidden=!getData().user;},reset(){panel.hidden=true;}};}
   let owner=null,state='ready',width=800,height=420,frame=0,last=0,time=0;
   let ship={x:400,y:336,hp:3},keys={},bullets=[],enemies=[],shots=[],particles=[];
   let score=0,best=0,wave=1,kills=0,spawn=0,cool=0,inv=0,sound=false,audio=null;
+  let history=[],flightId=null,flightLogged=false,flightSeconds=0,storageFailed=false;
   const stars=Array.from({length:130},()=>({x:Math.random(),y:Math.random(),size:.3+Math.random()*1.8}));
   const active=()=>!!owner&&!panel.hidden&&!document.hidden&&!document.getElementById('appShell').hidden&&!!panel.closest('.view.active');
   const bestKey=()=>`quest-starfall-best:${owner}`;
+  const historyKey=()=>`quest-starfall-history-v1:${owner}`;
+  function cleanHistory(value){
+    if(!Array.isArray(value))return [];
+    const ids=new Set();
+    return value.filter(row=>{
+      if(!row||typeof row.id!=='string'||!row.id||row.id.length>100||ids.has(row.id)||
+        !Number.isSafeInteger(row.score)||row.score<0||!Number.isSafeInteger(row.sector)||row.sector<1||
+        !Number.isSafeInteger(row.duration_seconds)||row.duration_seconds<0||
+        typeof row.ended_at!=='string'||row.ended_at.length>40||!Number.isFinite(Date.parse(row.ended_at)))return false;
+      ids.add(row.id);return true;
+    }).sort((a,b)=>Date.parse(b.ended_at)-Date.parse(a.ended_at)).slice(0,20)
+      .map(row=>({id:row.id,score:row.score,sector:row.sector,duration_seconds:row.duration_seconds,ended_at:row.ended_at}));
+  }
+  function renderHistory(){
+    const root=$('starfallLogRows');root.replaceChildren();
+    $('starfallLogCount').textContent=history.length+' '+(history.length===1?'flight':'flights');
+    $('starfallLogEmpty').hidden=history.length>0;$('starfallLogTable').hidden=!history.length;
+    for(const flight of history){
+      const row=document.createElement('tr'),date=document.createElement('td'),stamp=document.createElement('time');stamp.dateTime=flight.ended_at;
+      const day=document.createElement('span'),clock=document.createElement('small'),when=new Date(flight.ended_at);
+      day.textContent=when.toLocaleDateString('en-ZA',{timeZone:'Africa/Johannesburg',day:'2-digit',month:'short',year:'numeric'});
+      clock.textContent=when.toLocaleTimeString('en-ZA',{timeZone:'Africa/Johannesburg',hour:'2-digit',minute:'2-digit',hour12:false});stamp.append(day,clock);date.append(stamp);row.append(date);
+      for(const value of [flight.score,flight.sector,Math.floor(flight.duration_seconds/60)+':'+String(flight.duration_seconds%60).padStart(2,'0')]){const cell=document.createElement('td');cell.textContent=String(value);row.append(cell);}
+      root.append(row);
+    }
+    $('starfallLogStatus').textContent=storageFailed?'Scores are available for this visit, but browser storage is unavailable. They may be lost when you close this page.':'Your latest 20 completed flights, saved on this browser.';
+  }
+  function logFlight(){
+    if(!owner||!flightId||flightLogged)return;
+    flightLogged=true;
+    const entry={id:flightId,score,sector:wave,duration_seconds:Math.round(flightSeconds),ended_at:new Date().toISOString()};
+    // Merge other tabs' completed flights before writing this account's bounded log.
+    let saved=[];try{saved=cleanHistory(JSON.parse(localStorage.getItem(historyKey())||'[]'));}catch{}
+    history=cleanHistory([entry,...saved,...history]);
+    try{localStorage.setItem(historyKey(),JSON.stringify(history));storageFailed=false;}catch{storageFailed=true;}
+    renderHistory();
+  }
   function setState(value){state=value;panel.dataset.state=value;$('starfallPause').disabled=value!=='playing';document.body.classList.toggle('quest-starfall-playing',value==='playing');}
   function hud(){
     $('starfallScore').textContent=String(score).padStart(5,'0');
@@ -45,12 +84,14 @@ window.createQuestStarfall=({getData})=>{
     }else{
       resize();ship={x:width/2,y:height*.8,hp:3};
       bullets=[];enemies=[];shots=[];particles=[];score=0;wave=1;kills=0;spawn=.7;cool=0;inv=1;
+      flightId=crypto.randomUUID?.()||Date.now().toString(36)+'-'+Array.from(crypto.getRandomValues(new Uint32Array(2))).join('-');flightLogged=false;flightSeconds=0;
       hud();setState('playing');$('starfallOverlay').hidden=true;canvas.focus({preventScroll:true});beginFrame();
     }
     $('starfallNotice').textContent='Flight active. Arrow keys move, hold Space to fire. P pauses; Escape leaves the game.';
   }
   function reset(){
     stopFrame();owner=null;score=0;best=0;wave=1;kills=0;time=0;inv=0;
+    history=[];flightId=null;flightLogged=false;flightSeconds=0;storageFailed=false;renderHistory();
     ship={x:width/2,y:height*.8,hp:3};bullets=[];enemies=[];shots=[];particles=[];
     sound=false;void audio?.close().catch(()=>{});audio=null;
     $('starfallSound').textContent='Sound off';$('starfallSound').setAttribute('aria-pressed','false');
@@ -62,6 +103,7 @@ window.createQuestStarfall=({getData})=>{
     if(owner!==uid){
       reset();owner=uid;
       if(uid)try{const value=Number(localStorage.getItem(bestKey()));best=Number.isSafeInteger(value)&&value>0?value:0;}catch{}
+      if(uid){try{history=cleanHistory(JSON.parse(localStorage.getItem(historyKey())||'[]'));}catch{storageFailed=true;}best=Math.max(best,...history.map(flight=>flight.score));renderHistory();}
       hud();
     }
     const view=document.querySelector('.view.active');
@@ -99,13 +141,13 @@ window.createQuestStarfall=({getData})=>{
     if(inv>0||state!=='playing')return;
     ship.hp--;inv=1.6;burst(ship.x,ship.y,'#8af5d4');beep(90,.3);hud();
     if(ship.hp===0){
-      stopFrame();rememberBest();setState('over');
+      stopFrame();rememberBest();setState('over');logFlight();
       overlay('SIGNAL LOST','A brave last stand.',`You scored ${score} points and reached sector ${wave}. Ready for another run?`,'Fly again ↗');
       $('starfallNotice').textContent=`Flight complete. ${score} points. Choose Fly again for another run.`;
     }
   }
   function update(dt){
-    time+=dt;inv-=dt;cool-=dt;spawn-=dt;
+    time+=dt;flightSeconds+=dt;inv-=dt;cool-=dt;spawn-=dt;
     for(const star of stars){star.y+=dt*star.size*.035;if(star.y>1){star.y=0;star.x=Math.random();}}
     const dx=(keys.ArrowRight?1:0)-(keys.ArrowLeft?1:0),dy=(keys.ArrowDown?1:0)-(keys.ArrowUp?1:0),length=Math.hypot(dx,dy)||1;
     ship.x=Math.max(26,Math.min(width-26,ship.x+dx/length*340*dt));ship.y=Math.max(65,Math.min(height-36,ship.y+dy/length*340*dt));

@@ -23,6 +23,19 @@
 .starfall-footer kbd:first-child{margin-left:0}
 .starfall-footer .actions{flex-shrink:0;flex-wrap:wrap}
 .starfall-note{color:var(--muted);font-size:11px;line-height:1.6;margin:14px 0 0}
+.starfall-log{border-top:1px solid var(--line);margin-top:22px;padding-top:18px;min-width:0}
+.starfall-log-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.starfall-log-heading h3{font:500 14px Orbitron,Arial,sans-serif;color:var(--ink);margin:0}
+.starfall-log-heading>span{color:var(--muted);font:11px monospace;white-space:nowrap}
+.starfall-log-scroll{overflow-x:auto;margin-top:14px;border:1px solid var(--line);border-radius:8px}
+.starfall-log table{width:100%;table-layout:fixed;border-collapse:collapse;text-align:left;font-size:12px}
+.starfall-log th,.starfall-log td{padding:12px 14px;border-bottom:1px solid var(--line);overflow-wrap:anywhere}
+.starfall-log th{font-size:10px;color:var(--muted);font-weight:500}
+.starfall-log th:first-child{width:38%}.starfall-log th:nth-child(2){width:24%}.starfall-log th:nth-child(3){width:16%}
+.starfall-log td:nth-child(2){color:var(--green2);font-family:monospace;font-size:15px}
+.starfall-log tbody tr:last-child td{border-bottom:0}
+.starfall-log time span,.starfall-log time small{display:block}.starfall-log time small{color:var(--muted);font-size:10px;margin-top:4px}
+@media(max-width:700px){.starfall-log th,.starfall-log td{padding:10px 7px;font-size:11px}.starfall-log th{font-size:9px}.starfall-log td:nth-child(2){font-size:13px}.starfall-log-heading h3{font-size:13px}}
 /* Keep the floating companion out of the fighter and touch controls during flight. */
 .quest-starfall-playing .qa-dock,.quest-starfall-playing .qa-reaction{visibility:hidden}
 .starfall-touch{display:none;justify-content:center;gap:8px;padding-top:16px}
