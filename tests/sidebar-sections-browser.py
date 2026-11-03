@@ -30,6 +30,8 @@ with sync_playwright() as p:
                              content_type=mimetypes.guess_type(path)[0] or 'text/plain')
         return r.fulfill(body='',content_type='text/css')
     page.route('**/*', route)
+    studio_url='https://form-development-studio-j7m4.whoisxerro.chatgpt.site/'
+    page.context.route(studio_url+'**',lambda r:r.fulfill(body='<h1>Form Studio test target</h1>',content_type='text/html'))
     page.goto('http://dashboard.test/')
     page.wait_for_function('window.sidebarReady')
     assert page.locator('.sidebar-section').count() == 8
@@ -68,6 +70,19 @@ with sync_playwright() as p:
     assert page.locator('#fragileShortcut').evaluate('(b)=>b.closest("details").dataset.navSection') == 'studios'
     assert page.locator('#projectNav').evaluate('(b)=>b.closest("details").dataset.navSection') == 'projects'
     assert page.locator('#privateChatNav').evaluate('(b)=>b.closest("details").dataset.navSection') == 'conversations'
+    studio=page.locator('#formStudioShortcut')
+    assert studio.is_visible()
+    assert studio.evaluate('(b)=>b.closest("details").dataset.navSection')=='tools'
+    original_view=page.locator('.view.active').get_attribute('id')
+    with page.context.expect_page() as opened:
+        studio.click()
+    external=opened.value
+    external.wait_for_load_state('domcontentloaded')
+    assert external.url==studio_url
+    assert external.evaluate('window.opener===null')
+    assert external.evaluate('document.referrer')==''
+    assert page.locator('.view.active').get_attribute('id')==original_view
+    external.close()
     business = page.locator('[data-nav-section=business]')
     business.locator('summary').click()
     assert not business.evaluate('(s)=>s.open')
@@ -95,6 +110,9 @@ with sync_playwright() as p:
     assert page.locator('#lodenShortcut').is_hidden()
     assert page.locator('#dustedShortcut').is_visible()
     assert page.locator('.sidebar [data-view=members]').is_hidden()
+    assert studio.is_hidden()
+    # Removing the hidden flag cannot bypass the owner check on the shortcut action.
+    assert page.evaluate('''(()=>{let opened=false;const original=window.open;window.open=()=>{opened=true;};document.querySelector('#formStudioShortcut').click();window.open=original;return opened;})()''') is False
     page.evaluate("accessTest.switchUser('cas')")
     page.wait_for_function('document.querySelector("#personalWelcome").textContent==="Welcome back, Carol"')
     page.wait_for_function('document.querySelector("[data-nav-section=studios]").hidden&&document.querySelector("[data-nav-section=projects]").hidden')

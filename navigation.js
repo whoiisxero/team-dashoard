@@ -1,6 +1,7 @@
 /* Shared sidebar appearance; page permissions and navigation stay with the app. */
 window.QuestNavigation=(()=>{
  const pages={
+  formStudio:['🧩','#67e8f9','Form Studio ↗'],
   globe:['🌐','#38bdf8','Globe'],
   questPreview:['✨','#67e8f9','Explore Quest'],
   overview:['🏡','#7dd3fc','Home'],myDay:['☀️','#fcd34d','My day'],dashboard:['🧭','#a5b4fc','Dashboard'],
@@ -92,6 +93,7 @@ window.QuestNavigation=(()=>{
   for(const button of document.querySelectorAll('.sidebar .nav button[data-view]'))decorate(button,button.dataset.view);
   const fragile=document.getElementById('fragileShortcut');if(fragile)decorate(fragile,'fragile');
   const install=document.getElementById('appInstallMenu');if(install)decorate(install,'install');
+  const formStudio=document.getElementById('formStudioShortcut');if(formStudio)decorate(formStudio,'formStudio');
  }
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});else init();
  return {decorate,organize,refreshSections,reveal};

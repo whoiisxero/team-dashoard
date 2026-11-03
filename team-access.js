@@ -45,6 +45,7 @@ window.createTeamAccess = ({getData, refresh, toast, request:runRequest=async va
     $('budgetSubtitle')?.parentElement?.toggleAttribute('hidden',!policy?.shared_access);
     $('teamAccessNotice').hidden=!!policy;
     $('memberAccessControls').hidden=!policy?.is_admin;
+    $('formStudioShortcut').hidden=!policy?.is_admin;
     workspaceSetupText.textContent=policy?.personal_workspace_ready?'Private workspace features are installed. Use the owner setup page for calendar updates. ':'Private notes and personal-only workspaces need the latest database setup. ';
     $('members').hidden=!policy?.is_admin;
     $('memberCount')?.closest('.stat')?.toggleAttribute('hidden',!policy?.is_admin);
