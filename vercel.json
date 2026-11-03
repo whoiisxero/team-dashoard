@@ -45,6 +45,19 @@
           "value": "no-cache, no-store, must-revalidate"
         }
       ]
+    },
+    {
+      "source": "/assets/models/waterfront-skatepark.glb",
+      "headers": [
+        {
+          "key": "Content-Disposition",
+          "value": "attachment; filename=\"Waterfront-Skatepark.glb\""
+        },
+        {
+          "key": "Content-Type",
+          "value": "model/gltf-binary"
+        }
+      ]
     }
   ],
   "buildCommand": "node scripts/build.mjs",
