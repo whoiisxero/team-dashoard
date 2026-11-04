@@ -38,6 +38,7 @@ jobs:
           node scripts/build.mjs
           node tests/member-access-db.mjs
           node tests/project-edit-access-db.mjs
+          node tests/dusted-threads-db.mjs
           node tests/personal-workspace-db.mjs
           node tests/personal-calendar-db.mjs
           node tests/private-quotes-db.mjs
@@ -61,6 +62,7 @@ jobs:
           python tests/starfall-scores-browser.py
           python tests/connection-speed-browser.py
           python tests/loden-studio.py
+          python tests/dusted-threads-browser.py
           python tests/private-chats-browser.py
           python tests/calendar-edit.py
           python tests/notifications-browser.py

@@ -1,3 +1,4 @@
+if(!crypto.randomUUID)crypto.randomUUID=()=> '00000000-0000-4000-8000-'+String(Math.floor(Math.random()*1e12)).padStart(12,'0');
 const state=window.accessTest={failAccess:false,failPresence:false,writes:[],presenceReads:[],heartbeats:[],online:new Set(['tertius']),profiles:{
 quan:{ready:true,is_admin:true,project_mode:'all',shared_access:true,can_create_projects:true},
 tertius:{ready:true,is_admin:false,project_mode:'all',shared_access:true,can_create_projects:true},
@@ -6,16 +7,17 @@ const records={projects:[{id:'dusted',name:'Dusted.',access_restricted:true},{id
 team_members:['quan','tertius','josh'].map(id=>({user_id:id,display_name:id[0].toUpperCase()+id.slice(1)})),
 team_settings:[{id:true,monthly_budget:700}],tasks:[],expenses:[],goals:[],discussion_messages:[{id:'teamchat',body:'Main team conversation',user_id:'tertius',created_at:'2026-10-20T10:00:00Z'}],
 calendar_events:[{id:'event',title:'Dusted private meeting',event_date:'2026-10-20',project_id:'dusted',created_by:'quan'}],project_notes:[],
-brand_messages:[{id:'d1',body:'Dusted owner and Josh only',project_id:'dusted',user_id:'quan',created_at:'2026-10-20T10:00:00Z'},{id:'f1',body:'Fragile private team',project_id:'fragile',user_id:'tertius',created_at:'2026-10-20T10:00:00Z'}],brand_moodboard_items:[],team_notifications:[]};
+brand_messages:[{id:'d1',body:'Dusted owner and Josh only',project_id:'dusted',user_id:'quan',created_at:'2026-10-20T10:00:00Z'},{id:'f1',body:'Fragile private team',project_id:'fragile',user_id:'tertius',created_at:'2026-10-20T10:00:00Z'}],brand_moodboard_items:[],brand_message_likes:[],team_notifications:[]};
 state.records=records;state.rules={tertius:['fragile','loden'],josh:['dusted']};
 const accessible=id=>state.profiles[user.id].is_admin||state.rules[user.id]?.includes(id);
 function query(table){let filters=[],single=false,limit=Infinity,head=false,inserting=null;
- const q={select:(fields,options={})=>{head=!!options.head;return q},eq:(key,value)=>{filters.push(row=>row[key]===value);return q},gte:()=>q,is:(key,value)=>{filters.push(row=>row[key]===value);return q},order:()=>q,limit:n=>{limit=n;return q},maybeSingle:()=>{single=true;return q},insert:values=>{inserting=values;return q},then:(resolve,reject)=>Promise.resolve().then(()=>{
+ const q={select:(fields,options={})=>{head=!!options.head;return q},eq:(key,value)=>{filters.push(row=>row[key]===value);return q},gte:()=>q,is:(key,value)=>{filters.push(row=>(row[key]??null)===value);return q},range:(a,b)=>{limit=b+1;return q},order:()=>q,limit:n=>{limit=n;return q},maybeSingle:()=>{single=true;return q},insert:values=>{inserting=values;return q},then:(resolve,reject)=>Promise.resolve().then(()=>{
  if(inserting){state.writes.push({table,values:inserting});records[table].push({...inserting,id:'posted',created_at:'2026-10-20T10:00:00Z'});return {error:null};}
  let data=(records[table]||[]).filter(row=>table==='projects'?accessible(row.id):table==='team_members'?!state.hideRoster:table==='team_notifications'?true:row.project_id?accessible(row.project_id):state.profiles[user.id].shared_access).filter(row=>filters.every(f=>f(row))).map(row=>({...row}));
  return {data:head?null:single?(data[0]||null):data.slice(0,limit),count:data.length,error:null};}).then(resolve,reject)};return q;
 }
 db={from:query,channel:()=>{const c={on:()=>c,subscribe:()=>c};return c},removeChannel:()=>{},rpc:async(name,args={})=>{
+ if(name==='quest_thread_stats')return {data:args.message_ids.filter(id=>records.brand_messages.some(m=>m.id===id&&accessible(m.project_id))).map(id=>({message_id:id,like_count:0,reply_count:0,liked:false}))};
  if(name==='my_team_profile')return state.profileRpcMissing?{error:{code:'PGRST202'}}:{data:records.team_members.find(m=>m.user_id===user.id)||null};
  if(name==='my_dashboard_access')return state.failAccess?{error:{code:'PGRST202'}}:{data:{...state.profiles[user.id]}};
  if(name==='touch_member_presence'){state.heartbeats.push(user.id);if(state.failPresence)return {error:{message:'Offline'}};state.online.add(user.id);return {data:null};}

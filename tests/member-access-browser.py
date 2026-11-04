@@ -71,11 +71,11 @@ with sync_playwright() as p:
  assert page.locator('#allProjects .project-card').count()==1
  assert 'Dusted.' in page.locator('#allProjects').inner_text()
  page.locator('#dustedShortcut').click();page.locator('#dusted [data-studio-tab=chat]').click();page.wait_for_function('document.querySelector("#dustedMessages").textContent.includes("Dusted owner")')
- assert page.locator('#dustedChatPanel .fragile-toolbar h2').inner_text()=='Dusted. team chat'
+ assert page.locator('#dustedChatPanel .fragile-toolbar h2').inner_text()=='Dusted. conversations'
  assert 'Fragile private team' not in page.locator('#dustedMessages').inner_text()
  page.locator('#dustedChatText').fill('Josh private message');page.locator('#dustedChatSend').click()
  page.wait_for_function('accessTest.writes.some(w=>w.table==="brand_messages")')
- assert page.evaluate('accessTest.writes.find(w=>w.table==="brand_messages").values')=={'body':'Josh private message','user_id':'josh','project_id':'dusted'}
+ posted=page.evaluate('accessTest.writes.find(w=>w.table==="brand_messages").values');assert {key:posted[key] for key in ['body','user_id','project_id']}=={'body':'Josh private message','user_id':'josh','project_id':'dusted'};assert posted['parent_id'] is None;assert posted['image_paths']==[]
  page.locator('.sidebar [data-view=calendar]').click();page.locator('#calendar [data-add=calendar]').click()
  assert page.locator('#field-project_id').input_value()=='dusted'
  assert page.locator('#field-project_id option').count()==1
