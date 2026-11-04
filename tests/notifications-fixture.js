@@ -15,5 +15,5 @@ function query(table){let filters=[],head=false,maximum=Infinity,update=null,sin
 db={from:query,channel:()=>{const c={on:(type,filter,callback)=>{n.handlers.push(callback);return c},subscribe:callback=>{callback('SUBSCRIBED');return c}};return c},removeChannel:()=>{n.handlers=[]}};
 user={id:'quan'};calendarEvents=[event];roster=[{user_id:'quan',display_name:'Quan'},{user_id:'tertius',display_name:'Tertius'}];
 document.querySelector('#loginScreen').hidden=true;document.querySelector('#appShell').hidden=false;
-n.switchUser=id=>{user={id};notificationCenter.start()};n.emit=()=>{for(const h of n.handlers)h()};
+n.switchUser=id=>{user={id};notificationCenter.start()};n.emit=payload=>{for(const h of n.handlers)h(payload)};
 notificationCenter.start();showView('notifications');window.ready=true;

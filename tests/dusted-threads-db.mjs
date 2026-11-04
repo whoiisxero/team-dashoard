@@ -23,6 +23,8 @@ insert into project_member_access values('${josh}','${dusted}',true),('${tertius
 update member_access set editable_project_ids='{}' where user_id='${viewer}';
 insert into brand_messages(id,project_id,user_id,body) values('${id(20)}','${dusted}','${owner}','Existing Dusted message');`);
 const migration=await sql('migrations/20261104_dusted_threads.sql');await db.exec(migration);await db.exec(migration);
+const alerts=await sql('migrations/20261104_chat_notifications.sql');await db.exec(alerts);await db.exec(alerts);
+await db.exec(`create policy legacy_inbox_read on team_notifications for select to authenticated using(true);`);
 const rows=async(q,args=[])=>(await db.query(q,args)).rows;
 const actor=async uid=>{await db.exec('reset role');await db.query("select set_config('request.jwt.claim.sub',$1,false)",[uid||'']);if(uid)await db.exec('set role authenticated');};
 const post=async(values)=>db.query('insert into brand_messages(id,project_id,user_id,body,parent_id,image_paths) values($1,$2,$3,$4,$5,$6)',values);
@@ -45,17 +47,19 @@ await assert.rejects(db.query('insert into brand_message_likes(message_id,projec
 assert.equal((await rows('delete from brand_messages where id=$1 returning id',[id(20)])).length,0);
 await assert.rejects(db.query('insert into storage.objects(bucket_id,name) values($1,$2)',['quest-thread-images',`${dusted}/${owner}/${id(71)}.png`]),/row-level security/);
 assert.equal((await rows('update storage.objects set name=$1 where name=$2 returning id',[`${dusted}/${josh}/${id(72)}.png`,image])).length,0);
+await actor(owner);let alertsForOwner=await rows('select * from team_notifications where source_id=$1',[id(22)]);assert.equal(alertsForOwner.length,1);assert.equal(alertsForOwner[0].recipient_id,owner);assert.match(alertsForOwner[0].item_title,/Reply · A reply/);assert.equal((await rows('select * from team_notifications where recipient_id=$1',[viewer])).length,0);
+await actor(josh);assert.equal((await rows('select * from team_notifications where source_id=$1',[id(22)])).length,0);
 await actor(viewer);assert.equal((await rows('select * from brand_messages')).length,4);assert.equal((await rows("select * from storage.objects where bucket_id='quest-thread-images'")).length,1);
 await assert.rejects(post([id(25),dusted,viewer,'No write',null,[]]),/row-level security/);
 await assert.rejects(db.query('insert into brand_message_likes(message_id,project_id,user_id) values($1,$2,$3)',[id(20),dusted,viewer]),/row-level security/);
 await assert.rejects(db.query('insert into storage.objects(bucket_id,name) values($1,$2)',['quest-thread-images',`${dusted}/${viewer}/${id(71)}.png`]),/row-level security/);
 for(const blocked of [tertius,cas]){
- await actor(blocked);assert.equal((await rows('select * from brand_messages')).length,0);assert.equal((await rows('select * from brand_message_likes')).length,0);assert.equal((await rows('select * from quest_thread_stats($1)',[[id(20)]] )).length,0);assert.equal((await rows("select * from storage.objects where bucket_id='quest-thread-images'")).length,0);
+ await actor(blocked);assert.equal((await rows('select * from team_notifications where source_id=$1',[id(22)])).length,0);assert.equal((await rows('select * from brand_messages')).length,0);assert.equal((await rows('select * from brand_message_likes')).length,0);assert.equal((await rows('select * from quest_thread_stats($1)',[[id(20)]] )).length,0);assert.equal((await rows("select * from storage.objects where bucket_id='quest-thread-images'")).length,0);
  await assert.rejects(db.query('insert into storage.objects(bucket_id,name) values($1,$2)',['quest-thread-images',`${dusted}/${blocked}/${id(71)}.png`]),/row-level security/);
 }
 await actor(null);await db.exec('set role anon');assert.equal((await rows("select * from storage.objects where bucket_id='quest-thread-images'")).length,0);
 await actor(null);await db.query('update project_member_access set allowed=false where user_id=$1 and project_id=$2',[josh,dusted]);await actor(josh);
-assert.equal((await rows('select * from brand_messages')).length,0);assert.equal((await rows('select * from brand_message_likes')).length,0);assert.equal((await rows("select * from storage.objects where bucket_id='quest-thread-images'")).length,0);
+assert.equal((await rows('select * from team_notifications where source_id=$1',[id(22)])).length,0);assert.equal((await rows('select * from brand_messages')).length,0);assert.equal((await rows('select * from brand_message_likes')).length,0);assert.equal((await rows("select * from storage.objects where bucket_id='quest-thread-images'")).length,0);
 await actor(owner);await db.query('delete from brand_messages where id=$1',[id(20)]);assert.equal((await rows('select * from brand_messages where id=$1',[id(22)])).length,0);assert.equal((await rows('select * from brand_message_likes')).length,0);
 await actor(null);assert.equal((await rows("select public from storage.buckets where id='quest-thread-images'"))[0].public,false);
 await db.close();console.log('PASS Dusted threads: preserved history, image posts, replies, likes, same-project parents, private storage, read-only users, excluded/personal/anonymous users, revocation and cascading deletion.');

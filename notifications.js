@@ -5,6 +5,7 @@ window.createNotificationCenter = ({getClient, getUser, getProjects=()=>[], open
   const labels = {personal_calendar_events:'personal event',project_files:'project file',private_chat_messages:'private message',brand_messages:'brand message',brand_moodboard_items:'moodboard pin',project_notes:'project note',projects:'project',tasks:'task',expenses:'expense',goals:'goal',discussion_messages:'message',calendar_events:'event',team_settings:'budget',team_members:'team member'};
   let session = 0, owner = null, channel = null, poll = null, rows = [], limit = 50, unread = 0;
   let fetching = false, refreshAgain = false, online = false, busy = false;
+  const pendingMessages=new Set();
   const status = text => { $('notificationStatus').textContent=text; };
   function badge() {
     for (const id of ['notificationBadge','notificationNavBadge']) {
@@ -19,10 +20,10 @@ window.createNotificationCenter = ({getClient, getUser, getProjects=()=>[], open
     for (const row of rows) {
       const article=document.createElement('article');article.className=`notification-item${row.read_at?'':' unread'}`;
       const open=document.createElement('button');open.type='button';open.className='notification-open';
-      const verb=row.action==='INSERT'?(['discussion_messages','private_chat_messages'].includes(row.source_table)?'sent':'added'):row.action==='DELETE'?'removed':'updated';
+      const verb=row.action==='INSERT'?(['discussion_messages','private_chat_messages','brand_messages'].includes(row.source_table)?'sent':'added'):row.action==='DELETE'?'removed':'updated';
       open.append(text(document.createElement('strong'),row.notification_type==='reminder'?`Reminder · ${row.source_table==='personal_notes'?'your business item':labels[row.source_table]||'your work'}`:`${row.actor_name} ${verb} ${labels[row.source_table]||'an item'}`));
       const project=getProjects().find(p=>p.id===row.project_id);
-      open.append(text(document.createElement('span'),row.source_table==='brand_messages'?(project?project.name+' team chat':'Brand chat'):row.item_title));
+      open.append(text(document.createElement('span'),row.source_table==='brand_messages'?(project?project.name+' · ':'')+row.item_title:row.item_title));
       const time=document.createElement('time');time.dateTime=row.created_at;time.textContent=new Date(row.created_at).toLocaleString(undefined,{dateStyle:'medium',timeStyle:'short'});open.append(time);
       open.onclick=()=>void openNotification(row);article.append(open);
       if (!row.read_at) {
@@ -48,6 +49,7 @@ window.createNotificationCenter = ({getClient, getUser, getProjects=()=>[], open
       if(items.error||count.error)throw items.error||count.error;
       rows=items.data||[];unread=count.count||0;online=true;
       status('Team updates and your reminders. Your own activity changes are excluded.');render();
+      const incoming=rows.find(row=>pendingMessages.has(row.id)&&row.recipient_id===recipient&&!row.read_at&&['brand_messages','discussion_messages','private_chat_messages'].includes(row.source_table));pendingMessages.clear();if(incoming)toast('New message from '+incoming.actor_name);
     } catch(error) {
       if(current!==session)return;
       online=false;
@@ -90,11 +92,12 @@ window.createNotificationCenter = ({getClient, getUser, getProjects=()=>[], open
       const brand=project.name.trim().toLowerCase().replace(/\.$/,'');target=['fragile','loden','dusted'].includes(brand)?brand:'projects';
     }
     navigate(target);
+    if(['brand_messages','brand_moodboard_items'].includes(row.source_table)&&['fragile','loden','dusted'].includes(target))document.querySelector(`#${target} [data-studio-tab="${row.source_table==='brand_messages'?'chat':'board'}"]`)?.click();
     if(row.action==='DELETE'){toast('This item was removed.');return;}
     if(row.source_table==='calendar_events')openEvent(row.source_id,row.event_date);
   }
   function stop() {
-    session++;owner=null;rows=[];limit=50;unread=0;online=false;busy=false;fetching=false;refreshAgain=false;
+    pendingMessages.clear();session++;owner=null;rows=[];limit=50;unread=0;online=false;busy=false;fetching=false;refreshAgain=false;
     if(poll)clearInterval(poll);poll=null;
     if(channel){getClient()?.removeChannel(channel);channel=null;}
     status('Sign in to see team updates.');render();
@@ -105,7 +108,7 @@ window.createNotificationCenter = ({getClient, getUser, getProjects=()=>[], open
     stop();owner=id;const current=session;
     channel=getClient().channel(`team-inbox-${id}`).on('postgres_changes',{
       event:'*',schema:'public',table:'team_notifications',filter:`recipient_id=eq.${id}`
-    },()=>{if(current===session)void refresh();}).subscribe(state=>{
+    },payload=>{if(current!==session)return;if(payload?.eventType==='INSERT'&&payload.new?.recipient_id===id)pendingMessages.add(payload.new.id);void refresh();}).subscribe(state=>{
       if(current===session&&state==='SUBSCRIBED')void refresh();
     });
     poll=setInterval(()=>{if(!document.hidden)void refresh();},30000);

@@ -32,7 +32,7 @@ await writeFile(path.join(output,'index.html'),html);
 for(const name of ['offline.html','manifest.webmanifest','favicon.svg'])await cp(path.join(root,name),path.join(output,name));
 let setupGuide=await readFile(path.join(root,'setup-guide.html'),'utf8');for(const [name,target] of assets)setupGuide=setupGuide.replaceAll(`src="./${name}"`,`src="${target}"`).replaceAll(`href="./${name}"`,`href="${target}"`);await writeFile(path.join(output,'setup-guide.html'),setupGuide);
 await prepareProductivitySetup(path.join(output,'setup/productivity.sql'));
-await writeFile(path.join(output,'setup/dusted-threads.sql'),'-- Copy the complete query and run as postgres.\nrollback;\nreset role;\n'+await readFile(path.join(root,'supabase/migrations/20261104_dusted_threads.sql'),'utf8')+"\nselect 'Dusted conversations ready' as result;\n-- END DUSTED THREADS SETUP\n");
+await writeFile(path.join(output,'setup/dusted-threads.sql'),'-- Copy the complete query and run as postgres.\nrollback;\nreset role;\n'+await readFile(path.join(root,'supabase/migrations/20261104_dusted_threads.sql'),'utf8')+'\n'+await readFile(path.join(root,'supabase/migrations/20261104_chat_notifications.sql'),'utf8')+"\nselect 'Dusted conversations ready' as result;\n-- END DUSTED THREADS SETUP\n");
 for(const name of ['assets','icons'])await cp(path.join(root,name),path.join(output,name),{recursive:true});
 const icons=(await readdir(path.join(root,'icons'))).filter(name=>/\.png$/.test(name)).map(name=>`/icons/${name}`);
 const precache=['/offline.html','/favicon.svg',...icons,...assets.values()];

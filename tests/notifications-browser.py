@@ -31,8 +31,8 @@ with sync_playwright() as p:
  page.locator('#notificationBell').click();page.locator('#notificationsMarkAll').click();page.wait_for_function('document.querySelector("#notificationBadge").hidden')
  # Re-fetching preserves read state. New remote activity is shown on realtime refresh.
  page.locator('#notificationsRefresh').click();assert page.locator('.notification-item.unread').count()==0
- page.evaluate("inboxTest.data.push({...inboxTest.data[0],id:'new',item_title:'Changed event',created_at:'2026-10-18T12:00:00Z',read_at:null});inboxTest.emit()")
- page.wait_for_function('document.querySelector("#notificationBadge").textContent==="1"')
+ page.evaluate("const row={...inboxTest.data[0],id:'new',source_table:'brand_messages',actor_name:'Josh',item_title:'Post · Dusted launch',created_at:'2026-10-18T12:00:00Z',read_at:null};inboxTest.data.push(row);inboxTest.emit({eventType:'INSERT',new:row})")
+ page.wait_for_function('document.querySelector("#notificationBadge").textContent==="1"');page.wait_for_function('document.querySelector("#toast").textContent==="New message from Josh"');assert 'Dusted launch' in page.locator('#notificationList').inner_text()
  page.evaluate('inboxTest.failWrite=true');page.locator('.notification-item .button').first.click();page.wait_for_function('document.querySelector("#toast").textContent.includes("Could not mark")')
  assert page.locator('#notificationBadge').inner_text()=='1'
  page.evaluate("inboxTest.error='PGRST205'");page.locator('#notificationsRefresh').click();page.wait_for_function('document.querySelector("#notificationStatus").textContent.includes("database setup")');assert page.locator('#notificationEmpty').is_hidden()
