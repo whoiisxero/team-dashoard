@@ -48,14 +48,14 @@ window.createDustedThreads=({getData,getProjectId,toast})=>{
  function row(post,isReply=false){
   const card=el('article','',isReply?'thread-post thread-reply':'thread-post');card.dataset.threadId=post.id;
   const avatar=el('span',person(post.user_id).slice(0,1).toUpperCase(),'thread-avatar');avatar.setAttribute('aria-hidden','true');
-  const content=el('div','','thread-content'),meta=el('div','','thread-meta'),date=el('time',new Date(post.created_at).toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}));date.dateTime=post.created_at;date.title=new Date(post.created_at).toLocaleString();meta.append(el('strong',person(post.user_id)),date);
+  const content=el('div','','thread-content'),meta=el('div','','thread-meta'),date=el('time',new Date(post.created_at).toLocaleString(undefined,{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'}));date.dateTime=post.created_at;date.title=new Date(post.created_at).toLocaleString();meta.append(el('span',isReply?'↳ Reply':'Main post','thread-kind'),el('strong',person(post.user_id)),date);
   if(post.user_id===context().user?.id&&writable()){const remove=button('Delete',()=>void removePost(post),'thread-delete');remove.disabled=busy||working.has(post.id);meta.append(remove);}
   content.append(meta);if(post.body)content.append(el('p',post.body,'thread-body'));
   if(post.image_paths?.length){const gallery=el('div','','thread-gallery');gallery.dataset.count=post.image_paths.length;post.image_paths.forEach((path,i)=>gallery.append(imageNode(path,i)));content.append(gallery);}
   const s=stats.get(post.id)||{},foot=el('div','','thread-actions'),like=button((s.liked?'♥':'♡')+' '+(s.like_count||0),()=>void toggleLike(post));like.setAttribute('aria-label',(s.liked?'Unlike':'Like')+' post');like.setAttribute('aria-pressed',String(!!s.liked));like.disabled=!ready||!writable()||working.has(post.id);foot.append(like);
-  if(!isReply){const count=Number(s.reply_count||0),toggle=button('◯ '+count+(count===1?' reply':' replies'),()=>{if(expanded.has(post.id))expanded.delete(post.id);else expanded.set(post.id,20);void refresh();});toggle.setAttribute('aria-expanded',String(expanded.has(post.id)));foot.append(toggle);if(writable()){const reply=button('Reply',()=>card.querySelector('.thread-inline-reply textarea')?.focus());reply.disabled=!ready||busy;foot.append(reply);}}
+  if(!isReply){const count=Number(s.reply_count||0),toggle=button((expanded.has(post.id)?'Hide thread · ':'Show thread · ')+count+(count===1?' reply':' replies'),()=>{if(expanded.has(post.id))expanded.delete(post.id);else expanded.set(post.id,20);void refresh();});toggle.setAttribute('aria-expanded',String(expanded.has(post.id)));foot.append(toggle);if(writable()){const reply=button('Reply',()=>Array.from(card.querySelectorAll('[data-reply-for]')).find(input=>input.dataset.replyFor===post.id)?.focus());reply.disabled=!ready||busy;foot.append(reply);}}
   content.append(foot);card.append(avatar,content);
-  if(!isReply&&expanded.has(post.id)){const conversation=el('section','','thread-conversation');conversation.setAttribute('aria-label','Replies to '+person(post.user_id));const list=replies.get(post.id)||[];for(const reply of list)conversation.append(row(reply,true));if(!list.length)conversation.append(el('p','No replies yet. Start the conversation.','hint'));if(list.length<Number(s.reply_count||0))conversation.append(button('Load more replies',()=>{expanded.set(post.id,(expanded.get(post.id)||20)+20);void refresh();},'button'));content.append(conversation);}
+  if(!isReply&&expanded.has(post.id)){const conversation=el('section','','thread-conversation');conversation.setAttribute('aria-label','Replies to '+person(post.user_id));const heading=el('div','','thread-conversation-heading');heading.append(el('strong','↳ Conversation thread'),el('small','Replies to the main post above'));conversation.append(heading);const list=replies.get(post.id)||[];for(const reply of list)conversation.append(row(reply,true));if(!list.length)conversation.append(el('p','No replies yet. Start the conversation.','hint'));if(list.length<Number(s.reply_count||0))conversation.append(button('Load more replies',()=>{expanded.set(post.id,(expanded.get(post.id)||20)+20);void refresh();},'button'));content.append(conversation);}
   if(writable())content.append(inlineReply(post));
   return card;
  }
@@ -75,7 +75,7 @@ window.createDustedThreads=({getData,getProjectId,toast})=>{
    }catch{if(current(token,c))draft.error='Could not send. Your reply is still here. Please retry.';}
    finally{if(current(token,c)){busy=false;draft.sending=false;render();}}
   };
-  form.append(input,submit,error);return form;
+  const label=el('label',post.parent_id?'Reply to '+person(post.user_id)+' in this thread':'Reply to this main post','thread-reply-label');label.htmlFor='thread-reply-'+post.id;input.id=label.htmlFor;form.append(label,input,submit,error);return form;
  }
  function render(){
   const focused=document.activeElement,focusKey=focused?.dataset.replyFor,selection=focusKey?[focused.selectionStart,focused.selectionEnd]:null;
