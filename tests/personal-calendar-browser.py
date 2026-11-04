@@ -25,7 +25,7 @@ with sync_playwright() as p:
  page.wait_for_function('document.querySelector("#personalCalendarStatus").textContent.includes("Private to your account")')
  assert page.locator('.sidebar [data-view=personalCalendar]').is_visible()
  assert page.locator('.sidebar [data-view=writing]').is_visible()
- assert page.locator('.sidebar [data-view=business]').is_visible()
+ assert page.locator('.sidebar [data-view=business]').is_hidden()
  assert page.locator('.sidebar [data-view=calendar]').is_hidden()
  # Click a concrete date and open the event form for that day.
  page.locator('[data-personal-date="2026-10-28"]').click()

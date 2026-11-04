@@ -37,6 +37,8 @@ with sync_playwright() as p:
  assert page.locator('#personalWritingCount').inner_text()=='1'
  page.wait_for_function('document.querySelectorAll("#privateChatNav button").length===1')
  assert page.locator('#privateChatNav .nav-title').text_content()=='Quan & Cas'
+ page.keyboard.press('Control+k');page.locator('#questPageQuery').fill('quan cas');assert page.locator('#questPageResults [role=option]').count()==1
+ page.locator('#questPageQuery').fill('Other conversation');assert page.locator('#questPageResults [role=option]').count()==0;page.keyboard.press('Escape')
  page.locator('#personalChatButton').click();page.wait_for_function('document.querySelector("#privateChatMessages").textContent.includes("Welcome to your space")')
  assert 'Quan' in page.locator('#privateChatParticipants').inner_text();assert page.locator('#privateChatSend').is_enabled()
  page.locator('#privateChatText').fill('Hello Quan, this is my private chat.');page.locator('#privateChatSend').click()
@@ -48,7 +50,7 @@ with sync_playwright() as p:
  page.evaluate('accessTest.personal.failSave=false');page.locator('#personalNoteSave').click();page.wait_for_function('!document.querySelector("#personalNoteDialog").open')
  assert '<script>never run</script>' in page.locator('#writingList').inner_text()
  assert page.locator('#writingList script').count()==0
- page.locator('.sidebar [data-view=business]').click();page.locator('#businessNew').click();page.locator('#personalNoteTitle').fill('Follow up');page.locator('#personalNoteBody').fill('Prepare a business update');page.locator('#personalNoteDue').fill('2026-10-30T10:00');page.locator('#personalNoteReminder').fill('2026-10-30T09:00');page.locator('#personalNoteSave').click()
+ page.locator('.sidebar [data-view=writing]').click();page.locator('#writing [data-navigation-tabs=notes] [data-view=business]').click();page.locator('#businessNew').click();page.locator('#personalNoteTitle').fill('Follow up');page.locator('#personalNoteBody').fill('Prepare a business update');page.locator('#personalNoteDue').fill('2026-10-30T10:00');page.locator('#personalNoteReminder').fill('2026-10-30T09:00');page.locator('#personalNoteSave').click()
  page.wait_for_function('!document.querySelector("#personalNoteDialog").open')
  args=page.evaluate('accessTest.personal.writes.filter(w=>w.rpc==="quest_save_personal_note").at(-1).args')
  assert args['note_kind']=='business' and args['zone']=='Africa/Johannesburg' and args['remind_local']=='2026-10-30T09:00'
@@ -78,8 +80,10 @@ with sync_playwright() as p:
  page.wait_for_function('document.querySelector("#userName").textContent==="Quan"')
  before=page.evaluate('({reads:accessTest.personal.reads.length,writes:accessTest.personal.writes.length})')
  for view in ['writing','business','personalSetup']:
-  assert page.locator('.sidebar [data-view='+view+']').is_visible(),view
-  page.locator('.sidebar [data-view='+view+']').click()
+  sidebar_view='writing' if view=='business' else view
+  assert page.locator('.sidebar [data-view='+sidebar_view+']').is_visible(),view
+  page.locator('.sidebar [data-view='+sidebar_view+']').click()
+  if view=='business':page.locator('#writing [data-navigation-tabs=notes] [data-view=business]').click()
   assert page.locator('#'+view).is_visible()
   status=page.locator('#'+('personalSetupStatus' if view=='personalSetup' else view+'Status'))
   assert 'setup' in status.inner_text().lower()

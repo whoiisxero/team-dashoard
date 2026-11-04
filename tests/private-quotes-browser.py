@@ -14,6 +14,7 @@ with sync_playwright() as p:
   if url=='http://dashboard.test/':return r.fulfill(body=html,content_type='text/html')
   if url.startswith('http://dashboard.test/'):
    path=root/url.removeprefix('http://dashboard.test/')
+   if path.name=='private-quotes.js':return r.fulfill(body=path.read_text().replace('location.href=uri;','window.testMailto=uri;'),content_type='application/javascript')
    if path.name in ['home.js','d3.min.js']:return r.fulfill(body='',content_type='application/javascript')
    return r.fulfill(body=path.read_bytes() if path.is_file() else b'',content_type=mimetypes.guess_type(path)[0] or 'text/plain')
   return r.fulfill(body='',content_type='text/css')
@@ -38,7 +39,7 @@ with sync_playwright() as p:
  assert page.evaluate('accessTest.quotes.attempts.at(-1).quote_id')==first
  assert page.evaluate('accessTest.records.personal_quotes[0].total_cents')==66666
  assert page.locator('#quoteList script').count()==0
- page.locator('#quoteList button',has_text='Email draft').click();assert page.evaluate('accessTest.records.personal_quotes[0].content.status')=='draft'
+ page.locator('#quoteList button',has_text='Email draft').click();assert page.evaluate('accessTest.records.personal_quotes[0].content.status')=='draft';assert page.evaluate('testMailto.startsWith("mailto:client%40example.test?")')
  with page.expect_popup() as pop:page.locator('#quoteList button',has_text='Print / save PDF').click()
  printed=pop.value;printed.wait_for_load_state();assert 'Ki Lifestyle' in printed.locator('body').inner_text();assert '<script>bad</script>' in printed.locator('body').inner_text();assert printed.locator('script').count()==0;printed.close()
  page.locator('#quoteList button',has_text='Open / edit').click();page.locator('#quoteClient').fill('Updated client');page.locator('#quoteSave').click();page.wait_for_function('!document.querySelector("#quoteDialog").open');assert page.evaluate('accessTest.quotes.attempts.at(-1).expected_revision')==1

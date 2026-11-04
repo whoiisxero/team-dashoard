@@ -54,7 +54,7 @@ with sync_playwright() as p:
  assert page.locator('#dusted [data-brand-add]').first.is_disabled()
  page.locator('#dusted [data-studio-tab=board]').click();assert page.locator('#dustedAddPin').is_disabled()
  assert page.locator('#dustedUploadReference').is_disabled()
- page.locator('.sidebar [data-view=events]').click();page.locator('#allEvents [data-edit-event]').click()
+ page.locator('.sidebar [data-view=calendar]').click();page.locator('#calendar [data-navigation-tabs=calendar] [data-view=events]').click();page.locator('#allEvents [data-edit-event]').click()
  assert page.locator('#entryDialog [type=submit]').is_hidden()
  assert page.locator('#field-title').is_disabled();assert page.locator('#field-project_id').input_value()=='dusted'
  page.locator('#cancelDialog').click()

@@ -6,7 +6,7 @@ html=(Path(__file__).resolve().parents[1]/'index.html').read_text()
 html=html.replace("import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/+esm';", "const createClient=()=>({auth:{getSession:async()=>({data:{session:null}}),onAuthStateChange:()=>{}}});")
 html=html.replace('</script></body>', '''
 window.testState={fail:false,zero:false,writes:[]};
-user={id:'owner'};projects=[{id:'project',name:'Loden'}];
+user={id:'owner'};projects=[{id:'project',name:'Calendar project'}];
 calendarEvents=[{id:'event',created_by:'owner',title:'Casting',event_date:'2026-10-17',project_id:'project',detail:'Bring portfolio\\nArrive early'},{id:'other',created_by:'other',title:'Other member event',event_date:'2026-10-17',detail:'Shared notes'}];
 Object.defineProperty(testState,'events',{get:()=>calendarEvents});monthCursor=new Date(2026,9,1);refreshAll=async()=>render();
 db={from:table=>({update:values=>{const q={eq:()=>q,select:()=>q,maybeSingle:async()=>{testState.writes.push({table,values});if(testState.fail)return {error:{message:'Access denied'}};if(testState.zero)return {data:null};Object.assign(calendarEvents[0],values);return {data:{id:'event'}}}};return q},insert:async values=>{testState.writes.push({table,values});calendarEvents.push({...values,id:'new'});return {error:null}}})};
@@ -19,7 +19,7 @@ with sync_playwright() as p:
  page=browser.new_page(timezone_id='Africa/Johannesburg');page.clock.install(time=__import__('datetime').datetime(2026,10,17,23,30,tzinfo=__import__('datetime').timezone.utc));errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
  def route(r):
   if r.request.url=='http://dashboard.test/':r.fulfill(body=html,content_type='text/html')
-  elif r.request.url.endswith(('/date-picker.js','/date-picker.css','/cyberpunk.css','/cryptic.css')):
+  elif r.request.url.endswith(('/date-picker.js','/date-picker.css','/cyberpunk.css','/cryptic.css','/navigation.js','/navigation.css')):
    name=r.request.url.rsplit('/',1)[-1];r.fulfill(body=(Path(__file__).resolve().parents[1]/name).read_text(),content_type='application/javascript' if name.endswith('.js') else 'text/css')
   elif r.request.url.endswith('/project-workspace.js'):r.fulfill(body=(Path(__file__).resolve().parents[1]/'project-workspace.js').read_text(),content_type='application/javascript')
   else:r.fulfill(body='',content_type='application/javascript' if r.request.url.endswith('.js') else 'text/css')
@@ -84,7 +84,7 @@ with sync_playwright() as p:
  assert page.evaluate('testState.events.at(-1).detail')=='New shared notes'
  assert page.locator('#allEvents').inner_text().find('New event')>=0
  assert page.locator('#chatEvents').inner_text().find('New shared notes')>=0
- page.locator('.nav [data-view=events]').click()
+ page.locator('.sidebar .nav [data-view=calendar]').click();page.locator('#calendar [data-navigation-tabs=calendar] [data-view=events]').click()
  page.locator('#allEvents [data-edit-event="event"]').click()
  assert page.locator('#field-title').input_value()=='Updated casting'
  page.locator('#cancelDialog').click()

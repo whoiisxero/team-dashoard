@@ -25,5 +25,7 @@ db={from:query,channel:()=>{const c={on:()=>c,subscribe:()=>c};return c},removeC
  if(name==='set_member_access'){state.writes.push({rpc:name,args});state.rules[args.target]=args.allowed_projects;Object.assign(state.profiles[args.target],{project_mode:args.mode,shared_access:args.shared});return {data:null};}
  return {error:{message:'Unknown RPC'}};
 }};
-state.switchUser=async id=>{await teamAccess.leave();showLogin();await enterApp({id});showView('overview');};
+// Workflow tests expand menus to reach their feature; the navigation suite tests compact defaults.
+state.expandNavigation=()=>{for(const group of document.querySelectorAll('.sidebar-section,.sidebar-project-shortcuts'))group.open=true;};
+state.switchUser=async id=>{await teamAccess.leave();showLogin();await enterApp({id});showView('overview');if(!window.questTestCompactNavigation)state.expandNavigation();};
 state.refresh=()=>refreshAll();state.navigate=id=>showView(id);await state.switchUser('quan');window.ready=true;
