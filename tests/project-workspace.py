@@ -5,7 +5,7 @@ from playwright.sync_api import sync_playwright
 from browser_config import CHROMIUM
 root=Path(__file__).resolve().parents[1]
 html=(root/'index.html').read_text().replace("import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/+esm';", "const createClient=()=>({auth:{getSession:async()=>({data:{session:null}}),onAuthStateChange:()=>{}}});")
-html=html.replace('</script></body>',(root/'tests/workspace-fixture.js').read_text()+'</script></body>')
+html=html.replace('</script></body>',(root/'tests/workspace-fixture.js').read_text()+"\nprojects[0].name='Client project';render();\n"+'</script></body>')
 from full_access_fixture import full_access_fixture
 html=full_access_fixture(html)
 with sync_playwright() as p:
@@ -21,7 +21,7 @@ with sync_playwright() as p:
   return r.fulfill(body='',content_type='text/css')
  page.route('**/*',route);page.goto('http://dashboard.test/');page.wait_for_function('window.ready')
  page.locator('#allProjects [data-open-project=p1]').click();page.wait_for_function('!document.querySelector("#workspaceAddNote").disabled')
- assert page.locator('#workspaceTitle').inner_text()=='Loden'
+ assert page.locator('#workspaceTitle').inner_text()=='Client project'
  assert page.locator('#workspaceStatus').inner_text()=='On hold'
  assert 'Loden casting' in page.locator('#workspaceEvents').inner_text();assert 'Other project audition' not in page.locator('#workspaceEvents').inner_text()
  assert 'Assigned to Tertius' in page.locator('#workspaceTasks').inner_text();assert 'Other project task' not in page.locator('#workspaceTasks').inner_text()

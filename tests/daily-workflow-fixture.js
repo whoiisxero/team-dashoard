@@ -21,7 +21,7 @@ db.from=table=>{
   if(insert){if(wf.failMetadata&&table==='project_files')return {error:{message:'Metadata save failed'}};if(!visible(insert)||insert.created_by!==user.id)return {error:{message:'Access denied'}};records.push({...insert,created_at:'2026-10-21T22:30:00Z'});wf.writes.push({table,values:{...insert}});return {error:null};}
   if(upsert){if(upsert.user_id!==user.id)return {error:{message:'Access denied'}};const old=records.find(r=>r.user_id===user.id);if(old)Object.assign(old,upsert);else records.push({...upsert});wf.writes.push({table,values:{...upsert}});return {error:null};}
   const rows=records.filter(visible).filter(row=>filters.every(fn=>fn(row)));
-  if(update){for(const row of rows)Object.assign(row,update);return {error:null};}
+  if(update){for(const row of rows)Object.assign(row,update);return {data:single?rows[0]||null:rows,error:null};}
   if(deleting){const own=rows.filter(row=>row.created_by===user.id||accessTest.profiles[user.id].is_admin);for(const row of own)records.splice(records.indexOf(row),1);return {data:single?own[0]||null:own};}
   return {data:single?rows[0]||null:rows.slice(0,limit).map(r=>({...r})),error:null};
  }).then(resolve,reject)};return q;
