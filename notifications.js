@@ -5,7 +5,17 @@ window.createNotificationCenter = ({getClient, getUser, getProjects=()=>[], open
   const labels = {personal_calendar_events:'personal event',project_files:'project file',private_chat_messages:'private message',brand_messages:'brand message',brand_moodboard_items:'moodboard pin',project_notes:'project note',projects:'project',tasks:'task',expenses:'expense',goals:'goal',discussion_messages:'message',calendar_events:'event',team_settings:'budget',team_members:'team member'};
   let session = 0, owner = null, channel = null, poll = null, rows = [], limit = 50, unread = 0;
   let fetching = false, refreshAgain = false, online = false, busy = false;
-  const pendingMessages=new Set();
+  const pendingMessages=new Set();let selectedCategory='all';
+  const categoryBar=document.createElement('div');categoryBar.className='notification-categories';categoryBar.id='notificationCategories';categoryBar.setAttribute('role','group');categoryBar.setAttribute('aria-label','Filter notifications by source');
+  const categoryHint=document.createElement('p');categoryHint.className='notification-status';categoryHint.id='notificationCategoryHint';
+  $('notificationList').before(categoryBar,categoryHint);
+  const origins={discussion_messages:'Team chat',private_chat_messages:'Private chats',tasks:'Tasks',calendar_events:'Calendar',personal_calendar_events:'My calendar',personal_notes:'Business & notes',brand_messages:'Brand chats',brand_moodboard_items:'Moodboards',project_files:'Files',project_notes:'Project notes',projects:'Projects',expenses:'Expenses',team_settings:'Budget',goals:'Goals',team_members:'Team updates'};
+  function category(row){
+    if(row.source_table==='private_chat_messages')return {key:'private_chats',name:'Private chats'};
+    const project=getProjects().find(p=>p.id===row.project_id);
+    if(project)return {key:'project:'+project.id,name:project.name};
+    return {key:row.source_table||'other',name:origins[row.source_table]||'Other updates'};
+  }
   const status = text => { $('notificationStatus').textContent=text; };
   function badge() {
     for (const id of ['notificationBadge','notificationNavBadge']) {
@@ -16,24 +26,41 @@ window.createNotificationCenter = ({getClient, getUser, getProjects=()=>[], open
   }
   function text(element, value) {element.textContent=value;return element;}
   function render() {
-    const list=$('notificationList');list.replaceChildren();
-    for (const row of rows) {
-      const article=document.createElement('article');article.className=`notification-item${row.read_at?'':' unread'}`;
-      const open=document.createElement('button');open.type='button';open.className='notification-open';
-      const verb=row.action==='INSERT'?(['discussion_messages','private_chat_messages','brand_messages'].includes(row.source_table)?'sent':'added'):row.action==='DELETE'?'removed':'updated';
-      open.append(text(document.createElement('strong'),row.notification_type==='reminder'?`Reminder · ${row.source_table==='personal_notes'?'your business item':labels[row.source_table]||'your work'}`:`${row.actor_name} ${verb} ${labels[row.source_table]||'an item'}`));
-      const project=getProjects().find(p=>p.id===row.project_id);
-      open.append(text(document.createElement('span'),row.source_table==='brand_messages'?(project?project.name+' · ':'')+row.item_title:row.item_title));
-      const time=document.createElement('time');time.dateTime=row.created_at;time.textContent=new Date(row.created_at).toLocaleString(undefined,{dateStyle:'medium',timeStyle:'short'});open.append(time);
-      open.onclick=()=>void openNotification(row);article.append(open);
-      if (!row.read_at) {
-        const mark=text(document.createElement('button'),'Mark as read');mark.type='button';mark.className='button';
-        mark.onclick=()=>void markOne(row.id);article.append(mark);
+    const list=$('notificationList');list.replaceChildren();categoryBar.replaceChildren();
+    const groups=new Map();for(const row of rows){const source=category(row);if(!groups.has(source.key))groups.set(source.key,{...source,rows:[]});groups.get(source.key).rows.push(row);}
+    if(selectedCategory!=='all'&&!groups.has(selectedCategory))selectedCategory='all';
+    for(const source of [{key:'all',name:'All sources'},...groups.values()]){
+      const filter=document.createElement('button');filter.type='button';filter.className='button';filter.dataset.notificationCategory=source.key;filter.textContent=source.name;filter.setAttribute('aria-pressed',String(source.key===selectedCategory));
+      filter.onclick=()=>{selectedCategory=source.key;render();Array.from(categoryBar.querySelectorAll('button')).find(b=>b.dataset.notificationCategory===source.key)?.focus({preventScroll:true});};categoryBar.append(filter);
+    }
+    categoryBar.hidden=!rows.length;categoryHint.hidden=!rows.length;categoryHint.textContent=`Categories cover the latest ${rows.length} loaded updates.${rows.length>=limit?' Load older updates for earlier activity.':''}`;
+    for(const group of groups.values()){
+      if(selectedCategory!=='all'&&selectedCategory!==group.key)continue;
+      const section=document.createElement('section');section.className='notification-group';section.dataset.notificationCategory=group.key;
+      const header=document.createElement('header'),heading=text(document.createElement('h2'),group.name),count=group.rows.filter(r=>!r.read_at).length;
+      header.append(heading,text(document.createElement('small'),`${group.rows.length} update${group.rows.length===1?'':'s'} · ${count} unread`));section.append(header);
+      const groupList=document.createElement('div');groupList.className='notification-group-list';
+      for (const row of group.rows) {
+        const article=document.createElement('article');article.className=`notification-item${row.read_at?'':' unread'}`;
+        const open=document.createElement('button');open.type='button';open.className='notification-open';
+        const source=text(document.createElement('small'),(origins[row.source_table]||'Update')+(row.notification_type==='reminder'?' · Reminder':''));source.className='notification-source';open.append(source);
+        const verb=row.action==='INSERT'?(['discussion_messages','private_chat_messages','brand_messages'].includes(row.source_table)?'sent':'added'):row.action==='DELETE'?'removed':'updated';
+        open.append(text(document.createElement('strong'),row.notification_type==='reminder'?`Reminder · ${row.source_table==='personal_notes'?'your business item':labels[row.source_table]||'your work'}`:`${row.actor_name} ${verb} ${labels[row.source_table]||'an item'}`));
+        const project=getProjects().find(p=>p.id===row.project_id);
+        open.append(text(document.createElement('span'),row.source_table==='brand_messages'?(project?project.name+' · ':'')+row.item_title:row.item_title));
+        const time=document.createElement('time');time.dateTime=row.created_at;time.textContent=new Date(row.created_at).toLocaleString(undefined,{dateStyle:'medium',timeStyle:'short'});open.append(time);
+        open.onclick=()=>void openNotification(row);article.append(open);
+        if (!row.read_at) {
+          const mark=text(document.createElement('button'),'Mark as read');mark.type='button';mark.className='button';
+          mark.onclick=()=>void markOne(row.id);article.append(mark);
+        }
+        groupList.append(article);
       }
-      list.append(article);
+      section.append(groupList);list.append(section);
     }
     $('notificationEmpty').hidden=!online||rows.length>0;
     $('notificationsMore').hidden=!online||rows.length<limit;
+    $('notificationsMarkAll').title='Mark all your notifications as read, across every category.';
     badge();
   }
   async function refresh() {
@@ -97,7 +124,7 @@ window.createNotificationCenter = ({getClient, getUser, getProjects=()=>[], open
     if(row.source_table==='calendar_events')openEvent(row.source_id,row.event_date);
   }
   function stop() {
-    pendingMessages.clear();session++;owner=null;rows=[];limit=50;unread=0;online=false;busy=false;fetching=false;refreshAgain=false;
+    pendingMessages.clear();selectedCategory='all';session++;owner=null;rows=[];limit=50;unread=0;online=false;busy=false;fetching=false;refreshAgain=false;
     if(poll)clearInterval(poll);poll=null;
     if(channel){getClient()?.removeChannel(channel);channel=null;}
     status('Sign in to see team updates.');render();

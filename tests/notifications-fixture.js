@@ -5,6 +5,7 @@ n.data.push({id:'other',recipient_id:'tertius',actor_name:'Quan',source_table:'p
 const event={id:'event',title:'Casting',event_date:'2026-10-18',detail:'Bring portfolio',created_by:'tertius'};
 function query(table){let filters=[],head=false,maximum=Infinity,update=null,single=false;
  const q={select:(fields,options={})=>{head=!!options.head;return q},eq:(key,value)=>{filters.push(row=>row[key]===value);return q},is:(key,value)=>{filters.push(row=>row[key]===value);return q},in:(key,values)=>{filters.push(row=>values.includes(row[key]));return q},order:()=>q,limit:value=>{maximum=value;return q},update:values=>{update=values;return q},maybeSingle:()=>{single=true;return q},then:(resolve,reject)=>Promise.resolve().then(()=>{
+ if(table==='notification_preferences')return {data:null,error:null};
  if(table==='calendar_events')return {data:event,error:null};
  if(n.error)return {data:null,error:{code:n.error},count:null};
  if(update&&n.failWrite)return {error:{message:'Denied'}};
@@ -12,8 +13,22 @@ function query(table){let filters=[],head=false,maximum=Infinity,update=null,sin
  if(update){for(const row of result)Object.assign(row,update);return {error:null};}
  return {data:head?null:result.slice(0,maximum).map(row=>({...row})),count:result.length,error:null};
  }).then(resolve,reject)};return q;}
-db={from:query,channel:()=>{const c={on:(type,filter,callback)=>{n.handlers.push(callback);return c},subscribe:callback=>{callback('SUBSCRIBED');return c}};return c},removeChannel:()=>{n.handlers=[]}};
+db={from:query,rpc:async()=>({data:0,error:null}),channel:()=>{const c={on:(type,filter,callback)=>{n.handlers.push(callback);return c},subscribe:callback=>{callback('SUBSCRIBED');return c}};return c},removeChannel:()=>{n.handlers=[]}};
 user={id:'quan'};calendarEvents=[event];roster=[{user_id:'quan',display_name:'Quan'},{user_id:'tertius',display_name:'Tertius'}];
 document.querySelector('#loginScreen').hidden=true;document.querySelector('#appShell').hidden=false;
 n.switchUser=id=>{user={id};notificationCenter.start()};n.emit=payload=>{for(const h of n.handlers)h(payload)};
 notificationCenter.start();showView('notifications');window.ready=true;
+
+n.seedCategories=()=>{
+ projects=[{id:'dusted',name:'Dusted.',status:'On track',progress:0},{id:'fragile',name:'Fragile',status:'On track',progress:0}];
+ n.data=[
+ {id:'cat-dusted-message',project_id:'dusted',source_table:'brand_messages',item_title:'Reply · Dusted launch'},
+ {id:'cat-dusted-task',project_id:'dusted',source_table:'tasks',item_title:'Review design'},
+ {id:'cat-fragile',project_id:'fragile',source_table:'brand_messages',item_title:'Collection plans'},
+ {id:'cat-private',private_room_id:'room',project_id:'dusted',source_table:'private_chat_messages',item_title:'Private conversation'},
+ {id:'cat-team',source_table:'discussion_messages',item_title:'Team discussion'},
+ {id:'cat-calendar',source_table:'personal_calendar_events',item_title:'Personal appointment'},
+ {id:'cat-other-inbox',recipient_id:'tertius',source_table:'brand_messages',project_id:'secret',item_title:'Other account secret'}
+ ].map((r,i)=>({recipient_id:'quan',actor_name:'Josh',actor_id:'josh',source_id:'source',action:'INSERT',created_at:new Date(Date.UTC(2099,0,7-i)).toISOString(),read_at:null,...r}));
+ n.switchUser('quan');
+};

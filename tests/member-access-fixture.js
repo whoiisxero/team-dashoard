@@ -17,6 +17,7 @@ function query(table){let filters=[],single=false,limit=Infinity,head=false,inse
  return {data:head?null:single?(data[0]||null):data.slice(0,limit),count:data.length,error:null};}).then(resolve,reject)};return q;
 }
 db={from:query,channel:()=>{const c={on:()=>c,subscribe:()=>c};return c},removeChannel:()=>{},rpc:async(name,args={})=>{
+ if(name==='quest_thread_feed')return {data:records.brand_messages.filter(m=>m.project_id===args.target_project&&accessible(m.project_id)&&!m.parent_id).sort((a,b)=>b.created_at.localeCompare(a.created_at)).slice(0,args.page_limit)};
  if(name==='quest_thread_stats')return {data:args.message_ids.filter(id=>records.brand_messages.some(m=>m.id===id&&accessible(m.project_id))).map(id=>({message_id:id,like_count:0,reply_count:0,liked:false}))};
  if(name==='my_team_profile')return state.profileRpcMissing?{error:{code:'PGRST202'}}:{data:records.team_members.find(m=>m.user_id===user.id)||null};
  if(name==='my_dashboard_access')return state.failAccess?{error:{code:'PGRST202'}}:{data:{...state.profiles[user.id]}};

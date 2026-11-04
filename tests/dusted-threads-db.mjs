@@ -23,6 +23,7 @@ insert into project_member_access values('${josh}','${dusted}',true),('${tertius
 update member_access set editable_project_ids='{}' where user_id='${viewer}';
 insert into brand_messages(id,project_id,user_id,body) values('${id(20)}','${dusted}','${owner}','Existing Dusted message');`);
 const migration=await sql('migrations/20261104_dusted_threads.sql');await db.exec(migration);await db.exec(migration);
+const feedOrder=await sql('migrations/20261105_thread_feed_order.sql');await db.exec(feedOrder);await db.exec(feedOrder);
 const alerts=await sql('migrations/20261104_chat_notifications.sql');await db.exec(alerts);await db.exec(alerts);
 await db.exec(`create policy legacy_inbox_read on team_notifications for select to authenticated using(true);`);
 const rows=async(q,args=[])=>(await db.query(q,args)).rows;
@@ -61,5 +62,15 @@ await actor(null);await db.exec('set role anon');assert.equal((await rows("selec
 await actor(null);await db.query('update project_member_access set allowed=false where user_id=$1 and project_id=$2',[josh,dusted]);await actor(josh);
 assert.equal((await rows('select * from team_notifications where source_id=$1',[id(22)])).length,0);assert.equal((await rows('select * from brand_messages')).length,0);assert.equal((await rows('select * from brand_message_likes')).length,0);assert.equal((await rows("select * from storage.objects where bucket_id='quest-thread-images'")).length,0);
 await actor(owner);await db.query('delete from brand_messages where id=$1',[id(20)]);assert.equal((await rows('select * from brand_messages where id=$1',[id(22)])).length,0);assert.equal((await rows('select * from brand_message_likes')).length,0);
+await actor(owner);
+await db.query('insert into brand_messages(id,project_id,user_id,body,created_at) values($1,$2,$3,$4,$5)',[id(40),dusted,owner,'Old root','2000-01-01T00:00:00Z']);
+assert.notEqual((await rows('select id from quest_thread_feed($1,1)',[dusted]))[0].id,id(40));
+await db.query('insert into brand_messages(id,project_id,user_id,body,parent_id,created_at) values($1,$2,$3,$4,$5,$6)',[id(41),dusted,owner,'Newest reply',id(40),'2099-01-01T00:00:00Z']);
+assert.equal((await rows('select id from quest_thread_feed($1,1)',[dusted]))[0].id,id(40));
+await db.query('delete from brand_messages where id=$1',[id(41)]);assert.notEqual((await rows('select id from quest_thread_feed($1,1)',[dusted]))[0].id,id(40));
+await actor(cas);assert.equal((await rows('select id from quest_thread_feed($1,21)',[dusted])).length,0);
+await actor(josh);assert.equal((await rows('select id from quest_thread_feed($1,21)',[dusted])).length,0);
+await actor(tertius);assert.equal((await rows('select id from quest_thread_feed($1,21)',[dusted])).length,0);
+await actor(null);await db.exec('set role anon');await assert.rejects(db.query('select * from quest_thread_feed($1,21)',[dusted]),/permission denied/);
 await actor(null);assert.equal((await rows("select public from storage.buckets where id='quest-thread-images'"))[0].public,false);
-await db.close();console.log('PASS Dusted threads: preserved history, image posts, replies, likes, same-project parents, private storage, read-only users, excluded/personal/anonymous users, revocation and cascading deletion.');
+await db.close();console.log('PASS Dusted threads: latest-reply ordering across pages, deletion reordering, scoped feed RPC, preserved history, image posts, replies, likes, same-project parents, private storage, read-only users, excluded/personal/anonymous users, revocation and cascading deletion.');

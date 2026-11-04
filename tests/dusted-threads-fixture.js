@@ -18,6 +18,12 @@ db.from=table=>{
  }).then(resolve,reject)};return q;
 };
 db.rpc=async(name,args)=>{
+ if(name==='quest_thread_feed'){
+  if(state.failLoad)return {error:{message:'Offline'}};
+  if(state.missingFeed)return {error:{code:'PGRST202'}};
+  const roots=state.brandMessages.filter(p=>p.project_id===args.target_project&&!p.parent_id),latest=p=>Math.max(Date.parse(p.created_at),...state.brandMessages.filter(r=>r.parent_id===p.id).map(r=>Date.parse(r.created_at)));
+  return {data:roots.sort((a,b)=>latest(b)-latest(a)||b.created_at.localeCompare(a.created_at)||b.id.localeCompare(a.id)).slice(0,args.page_limit),error:null};
+ }
  if(name!=='quest_thread_stats')return {data:null,error:null};
  return {data:args.message_ids.filter(id=>state.brandMessages.some(p=>p.id===id)).map(id=>({message_id:id,like_count:state.likes.filter(l=>l.message_id===id).length,reply_count:state.brandMessages.filter(m=>m.parent_id===id).length,liked:state.likes.some(l=>l.message_id===id&&l.user_id===user.id)})),error:null};
 };

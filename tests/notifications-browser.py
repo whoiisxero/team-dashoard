@@ -40,7 +40,15 @@ with sync_playwright() as p:
  page.wait_for_function('document.querySelectorAll(".notification-item").length===1')
  assert page.locator('#notificationList').inner_text().find('Private other inbox')>=0
  assert 'Casting' not in page.locator('#notificationList').inner_text()
- page.set_viewport_size({'width':390,'height':844});assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
+ page.evaluate('inboxTest.seedCategories()');page.wait_for_function('document.querySelectorAll(".notification-item").length===6')
+ assert page.locator('.notification-group h2').all_text_contents()==['Dusted.','Fragile','Private chats','Team chat','My calendar']
+ assert 'Other account secret' not in page.locator('#notificationList').inner_text()
+ page.locator('#notificationCategories').get_by_role('button',name='Dusted.',exact=True).click();assert page.locator('.notification-item').count()==2;assert 'Tasks' in page.locator('.notification-source').all_text_contents();assert page.locator('#notificationBadge').inner_text()=='6';assert page.locator('.notification-item.unread').count()==2
+ page.locator('.notification-item .button').first.click();page.wait_for_function('document.querySelector("#notificationBadge").textContent==="5"');assert page.locator('.notification-group>header small').inner_text()=='2 updates · 1 unread'
+ page.locator('#notificationCategories').get_by_role('button',name='Private chats',exact=True).click();assert page.locator('.notification-item').count()==1;assert 'Private conversation' in page.locator('#notificationList').inner_text()
+ page.evaluate("inboxTest.switchUser('tertius')");page.wait_for_function('document.querySelectorAll(".notification-item").length===1');assert 'Dusted.' not in page.locator('#notificationCategories').inner_text();assert page.locator('#notificationCategories button').first.get_attribute('aria-pressed')=='true'
+ page.evaluate('inboxTest.seedCategories()');page.wait_for_function('document.querySelectorAll(".notification-item").length===6')
+ page.set_viewport_size({'width':390,'height':844});page.wait_for_function('document.querySelector("#sidebar").getBoundingClientRect().right<=0');page.wait_for_function('!document.querySelector("#toast").classList.contains("show")');assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
  page.screenshot(path='/tmp/quest-notifications.png',full_page=True)
  assert not errors,errors
- b.close();print('PASS inbox: unread counts, paging, escaping, mark one/all, read persistence, event linking/notes, realtime refresh, failed writes, missing migration state, account isolation and mobile layout.')
+ b.close();print('PASS inbox: source groups and filters, per-category unread counts, account reset privacy, unread totals, paging, escaping, mark one/all, read persistence, event linking/notes, realtime refresh, failed writes, missing migration state, account isolation and mobile layout.')

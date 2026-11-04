@@ -24,6 +24,12 @@ with sync_playwright() as p:
  assert page.locator('#dustedMessages>.thread-post').count()==20
  assert 'Existing Dusted conversation' in page.locator('#dustedMessages').inner_text()
  assert 'Fragile private idea' not in page.locator('#dustedMessages').inner_text()
+ # A reply to a root outside the first page brings the whole conversation to the top.
+ page.evaluate("workspaceTest.brandMessages.push({id:'remote-reply',project_id:'p2',user_id:'josh',parent_id:'post-22',body:'Newest reply on an older conversation',created_at:new Date().toISOString(),image_paths:[]});workspaceTest.realtime.find(h=>h.filter.table==='brand_messages').fn()")
+ page.wait_for_function('document.querySelector("#dustedMessages>.thread-post").dataset.threadId==="post-22"')
+ page.locator('#dustedMessages>.thread-post').first.get_by_role('button',name='Show thread',exact=False).click();page.wait_for_function('document.querySelector("#dustedMessages>.thread-post .thread-conversation")?.textContent.includes("Newest reply on an older conversation")')
+ page.locator('#dustedMessages>.thread-post').first.get_by_role('button',name='Hide thread',exact=False).click()
+
  page.get_by_role('button',name='Load older posts',exact=True).click();page.wait_for_function('document.querySelectorAll("#dustedMessages>.thread-post").length===23')
  assert 'brand_message_likes' in page.evaluate('workspaceTest.realtime.map(x=>x.filter.table)')
  assert not page.locator('.thread-starters details').count();assert not page.locator('#dustedBrandQuestionList').is_visible()
@@ -51,6 +57,9 @@ with sync_playwright() as p:
  page.screenshot(path='/tmp/quest-dusted-conversations-desktop.png',full_page=True)
  page.set_viewport_size({'width':390,'height':844});page.locator('#dustedChatForm').scroll_into_view_if_needed();assert page.evaluate('document.documentElement.scrollWidth<=window.innerWidth')
  page.screenshot(path='/tmp/quest-dusted-conversations-phone.png',full_page=True)
+ # Missing sorting migration leaves the existing conversation feed usable.
+ page.evaluate('workspaceTest.missingFeed=true;workspaceTest.refreshThreads()');page.wait_for_function('document.querySelector("#dustedChatStatus").textContent.includes("Update setup")');assert page.locator('#dustedMessages>.thread-post').count()>0
+ page.evaluate('workspaceTest.missingFeed=false;workspaceTest.refreshThreads()');page.wait_for_function('document.querySelector("#dustedChatStatus").textContent.includes("Latest posts and replies first")')
  # Reset clears private feed, drafts, image URLs and the viewer.
  page.locator('#dustedChatText').fill('Unsent private note');page.locator('#dustedThreadImages').set_input_files({'name':'draft.png','mimeType':'image/png','buffer':png});page.evaluate('workspaceTest.deferUpload=true');page.locator('#dustedChatSend').click();page.wait_for_function('typeof workspaceTest.finishUpload==="function"');before=page.evaluate('workspaceTest.writes.length');page.evaluate('workspaceTest.resetThreads();workspaceTest.finishUpload()');assert page.locator('#dustedMessages').inner_text()=='';assert page.locator('#dustedChatText').input_value()=='';assert page.locator('#dustedThreadPreviews img').count()==0;assert page.locator('#dustedChatSend').is_disabled();page.wait_for_function('document.querySelector("#dustedChatForm").dataset.appSaving==="false"');assert page.evaluate('workspaceTest.writes.length')==before
  assert not errors,errors;b.close()
