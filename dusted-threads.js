@@ -3,7 +3,7 @@ window.createDustedThreads=({getData,getProjectId,toast})=>{
  const $=id=>document.getElementById(id),panel=$('dustedChatPanel'),form=$('dustedChatForm'),text=$('dustedChatText'),send=$('dustedChatSend'),feed=$('dustedMessages'),status=$('dustedChatStatus');
  const bucket='quest-thread-images',types={'image/jpeg':'jpg','image/png':'png','image/webp':'webp','image/gif':'gif'};
  let epoch=0,request=0,ready=false,busy=false,posts=[],stats=new Map(),replies=new Map(),expanded=new Map(),files=[],limit=20,hasMore=false,target=null,attempt=null;
- const working=new Set(),images=new Map();let observer=null;
+ const working=new Set(),images=new Map(),replyDrafts=new Map();let observer=null;
  const el=(tag,value='',cls='')=>{const n=document.createElement(tag);n.textContent=value;if(cls)n.className=cls;return n;};
  const button=(label,fn,cls='thread-action')=>{const n=el('button',label,cls);n.type='button';n.onclick=fn;return n;};
  const context=()=>{const d=getData();return {db:d.db,user:d.user,project:getProjectId()};};
@@ -53,14 +53,35 @@ window.createDustedThreads=({getData,getProjectId,toast})=>{
   content.append(meta);if(post.body)content.append(el('p',post.body,'thread-body'));
   if(post.image_paths?.length){const gallery=el('div','','thread-gallery');gallery.dataset.count=post.image_paths.length;post.image_paths.forEach((path,i)=>gallery.append(imageNode(path,i)));content.append(gallery);}
   const s=stats.get(post.id)||{},foot=el('div','','thread-actions'),like=button((s.liked?'♥':'♡')+' '+(s.like_count||0),()=>void toggleLike(post));like.setAttribute('aria-label',(s.liked?'Unlike':'Like')+' post');like.setAttribute('aria-pressed',String(!!s.liked));like.disabled=!ready||!writable()||working.has(post.id);foot.append(like);
-  if(!isReply){const count=Number(s.reply_count||0),toggle=button('◯ '+count+(count===1?' reply':' replies'),()=>{if(expanded.has(post.id))expanded.delete(post.id);else expanded.set(post.id,20);void refresh();});toggle.setAttribute('aria-expanded',String(expanded.has(post.id)));foot.append(toggle);if(writable()){const reply=button('Reply',()=>replyTo(post));reply.disabled=!ready||busy;foot.append(reply);}}
+  if(!isReply){const count=Number(s.reply_count||0),toggle=button('◯ '+count+(count===1?' reply':' replies'),()=>{if(expanded.has(post.id))expanded.delete(post.id);else expanded.set(post.id,20);void refresh();});toggle.setAttribute('aria-expanded',String(expanded.has(post.id)));foot.append(toggle);if(writable()){const reply=button('Reply',()=>card.querySelector('.thread-inline-reply textarea')?.focus());reply.disabled=!ready||busy;foot.append(reply);}}
   content.append(foot);card.append(avatar,content);
   if(!isReply&&expanded.has(post.id)){const conversation=el('section','','thread-conversation');conversation.setAttribute('aria-label','Replies to '+person(post.user_id));const list=replies.get(post.id)||[];for(const reply of list)conversation.append(row(reply,true));if(!list.length)conversation.append(el('p','No replies yet. Start the conversation.','hint'));if(list.length<Number(s.reply_count||0))conversation.append(button('Load more replies',()=>{expanded.set(post.id,(expanded.get(post.id)||20)+20);void refresh();},'button'));content.append(conversation);}
+  if(writable())content.append(inlineReply(post));
   return card;
  }
+ function inlineReply(post){
+  const draft=replyDrafts.get(post.id)||{body:'',id:null,error:''};
+  const form=el('form','','thread-inline-reply'),input=el('textarea'),submit=el('button','Reply','button'),error=el('p',draft.error,'thread-inline-error');
+  input.placeholder='Reply to '+person(post.user_id)+'…';input.setAttribute('aria-label','Reply to '+person(post.user_id));input.dataset.replyFor=post.id;input.maxLength=4000;input.rows=2;input.value=draft.body;input.disabled=!ready||busy;submit.type='submit';submit.disabled=!ready||busy||!draft.body.trim();error.setAttribute('role','status');form.dataset.appDirty=String(!!draft.body.trim());form.dataset.appSaving=String(!!draft.sending);
+  input.oninput=()=>{draft.body=input.value;draft.id=null;draft.error='';replyDrafts.set(post.id,draft);submit.disabled=!ready||busy||!draft.body.trim();form.dataset.appDirty=String(!!draft.body.trim());error.textContent='';};
+  form.onsubmit=async event=>{
+   event.preventDefault();if(!ready||!writable()||busy||!draft.body.trim())return;
+   const c=context(),token=epoch;draft.id ||= crypto.randomUUID();draft.sending=true;replyDrafts.set(post.id,draft);busy=true;render();
+   try{
+    const payload={id:draft.id,project_id:c.project,user_id:c.user.id,body:draft.body.trim(),parent_id:post.parent_id||post.id,image_paths:[]};
+    const result=await c.db.from('brand_messages').insert(payload);
+    if(result.error){if(result.error.code!=='23505')throw result.error;const saved=await c.db.from('brand_messages').select('id').eq('project_id',c.project).eq('id',draft.id).eq('user_id',c.user.id).maybeSingle();if(saved.error||!saved.data)throw result.error;}
+    if(!current(token,c))return;replyDrafts.delete(post.id);expanded.set(payload.parent_id,Math.max(20,Number(stats.get(payload.parent_id)?.reply_count||0)+1));await refresh();toast('Reply posted');
+   }catch{if(current(token,c))draft.error='Could not send. Your reply is still here. Please retry.';}
+   finally{if(current(token,c)){busy=false;draft.sending=false;render();}}
+  };
+  form.append(input,submit,error);return form;
+ }
  function render(){
+  const focused=document.activeElement,focusKey=focused?.dataset.replyFor,selection=focusKey?[focused.selectionStart,focused.selectionEnd]:null;
   observer?.disconnect();observer=new IntersectionObserver(entries=>{for(const e of entries)if(e.isIntersecting)void loadImage(e.target);},{rootMargin:'200px'});
   feed.replaceChildren();for(const post of posts)feed.append(row(post));if(ready&&!posts.length)feed.append(el('p','Start the first conversation. Share an idea or a photo.','empty'));more.hidden=!hasMore;more.disabled=busy||!ready;controls();
+  if(focusKey){const input=Array.from(feed.querySelectorAll('[data-reply-for]')).find(n=>n.dataset.replyFor===focusKey);if(input&&!input.disabled){input.focus({preventScroll:true});input.setSelectionRange(...selection);}}
  }
  function clearImages(){observer?.disconnect();for(const url of images.values())URL.revokeObjectURL(url);images.clear();if(viewer.open)viewer.close();large.removeAttribute('src');}
  function setupError(error){return ['42703','42P01','PGRST202','PGRST204','PGRST205'].includes(error?.code);}
@@ -116,6 +137,6 @@ window.createDustedThreads=({getData,getProjectId,toast})=>{
   }catch(error){if(current(token,c))status.textContent=setupError(error)?'Run the Dusted conversations setup, then retry. Your post and images are still here.':'Could not post. Your text and images are still here. Retry when connected.';}
   finally{if(current(token,c)){busy=false;controls();}}
  };
- function reset(){epoch++;request++;ready=false;busy=false;posts=[];stats.clear();replies.clear();expanded.clear();working.clear();limit=20;hasMore=false;target=null;attempt=null;text.value='';replyBar.hidden=true;for(const file of files)URL.revokeObjectURL(file.url);files=[];picker.value='';clearImages();draftPreview();status.textContent='Connect the Dusted project to start a conversation.';render();}
+ function reset(){epoch++;request++;ready=false;busy=false;posts=[];stats.clear();replies.clear();expanded.clear();working.clear();replyDrafts.clear();limit=20;hasMore=false;target=null;attempt=null;text.value='';replyBar.hidden=true;for(const file of files)URL.revokeObjectURL(file.url);files=[];picker.value='';clearImages();draftPreview();status.textContent='Connect the Dusted project to start a conversation.';render();}
  reset();return {refresh,reset};
 };
