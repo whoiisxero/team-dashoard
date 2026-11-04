@@ -43,6 +43,8 @@ await assert.rejects(db.exec("insert into team_notifications(recipient_id,actor_
 ({rows}=await db.query('update team_notifications set read_at=now() where recipient_id=$1 returning id',[quan]));assert.equal(rows.length,0);
 await actor(quan);({rows}=await db.query('select * from team_notifications where id=$1',[notification.id]));assert.equal(rows.length,0);
 await actor(tertius);({rows}=await db.query('select read_at from team_notifications where id=$1',[notification.id]));assert(rows[0].read_at);
+await db.query('update team_notifications set read_at=null where id=$1',[notification.id]);assert.equal((await db.query('select read_at from team_notifications where id=$1',[notification.id])).rows[0].read_at,null);
+await actor(quan);assert.equal((await db.query('update team_notifications set read_at=null where id=$1 returning id',[notification.id])).rows.length,0);
 await actor(null);const project=(await db.query("select id from projects where name='Loden'")).rows[0].id;
 await actor(quan);await db.query('insert into project_notes(project_id,title,body,created_by) values ($1,$2,$3,$4)',[project,'Brief','Private project note body',quan]);
 await db.query('update tasks set assigned_to=$1',[tertius]);await assert.rejects(db.query('update tasks set assigned_to=$1',['00000000-0000-0000-0000-000000000001']),/foreign key/);
