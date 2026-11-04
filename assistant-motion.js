@@ -17,7 +17,7 @@ window.createAssistantMotion=({dock,character,mini,panel,isActive})=>{
  }
  function sync(){
   if(!isActive()||dock.hidden||window.visualViewport?.scale!==undefined&&window.visualViewport.scale!==1)return;
-  const view=bounds(),small=matchMedia('(max-width:680px),(max-height:650px)').matches?186:246;
+  const view=bounds(),small=matchMedia('(max-width:680px),(max-height:650px)').matches?120:148;
   dock.classList.toggle('is-viewport-small',view.height<small+36);
   const range=limits(),desired=position||{x:1,y:1};
   dock.classList.add('is-placed');dock.style.setProperty('--qa-left',range.x+desired.x*(range.maxX-range.x)+'px');dock.style.setProperty('--qa-top',range.y+desired.y*(range.maxY-range.y)+'px');

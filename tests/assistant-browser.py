@@ -35,9 +35,7 @@ with sync_playwright() as p:
  page.screenshot(path='/tmp/quest-q-avatar.png',full_page=False,animations='disabled')
  page.locator('#qaOpen').click();page.wait_for_function('document.querySelector("#qaMode").textContent==="AI chat configured"')
  page.locator('#qaMyDay').click();assert 'assigned task' in page.locator('#qaMessages').inner_text();assert 'Dusted private task' not in page.locator('#qaMessages').inner_text()
- page.locator('#qaDance').click();assert page.locator('#questAssistant').evaluate('(el)=>el.classList.contains("is-dancing")')
- assert page.locator('#qaCharacter .qa-arm-right').evaluate('(el)=>getComputedStyle(el).animationName')=='qa-dance-right'
- page.locator('#qaDance').click()
+ assert page.locator('#qaDance').is_hidden();assert page.locator('#qaPlay').is_hidden();assert page.locator('#qaCharacter .qa-orb-shell').count()==1
  page.locator('#qaInput').fill('Help me prepare for tomorrow');page.locator('#qaSend').click();page.wait_for_function('document.querySelector("#qaMessages").textContent.includes("fitting task")')
  assert page.locator('#qaMessages script').count()==0;assert '<script>unsafe()</script>' in page.locator('#qaMessages').inner_text()
  post=next(c for c in state['calls'] if c['method']=='POST');assert post['headers']['authorization'].startswith('Bearer test-session-jen');assert set(post['body'])=={'message','history'}
@@ -51,8 +49,7 @@ with sync_playwright() as p:
  page.locator('#qaMinimise').click();assert page.locator('#qaCharacter').is_hidden();assert page.locator('#qaRestore').is_visible()
  page.set_viewport_size({'width':320,'height':740});page.locator('#qaRestore').click();assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
  page.locator('#qaOpen').click();box=page.locator('#qaPanel').bounding_box();assert box['x']>=0 and box['x']+box['width']<=320 and box['y']+box['height']<=741
- page.locator('#qaDance').click();assert page.locator('#qaPanel').is_hidden();assert page.locator('#questAssistant').evaluate('(el)=>el.classList.contains("is-dancing")');assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
- page.locator('#qaOpen').click();page.locator('#qaSpeak').check();state['enabled']=True;state['hold']=True;page.locator('#qaInput').fill('Old Fragile private question');page.locator('#qaSend').click();page.wait_for_function('document.querySelector("#qaSend").disabled')
+ page.locator('#qaSpeak').check();state['enabled']=True;state['hold']=True;page.locator('#qaInput').fill('Old Fragile private question');page.locator('#qaSend').click();page.wait_for_function('document.querySelector("#qaSend").disabled')
  page.evaluate("accessTest.switchUser('josh')");page.wait_for_function('document.querySelector("#userName").textContent==="Josh"');assert page.locator('#qaPanel').is_hidden();assert 'Old Fragile private' not in page.locator('#qaMessages').inner_text();assert not page.locator('#qaSpeak').is_checked()
  for pending in state['pending']:
   try:pending.fulfill(json={'reply':'Old private reply','actions':[]})
@@ -75,7 +72,7 @@ with sync_playwright() as p:
  page.evaluate("accessTest.switchUser('josh')");page.locator('#qaOpen').click();state['issue']={'code':'ai_billing_required','message':'Ask the dashboard owner to check API billing.','help':'billing'}
  page.locator('#qaInput').fill('Help with my work');page.locator('#qaSend').click();page.wait_for_function('document.querySelector("#qaRecovery").hidden===false');assert page.locator('#qaHelp').is_hidden()
  page.locator('#qaClose').click()
- page.emulate_media(reduced_motion='reduce');assert page.locator('#qaCharacter .qa-body').evaluate('(el)=>getComputedStyle(el).animationName')=='none'
+ page.emulate_media(reduced_motion='reduce');assert page.locator('#qaCharacter .qa-orb-shell').evaluate('(el)=>getComputedStyle(el).animationName')=='none'
  assert not errors,errors
  browser.close()
-print('PASS Q assistant: original chibi figure and portraits, dance/drag/minimise, mobile and keyboard layout, scoped shortcuts and AI drafts, safe rendering, actionable owner-only billing help, preserved/retried questions, honest connection state, offline/account isolation and reduced motion. AI replies are fixtures.')
+print('PASS Q assistant: professional orb and compact icons, drag/minimise, mobile and keyboard layout, scoped shortcuts and AI drafts, safe rendering, actionable owner-only billing help, preserved/retried questions, honest connection state, offline/account isolation and reduced motion. AI replies are fixtures.')

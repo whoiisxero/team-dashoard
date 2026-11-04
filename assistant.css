@@ -98,3 +98,19 @@ body.qa-available .content{padding-bottom:250px}
 @media(max-height:400px){.qa-footer p{display:none}.qa-panel-head p{display:none}.qa-shortcuts{padding-block:5px}.qa-status{padding-bottom:4px}.qa-panel-head{padding-block:7px}.qa-messages{padding-block:8px}}
 @media(prefers-reduced-motion:reduce){.qa-dock *,.qa-panel .qa-icon *,.qa-panel .qa-play-figure *{animation:none!important;transition:none!important}}
 @media print{.qa-dock,.qa-panel,.qa-reaction,.qa-reaction-live{display:none!important}body.qa-available .content{padding-bottom:0}}
+
+/* Professional Q orb: shared by the dock, compact control and conversation header. */
+.qa-dock{width:112px;left:var(--qa-left,calc(100% - 130px))}.qa-character{width:112px;height:112px;filter:drop-shadow(0 4px 14px #0006)}
+.qa-orb-shell{transform-origin:100px 100px;animation:qa-orb-breathe 6s ease-in-out infinite}.qa-orb-flow{transform-origin:100px 100px;animation:qa-orb-turn 24s linear infinite}.qa-orb-ring{transform-origin:100px 100px;animation:qa-orb-turn 18s linear infinite}
+.qa-character:hover .qa-orb-glow{opacity:1;filter:drop-shadow(0 0 5px #a4d9ff55)}.qa-orb-glow{opacity:.7}
+.qa-icon{border-radius:50%;background:#0d1926;border:1px solid #b4d8f344;overflow:visible}.qa-mini{border-radius:50%;background:#0d1926;padding:0;box-shadow:0 0 18px #99cdff15}.qa-icon svg,.qa-mini svg{overflow:visible}
+.qa-dock.is-thinking .qa-orb-ring,.qa-panel.is-thinking .qa-orb-ring,.qa-dock.is-transcribing .qa-orb-ring,.qa-panel.is-transcribing .qa-orb-ring{animation-duration:1.6s;stroke:#c9c5ff;stroke-width:2.5}
+.qa-dock.is-listening .qa-orb-shell,.qa-panel.is-listening .qa-orb-shell{animation:qa-orb-breathe 1.8s ease-in-out infinite}.qa-dock.is-listening .qa-orb-ring,.qa-panel.is-listening .qa-orb-ring{stroke:#8be8eb;stroke-width:3}
+.qa-dock.is-speaking .qa-orb-shell,.qa-panel.is-speaking .qa-orb-shell{animation:qa-orb-breathe 1s ease-in-out infinite}.qa-dock.is-speaking .qa-orb-flow,.qa-panel.is-speaking .qa-orb-flow{animation-duration:4s}
+.qa-dock.is-dancing .qa-orb-flow{animation-duration:3s}.qa-dock.is-orb-still .qa-orb-graphic *,.qa-panel.is-orb-still .qa-orb-graphic *{animation:none!important}
+#qaPlay,#qaDance,#qaPlayMenu{display:none!important}.qa-play-figure{width:70px;height:70px}.qa-message:has(.qa-play-figure){grid-template-columns:minmax(0,1fr) 70px}
+body.qa-available .content{padding-bottom:170px}
+@keyframes qa-orb-turn{to{transform:rotate(360deg)}}@keyframes qa-orb-breathe{0%,100%{transform:scale(.98);opacity:.85}50%{transform:scale(1.025);opacity:1}}
+@media(max-width:680px),(max-height:650px){.qa-dock{width:88px;left:var(--qa-left,calc(100% - 106px))}.qa-character{width:88px;height:88px}body.qa-available .content{padding-bottom:145px}}
+.qa-dock.is-minimised,.qa-dock.is-viewport-small{width:52px}
+@media(prefers-reduced-motion:reduce){.qa-orb-graphic *{animation:none!important;transition:none!important}}
