@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
+import {prepareDirectChat} from '../scripts/prepare-direct-chat.mjs';
 import {preparePersonalWorkspace} from '../scripts/prepare-personal-workspace.mjs';
 process.on('uncaughtException',e=>{console.error(e.message,e.where||'',e.position||'');process.exit(1);});
 const {PGlite}=await import(process.env.PGLITE_MODULE||'@electric-sql/pglite');
@@ -83,4 +84,20 @@ await actor(owner);await assert.rejects(db.query('select quest_make_personal_wor
 assert.equal((await rows('select quest_make_personal_workspace($1) room',[cas]))[0].room,room,'Owner setup button keeps the existing room');
 await actor(cas);assert.equal((await rows('select * from private_chat_rooms')).length,1);assert.equal((await rows('select * from projects')).length,0);
 assert.equal((await rows('select theme from personal_profiles where user_id=$1',[cas]))[0].theme,'rose');
-await db.close();console.log('PASS personal workspace DB: project/shared/chat isolation, exact room participants, private writing even from owner, direct API denial, retry-safe saves, edit conflicts, timezone gaps, own reminders, completion, revocation and repeat setup.');
+// A normal team member gets an independent private chat without conversion.
+await actor(null);await db.query("update team_members set display_name='Tertius' where user_id=$1",[other]);
+const beforeDirect=await rows('select * from member_access order by user_id');const assignments=await rows('select * from project_member_access order by user_id,project_id');
+const directSetup=await prepareDirectChat('Tertius');await db.exec(directSetup);await db.exec(directSetup);
+const direct=(await rows("select * from private_chat_rooms where room_kind='direct'"))[0];assert.equal(direct.name,'Quan & Tertius');
+assert.deepEqual(await rows('select * from member_access order by user_id'),beforeDirect);assert.deepEqual(await rows('select * from project_member_access order by user_id,project_id'),assignments);
+assert.equal((await rows('select * from private_chat_members where room_id=$1',[direct.id])).length,2);
+await actor(other);assert.equal((await rows('select * from private_chat_rooms where id=$1',[direct.id])).length,1);assert.equal((await rows('select can_edit_private_chat($1) ok',[direct.id]))[0].ok,true);
+await db.query('insert into private_chat_messages(room_id,user_id,body) values($1,$2,$3)',[direct.id,other,'Hello from Tertius']);
+await actor(owner);assert.equal((await rows('select * from private_chat_messages where room_id=$1',[direct.id])).length,1);assert.equal((await rows('select * from team_notifications where private_room_id=$1',[direct.id])).length,1);
+await actor(cas);assert.equal((await rows('select * from private_chat_rooms where id=$1',[direct.id])).length,0);assert.equal((await rows('select * from private_chat_messages where room_id=$1',[direct.id])).length,0);
+await assert.rejects(db.query('insert into private_chat_messages(room_id,user_id,body) values($1,$2,$3)',[direct.id,cas,'Not invited']),/row-level security/);
+await actor(null);await db.query('insert into private_chat_members(room_id,user_id) values($1,$2)',[direct.id,cas]);await actor(cas);assert.equal((await rows('select can_access_private_chat($1) ok',[direct.id]))[0].ok,false);
+await actor(null);await db.exec(directSetup);assert.equal((await rows('select * from private_chat_members where room_id=$1',[direct.id])).length,2);assert.equal((await rows('select * from private_chat_messages where room_id=$1',[direct.id])).length,1);
+// Rerunning workspace features must preserve the new room and its permissions.
+await db.exec(await sql('migrations/20261028_personal_workspaces.sql'));await actor(other);assert.equal((await rows('select can_access_private_chat($1) ok',[direct.id]))[0].ok,true);
+await db.close();console.log('PASS private workspace and direct chat DB: normal member chat, unchanged project assignments, repeat setup and notification isolation, project/shared/chat isolation, exact room participants, private writing even from owner, direct API denial, retry-safe saves, edit conflicts, timezone gaps, own reminders, completion, revocation and repeat setup.');

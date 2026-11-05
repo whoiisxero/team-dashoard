@@ -4,14 +4,14 @@ window.createPrivateChats=({getData,navigate,toast})=>{
   const el=(tag,text='',cls='')=>{const node=document.createElement(tag);node.textContent=text;if(cls)node.className=cls;return node;};
   let owner=null,epoch=0,roomsRequest=0,messagesRequest=0,selection=0,rooms=[],selected=null,messages=[],members=[];
   let ready=false,sending=false,channel=null,poll=null;const deleting=new Set();
-  const writable=()=>{const room=rooms.find(r=>r.id===selected);return room?.room_kind==='personal'?true:getData().canEditProject?.(room?.project_id)??true;};
+  const writable=()=>{const room=rooms.find(r=>r.id===selected);return ['personal','direct'].includes(room?.room_kind)?true:getData().canEditProject?.(room?.project_id)??true;};
   const person=id=>members.find(m=>m.user_id===id)?.display_name||getData().roster.find(m=>m.user_id===id)?.display_name||'Team member';
   const current=(session,uid,id)=>session===epoch&&getData().user?.id===uid&&(!id||id===selected);
   function renderNav(){const root=$('privateChatNav');root.replaceChildren();$('privateChatNavSection').hidden=!rooms.length;
     for(const room of rooms){const button=el('button',room.name);button.type='button';button.dataset.privateChat=room.id;window.QuestNavigation?.decorate(button,'room',room.name,room.id);button.classList.toggle('active',selected===room.id&&$('privateChat').classList.contains('active'));button.onclick=()=>void open(room.id);root.append(button);}}
   function render(){const room=rooms.find(r=>r.id===selected);$('privateChatTitle').textContent=room?.name||'Private chat';
     const project=getData().projects.find(p=>p.id===room?.project_id);
-    $('privateChatParticipants').textContent=room?`${room.room_kind==='personal'?'Private conversation':project?.name||'Project'} · ${members.map(m=>person(m.user_id)).join(' & ')||'Checking participants…'}`:'Choose a conversation from Private chats.';
+    $('privateChatParticipants').textContent=room?`${['personal','direct'].includes(room.room_kind)?'Private conversation':project?.name||'Project'} · ${members.map(m=>person(m.user_id)).join(' & ')||'Checking participants…'}`:'Choose a conversation from Private chats.';
     $('privateChatSend').disabled=!ready||sending||!writable();$('privateChatText').disabled=!ready||sending||!writable();
     const root=$('privateChatMessages');root.replaceChildren();
     for(const message of messages){const post=el('article','','post');post.dataset.privateMessageId=message.id;const head=el('div','','post-head');head.append(el('b',person(message.user_id)));
@@ -34,7 +34,7 @@ window.createPrivateChats=({getData,navigate,toast})=>{
   async function refreshRooms(){if(navigator.onLine===false)return;const uid=getData().user?.id;if(!uid)return;if(owner!==uid){reset();owner=uid;}
     const session=epoch,request=++roomsRequest;
     try{const result=await getData().db.from('private_chat_rooms').select(getData().policy?.personal_workspace_ready?'id,name,project_id,room_kind,personal_owner_id':'id,name,project_id').order('created_at');if(!current(session,uid)||request!==roomsRequest)return;if(result.error)throw result.error;
-      const oldRoomIds=rooms.map(room=>room.id).sort().join(',');rooms=(result.data||[]).filter(room=>room.id&&room.name&&(room.room_kind==='personal'||getData().projects.some(p=>p.id===room.project_id)));renderNav();if(oldRoomIds!==rooms.map(room=>room.id).sort().join(','))window.dispatchEvent(new Event('quest:private-access-changed'));
+      const oldRoomIds=rooms.map(room=>room.id).sort().join(',');rooms=(result.data||[]).filter(room=>room.id&&room.name&&(['personal','direct'].includes(room.room_kind)||getData().projects.some(p=>p.id===room.project_id)));renderNav();if(oldRoomIds!==rooms.map(room=>room.id).sort().join(','))window.dispatchEvent(new Event('quest:private-access-changed'));
       if(selected&&!rooms.some(r=>r.id===selected)){clearSelected();$('privateChatStatus').textContent='This conversation is no longer available to your account.';if($('privateChat').classList.contains('active'))navigate('overview');}
       else if(selected&&$('privateChat').classList.contains('active'))await loadMessages();
       if(!poll)poll=setInterval(()=>{if(!document.hidden)void refreshRooms();},30000);
