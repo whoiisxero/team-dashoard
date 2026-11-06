@@ -4,7 +4,7 @@ const rooms=accessTest.records.private_chat_rooms=[{id:'jen-room',name:'Quan & J
 accessTest.records.private_chat_members=[{room_id:'jen-room',user_id:'quan'},{room_id:'jen-room',user_id:'jen'},{room_id:'other-room',user_id:'quan'},{room_id:'other-room',user_id:'tertius'}];
 accessTest.records.private_chat_messages=[{id:'owner-message',room_id:'jen-room',user_id:'quan',body:'Private collection plan <script>unsafe()</script>',created_at:'2026-10-20T10:00:00Z'},{id:'other-message',room_id:'other-room',user_id:'tertius',body:'Other room only',created_at:'2026-10-20T10:00:00Z'}];
 accessTest.pending=[];accessTest.failPrivateRead=false;accessTest.failPrivateWrite=false;accessTest.delayPrivate=false;accessTest.privateHandlers=[];
-const roomAllowed=(id,uid)=>{const room=rooms.find(r=>r.id===id);return room&&accessTest.records.private_chat_members.some(m=>m.room_id===id&&m.user_id===uid)&&(room.room_kind==='direct'?(uid===room.personal_owner_id||uid===room.created_by&&accessTest.profiles[uid]?.is_admin):(accessTest.profiles[uid]?.is_admin||accessTest.rules[uid]?.includes(room.project_id)));};
+const roomAllowed=(id,uid)=>{const room=rooms.find(r=>r.id===id);return room&&!room.archived&&!accessTest.profiles[uid]?.studio_only_project_id&&accessTest.records.private_chat_members.some(m=>m.room_id===id&&m.user_id===uid)&&(room.room_kind==='direct'?(uid===room.personal_owner_id||uid===room.created_by&&accessTest.profiles[uid]?.is_admin):(accessTest.profiles[uid]?.is_admin||accessTest.rules[uid]?.includes(room.project_id)));};
 const baseFrom=db.from;
 db.from=table=>{if(!table.startsWith('private_chat_')&&table!=='team_notifications')return baseFrom(table);
  let filters=[],head=false,maximum=Infinity,single=false,insert=null,update=null,deleting=false;

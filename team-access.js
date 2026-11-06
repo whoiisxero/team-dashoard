@@ -18,6 +18,7 @@ window.createTeamAccess = ({getData, refresh, toast, request:runRequest=async va
   function canView(view) {
     if(view==='overview')return true;
     if(!policy)return false;
+    if(policy.studio_only_project_id)return ['fragile','notifications'].includes(view);
     if(['kiMassage','kiLymphatic','kiMyofascial','kiFrequency','kiBodyRecovery','kiSports'].includes(view))return !!(policy.is_admin||policy.personal_only)&&/^ki\s+lifestyle/i.test(getData().businessName||'');
     if(['personalHome','personalSetup','writing','business','personalCalendar','quotes','invoices','businessStudio','questPreview','globe'].includes(view))return !!(policy.is_admin||policy.personal_only);
     if(policy.personal_only)return ['notifications','privateChat','trading'].includes(view);
@@ -29,7 +30,8 @@ window.createTeamAccess = ({getData, refresh, toast, request:runRequest=async va
   function apply() {
     for(const button of document.querySelectorAll('[data-view]'))button.hidden=!canView(button.dataset.view);
     if(policy?.personal_only)for(const button of document.querySelectorAll('.sidebar [data-view="personalHome"]'))button.hidden=true;
-    $('projectNav').hidden=!policy||!!policy.personal_only;
+    if(policy?.studio_only_project_id)for(const button of document.querySelectorAll('.sidebar [data-view=overview],.sidebar .logo'))button.hidden=true;
+    $('projectNav').hidden=!policy||!!policy.personal_only||!!policy.studio_only_project_id;
     $('fragileShortcut').hidden=!canView('fragile');$('fragileShortcutStatus').hidden=true;
     for(const button of document.querySelectorAll('[data-add="project"]'))button.hidden=!policy?.can_create_projects;
     const writable=canEdit()||getData().projects.some(p=>canEdit(p.id));

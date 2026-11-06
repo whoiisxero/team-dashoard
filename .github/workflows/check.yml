@@ -65,6 +65,7 @@ jobs:
           python tests/dusted-threads-browser.py
           python tests/private-chats-browser.py
           python tests/direct-chat-browser.py
+          python tests/studio-only-browser.py
           python tests/calendar-edit.py
           python tests/notifications-browser.py
           python tests/daily-workflow-browser.py

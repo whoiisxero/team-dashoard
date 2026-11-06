@@ -2,7 +2,7 @@ import {readFile,writeFile} from 'node:fs/promises';
 import {fileURLToPath} from 'node:url';
 export async function prepareDirectChat(name='Tertius'){
  const quoted="'"+name.trim().replaceAll("'","''")+"'";
- const migration=(await readFile(new URL('../supabase/migrations/20261105_direct_chats.sql',import.meta.url),'utf8')).replace(/^(?:begin;|commit;)\s*$/gm,'');
+ const migration=(await Promise.all(['20261105_direct_chats.sql','20261106_studio_only_members.sql'].map(file=>readFile(new URL('../supabase/migrations/'+file,import.meta.url),'utf8')))).join('\n').replace(/^(?:begin;|commit;)\s*$/gm,'');
  return `-- Copy this ENTIRE query into a new Supabase SQL query, as postgres.
 rollback;
 reset role;

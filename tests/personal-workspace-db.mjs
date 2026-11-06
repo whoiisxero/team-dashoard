@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
+import {prepareFragileAccess} from '../scripts/prepare-fragile-access.mjs';
 import {prepareDirectChat} from '../scripts/prepare-direct-chat.mjs';
 import {preparePersonalWorkspace} from '../scripts/prepare-personal-workspace.mjs';
 process.on('uncaughtException',e=>{console.error(e.message,e.where||'',e.position||'');process.exit(1);});
@@ -100,4 +101,29 @@ await actor(null);await db.query('insert into private_chat_members(room_id,user_
 await actor(null);await db.exec(directSetup);assert.equal((await rows('select * from private_chat_members where room_id=$1',[direct.id])).length,2);assert.equal((await rows('select * from private_chat_messages where room_id=$1',[direct.id])).length,1);
 // Rerunning workspace features must preserve the new room and its permissions.
 await db.exec(await sql('migrations/20261028_personal_workspaces.sql'));await actor(other);assert.equal((await rows('select can_access_private_chat($1) ok',[direct.id]))[0].ok,true);
+// A hidden studio member keeps Fragile but is absent from directory and other chats.
+await actor(null);const jen=id(80),fragileProject=id(81),jenRoom=id(82),groupRoom=id(83),josh=id(84);
+await db.exec(`insert into auth.users values('${jen}','jen@example.test'),('${josh}','josh@example.test');insert into team_members(user_id,display_name) values('${jen}','Jen'),('${josh}','Josh');
+insert into member_access(user_id,project_mode,shared_access) values('${jen}','all',true),('${josh}','selected',false);
+insert into projects(id,name) values('${fragileProject}','Fragile');
+insert into private_chat_rooms(id,room_key,name,room_kind,personal_owner_id,created_by) values('${jenRoom}','old-jen','Quan & Jen','direct','${jen}','${owner}');
+insert into private_chat_rooms(id,room_key,name,project_id,created_by) values('${groupRoom}','group-jen','Quan, Jen & Tertius','${project}','${owner}');
+insert into private_chat_members values('${jenRoom}','${owner}'),('${jenRoom}','${jen}'),('${groupRoom}','${owner}'),('${groupRoom}','${jen}'),('${groupRoom}','${other}');
+insert into private_chat_messages(room_id,user_id,body) values('${jenRoom}','${jen}','Historical message');
+insert into brand_messages(project_id,user_id,body) values('${fragileProject}','${jen}','Fragile discussion');`);
+const otherAccess=await rows('select * from member_access where user_id<>$1 order by user_id',[jen]);const cleanup=await prepareFragileAccess();await db.exec(cleanup);await db.exec(cleanup);
+assert.deepEqual(await rows('select * from member_access where user_id<>$1 order by user_id',[jen]),otherAccess.map(r=>({...r,directory_hidden:false,studio_only_project_id:null,studio_display_name:null})));
+await actor(owner);assert.equal((await rows('select * from team_members where user_id=$1',[jen])).length,0);assert(!JSON.stringify((await rows('select list_member_access() a'))[0].a).includes('Jen'));assert(!(await rows('select * from team_online_members()')).some(r=>r.user_id===jen));
+assert.equal((await rows('select * from private_chat_rooms where id=$1',[jenRoom])).length,0);assert(!(await rows('select name from private_chat_rooms where id=$1',[groupRoom]))[0].name.includes('Jen'));
+assert.equal((await rows('select * from studio_member_names($1)',[fragileProject]))[0].display_name,'Jen');
+assert(!(await rows('select actor_name from team_notifications')).some(r=>r.actor_name==='Jen'));
+await actor(jen);const scoped=(await rows('select my_dashboard_access() p'))[0].p;assert.equal(scoped.studio_only_project_id,fragileProject);assert.equal(scoped.shared_access,false);
+assert.deepEqual((await rows('select id from projects')).map(r=>r.id),[fragileProject]);assert.equal((await rows('select * from private_chat_rooms')).length,0);assert.equal((await rows('select * from private_chat_messages')).length,0);
+await db.query('insert into brand_messages(project_id,user_id,body) values($1,$2,$3)',[fragileProject,jen,'Still working in Fragile']);
+await assert.rejects(db.query('insert into discussion_messages(user_id,body) values($1,$2)',[jen,'No shared chat']),/row-level security/);
+await actor(owner);await db.query('select set_member_access_levels($1,$2,$3,$4,$5)',[jen,'all',true,[project,fragileProject],null]);
+await actor(jen);assert.deepEqual((await rows('select id from projects')).map(r=>r.id),[fragileProject]);assert.equal((await rows('select can_create_project() ok'))[0].ok,false);assert.equal((await rows('select my_dashboard_access() p'))[0].p.shared_access,false);
+await actor(null);await db.exec(cleanup);
+await actor(josh);assert.equal((await rows('select * from studio_member_names($1)',[fragileProject])).length,0);
+await actor(null);assert.equal((await rows('select * from private_chat_messages where room_id=$1',[jenRoom])).length,1);
 await db.close();console.log('PASS private workspace and direct chat DB: normal member chat, unchanged project assignments, repeat setup and notification isolation, project/shared/chat isolation, exact room participants, private writing even from owner, direct API denial, retry-safe saves, edit conflicts, timezone gaps, own reminders, completion, revocation and repeat setup.');

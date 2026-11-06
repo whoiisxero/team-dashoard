@@ -13,7 +13,7 @@ const accessible=id=>state.profiles[user.id].is_admin||state.rules[user.id]?.inc
 function query(table){let filters=[],single=false,limit=Infinity,head=false,inserting=null;
  const q={select:(fields,options={})=>{head=!!options.head;return q},eq:(key,value)=>{filters.push(row=>row[key]===value);return q},gte:()=>q,is:(key,value)=>{filters.push(row=>(row[key]??null)===value);return q},range:(a,b)=>{limit=b+1;return q},order:()=>q,limit:n=>{limit=n;return q},maybeSingle:()=>{single=true;return q},insert:values=>{inserting=values;return q},then:(resolve,reject)=>Promise.resolve().then(()=>{
  if(inserting){state.writes.push({table,values:inserting});records[table].push({...inserting,id:'posted',created_at:'2026-10-20T10:00:00Z'});return {error:null};}
- let data=(records[table]||[]).filter(row=>table==='projects'?accessible(row.id):table==='team_members'?!state.hideRoster:table==='team_notifications'?true:row.project_id?accessible(row.project_id):state.profiles[user.id].shared_access).filter(row=>filters.every(f=>f(row))).map(row=>({...row}));
+ let data=(records[table]||[]).filter(row=>table==='projects'?accessible(row.id):table==='team_members'?!state.hideRoster&&!state.hiddenMembers?.includes(row.user_id):table==='team_notifications'?true:row.project_id?accessible(row.project_id):state.profiles[user.id].shared_access).filter(row=>filters.every(f=>f(row))).map(row=>({...row}));
  return {data:head?null:single?(data[0]||null):data.slice(0,limit),count:data.length,error:null};}).then(resolve,reject)};return q;
 }
 db={from:query,channel:()=>{const c={on:()=>c,subscribe:()=>c};return c},removeChannel:()=>{},rpc:async(name,args={})=>{
@@ -23,8 +23,8 @@ db={from:query,channel:()=>{const c={on:()=>c,subscribe:()=>c};return c},removeC
  if(name==='my_dashboard_access')return state.failAccess?{error:{code:'PGRST202'}}:{data:{...state.profiles[user.id]}};
  if(name==='touch_member_presence'){state.heartbeats.push(user.id);if(state.failPresence)return {error:{message:'Offline'}};state.online.add(user.id);return {data:null};}
  if(name==='leave_member_presence'){state.online.delete(user.id);return {data:null};}
- if(name==='team_online_members'){state.presenceReads.push(user.id);return {data:state.profiles[user.id].is_admin?records.team_members.map(m=>({...m,online:state.online.has(m.user_id)})):[]};}
- if(name==='list_member_access')return {data:records.team_members.map(m=>({...m,...state.profiles[m.user_id],project_rules:(state.rules[m.user_id]||[]).map(id=>({project_id:id,allowed:true}))}))};
+ if(name==='team_online_members'){state.presenceReads.push(user.id);return {data:state.profiles[user.id].is_admin?records.team_members.filter(m=>!state.hiddenMembers?.includes(m.user_id)).map(m=>({...m,online:state.online.has(m.user_id)})):[]};}
+ if(name==='list_member_access')return {data:records.team_members.filter(m=>!state.hiddenMembers?.includes(m.user_id)).map(m=>({...m,...state.profiles[m.user_id],project_rules:(state.rules[m.user_id]||[]).map(id=>({project_id:id,allowed:true}))}))};
  if(name==='set_member_access'){state.writes.push({rpc:name,args});state.rules[args.target]=args.allowed_projects;Object.assign(state.profiles[args.target],{project_mode:args.mode,shared_access:args.shared});return {data:null};}
  return {error:{message:'Unknown RPC'}};
 }};
