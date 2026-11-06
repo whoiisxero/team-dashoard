@@ -6,20 +6,22 @@ window.createQuestAssistant=({getData,navigate,canView,openEntry,toast,refreshWo
  dock.innerHTML=`<button class="qa-character" id="qaCharacter" type="button" aria-label="Chat with Q. Drag anywhere. Use arrow keys to move, or Home to dock." title="Ask Q · drag anywhere">
  <svg class="qa-orb-graphic" viewBox="0 0 200 200" aria-hidden="true" focusable="false">
  <defs>
-  <radialGradient id="qaOrbCore" cx="32%" cy="25%" r="78%"><stop stop-color="#f4fcff"/><stop offset=".18" stop-color="#b5d9ee"/><stop offset=".48" stop-color="#6289bf"/><stop offset=".8" stop-color="#243e69"/><stop offset="1" stop-color="#0c1425"/></radialGradient>
-  <radialGradient id="qaOrbGlow"><stop offset=".45" stop-color="#9dceff" stop-opacity=".18"/><stop offset="1" stop-color="#7abaff" stop-opacity="0"/></radialGradient>
-  <linearGradient id="qaOrbLine" x2="1" y2="1"><stop stop-color="#e9faff" stop-opacity=".85"/><stop offset=".5" stop-color="#98d4ff" stop-opacity=".2"/><stop offset="1" stop-color="#c1afff" stop-opacity=".7"/></linearGradient>
+  <radialGradient id="qaOrbCore" cx="32%" cy="25%" r="78%"><stop stop-color="#fff0ff"/><stop offset=".18" stop-color="#ecbaff"/><stop offset=".48" stop-color="#a341f2"/><stop offset=".8" stop-color="#57119b"/><stop offset="1" stop-color="#1c0637"/></radialGradient>
+  <radialGradient id="qaOrbGlow"><stop offset=".45" stop-color="#bb58ff" stop-opacity=".42"/><stop offset="1" stop-color="#9d27ff" stop-opacity="0"/></radialGradient>
+  <linearGradient id="qaOrbLine" x2="1" y2="1"><stop stop-color="#ffe3ff" stop-opacity=".85"/><stop offset=".5" stop-color="#e197ff" stop-opacity=".2"/><stop offset="1" stop-color="#a867ff" stop-opacity=".7"/></linearGradient>
   <clipPath id="qaOrbClip"><circle cx="100" cy="100" r="63"/></clipPath>
  </defs>
  <circle class="qa-orb-glow" cx="100" cy="100" r="98" fill="url(#qaOrbGlow)"/>
- <circle cx="100" cy="100" r="83" fill="none" stroke="#b9dcff" stroke-opacity=".14" stroke-width=".7"/>
- <g class="qa-orb-shell"><circle cx="100" cy="100" r="64" fill="url(#qaOrbCore)" stroke="#c9e9ff" stroke-opacity=".4" stroke-width=".8"/>
+ <circle class="qa-orb-aura" cx="100" cy="100" r="87" fill="none" stroke="#bd63ff" stroke-opacity=".35" stroke-width=".8"/>
+ <circle cx="100" cy="100" r="83" fill="none" stroke="#d095ff" stroke-opacity=".14" stroke-width=".7"/>
+ <g class="qa-orb-vibration"><g class="qa-orb-shell"><circle cx="100" cy="100" r="64" fill="url(#qaOrbCore)" stroke="#dca0ff" stroke-opacity=".4" stroke-width=".8"/>
  <g clip-path="url(#qaOrbClip)"><g class="qa-orb-flow" fill="none" stroke="url(#qaOrbLine)">
   <ellipse cx="94" cy="100" rx="78" ry="25" transform="rotate(-32 100 100)" stroke-width="1.8"/>
   <ellipse cx="100" cy="103" rx="75" ry="36" transform="rotate(38 100 100)" stroke-width=".8"/>
   <path d="M27 112C67 45 120 157 176 87M26 123C75 69 124 147 174 105" stroke-width="1.1"/>
  </g><ellipse cx="78" cy="63" rx="29" ry="16" fill="#fff" opacity=".13" transform="rotate(-30 78 63)"/></g>
- <path d="M55 72A55 55 0 0 1 100 45" fill="none" stroke="#f6fdff" stroke-opacity=".6" stroke-width="1.3" stroke-linecap="round"/></g>
+ <path d="M55 72A55 55 0 0 1 100 45" fill="none" stroke="#fff0ff" stroke-opacity=".6" stroke-width="1.3" stroke-linecap="round"/></g>
+ </g>
  <circle class="qa-orb-ring" cx="100" cy="100" r="76" fill="none" stroke="#b2dcff" stroke-opacity=".65" stroke-width="1.2" stroke-dasharray="100 378" stroke-linecap="round"/>
  </svg></button>
  <div class="qa-small-controls"><button type="button" id="qaOpen">Ask Q</button><button type="button" id="qaMinimise" aria-label="Minimise Q">−</button></div><button type="button" class="qa-mini" id="qaRestore" aria-label="Show Q">Q</button>`;

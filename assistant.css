@@ -114,3 +114,12 @@ body.qa-available .content{padding-bottom:170px}
 @media(max-width:680px),(max-height:650px){.qa-dock{width:88px;left:var(--qa-left,calc(100% - 106px))}.qa-character{width:88px;height:88px}body.qa-available .content{padding-bottom:145px}}
 .qa-dock.is-minimised,.qa-dock.is-viewport-small{width:52px}
 @media(prefers-reduced-motion:reduce){.qa-orb-graphic *{animation:none!important;transition:none!important}}
+
+/* Violet plasma: slow living energy, responsive micro-vibration rather than bouncing. */
+.qa-orb-graphic{filter:drop-shadow(0 0 9px #b443ff70)}.qa-orb-glow{opacity:.95;animation:qa-orb-aura 3.8s ease-in-out infinite}.qa-orb-aura{transform-origin:100px 100px;animation:qa-orb-aura 3.8s ease-in-out infinite}.qa-orb-ring{stroke:#d994ff}.qa-orb-shell{animation-duration:3.8s}.qa-orb-vibration{transform-origin:100px 100px;animation:qa-orb-vibrate 1.1s linear infinite}.qa-orb-flow{animation-duration:14s}
+.qa-character:hover .qa-orb-glow{filter:drop-shadow(0 0 7px #c66cff88)}.qa-icon,.qa-mini{background:#160822;border-color:#bc68ff88}.qa-mini{box-shadow:0 0 22px #a43cff40}
+.qa-dock.is-listening .qa-orb-ring,.qa-panel.is-listening .qa-orb-ring{stroke:#edacff}.qa-dock.is-thinking .qa-orb-ring,.qa-panel.is-thinking .qa-orb-ring,.qa-dock.is-transcribing .qa-orb-ring,.qa-panel.is-transcribing .qa-orb-ring{stroke:#bc80ff}
+.qa-dock.is-speaking .qa-orb-vibration,.qa-panel.is-speaking .qa-orb-vibration,.qa-dock.is-listening .qa-orb-vibration,.qa-panel.is-listening .qa-orb-vibration{animation-duration:.24s}.qa-dock.is-speaking .qa-orb-glow,.qa-panel.is-speaking .qa-orb-glow{animation-duration:.8s}
+@keyframes qa-orb-vibrate{0%,100%{transform:translate(0,0)}20%{transform:translate(.35px,-.45px)}40%{transform:translate(-.45px,.25px)}60%{transform:translate(.5px,.35px)}80%{transform:translate(-.25px,-.4px)}}
+@keyframes qa-orb-aura{0%,100%{opacity:.45;transform:scale(.96)}50%{opacity:1;transform:scale(1.04)}}
+@media(prefers-reduced-motion:reduce){.qa-orb-graphic *{animation:none!important;transition:none!important}}

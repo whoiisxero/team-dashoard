@@ -23,6 +23,7 @@ with sync_playwright() as p:
   return r.fulfill(body='',content_type='text/css')
  page.route('**/*',route);page.goto('http://dashboard.test/');page.wait_for_function('window.qaTestReady&&!document.querySelector("#questAssistant").hidden');page.clock.run_for(3000)
  assert not calls
+ assert page.locator('#qaOrbCore stop').nth(2).get_attribute('stop-color')=='#a341f2';assert page.locator('#qaCharacter .qa-orb-vibration').evaluate('(n)=>getComputedStyle(n).animationName')=='qa-orb-vibrate'
  assert page.locator('#qaCharacter .qa-orb-shell').count()==1;assert page.locator('#qaCharacter .qa-head,#qaCharacter .qa-eyes,#qaCharacter .qa-arm-right').count()==0
  assert page.locator('#qaCharacter').bounding_box()['height']<=120
  page.locator('#qaOpen').click();page.wait_for_function('document.querySelector("#qaMode").textContent==="Workspace helper"')
@@ -32,7 +33,7 @@ with sync_playwright() as p:
  # State animation has no character expressions and can be disabled persistently.
  page.evaluate('document.querySelector("#questAssistant").classList.add("is-thinking")');assert page.locator('#qaCharacter .qa-orb-ring').evaluate('(n)=>getComputedStyle(n).animationDuration')=='1.6s'
  page.evaluate('document.querySelector("#questAssistant").classList.remove("is-thinking");document.querySelector("#questAssistant").classList.add("is-listening")');assert page.locator('#qaCharacter .qa-orb-shell').evaluate('(n)=>getComputedStyle(n).animationDuration')=='1.8s'
- page.evaluate('document.querySelector("#questAssistant").classList.remove("is-listening")')
+ assert page.locator('#qaCharacter .qa-orb-vibration').evaluate('(n)=>getComputedStyle(n).animationDuration')=='0.24s';page.evaluate('document.querySelector("#questAssistant").classList.remove("is-listening")')
  page.locator('#qaPlayful').uncheck();assert page.evaluate('localStorage.getItem("quest-assistant-orb-motion")==="false"');assert page.locator('#qaCharacter .qa-orb-ring').evaluate('(n)=>getComputedStyle(n).animationName')=='none'
  page.reload();page.wait_for_function('window.qaTestReady&&!document.querySelector("#questAssistant").hidden');page.locator('#qaOpen').click();assert not page.locator('#qaPlayful').is_checked()
  page.locator('#qaPlayful').check();page.locator('#qaClose').click();page.clock.run_for(301000);assert page.locator('#qaReaction').count()==0;assert page.locator('#qaPanel').is_hidden();assert not any(m=='POST' for m in calls)
