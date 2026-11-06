@@ -9,14 +9,14 @@ window.QuestNavigation=(()=>{
   members:['👥','#67e8f9','Members'],events:['🎟️','#fdba74','Events'],calendar:['🗓️','#fda4af','Calendar'],
   expenses:['💸','#a3e635','Expenses'],goals:['🎯','#f0abfc','Goals'],discussions:['💬','#6ee7b7','Team chat room'],
   files:['📎','#93c5fd','Files'],search:['🔎','#fde68a','Search'],activity:['📜','#5eead4','Activity'],
-  trading:['📈','#38bdf8','Trading view'],fragile:['🦋','#e9a8ff','Fragile'],loden:['L','#b4ff39','Loden'],dusted:['🍬','#fb923c','Dusted.'],
+  trading:['📈','#38bdf8','Trading view'],fragilePersonal:['🪶','#c4a0ff','My Fragile'],fragile:['🦋','#e9a8ff','Fragile'],loden:['L','#b4ff39','Loden'],dusted:['🍬','#fb923c','Dusted.'],
   install:['📲','#cbd5e1','Install Quest']
   ,invoices:['💳','#f4c182','Invoices'],quotes:['🧾','#d8bc81','Quotes'],businessStudio:['🌿','#95cbb1','Business workspace'],personalCalendar:['🗓️','#67e8f9','My calendar'],personalHome:['🌙','#c4b5fd','My workspace'],personalSetup:['🎛️','#f9a8d4','My settings'],writing:['✒️','#93c5fd','Notes'],business:['📒','#fcd34d','Business & work']
  };
  const hash=text=>Array.from(String(text)).reduce((value,letter)=>(Math.imul(value,31)+letter.codePointAt(0))>>>0,0);
  const sectionDefinitions=[
   ['work','Work',['myDay','dashboard','projects','goals','files','activity','notifications','discussions']],
-  ['studios','Studios',[]],
+  ['studios','Studios',['fragilePersonal']],
   ['business','Business',['businessStudio','writing','quotes','invoices','expenses']],
   ['tools','Tools',['search','trading','globe','questPreview']],
   ['settings','Settings',['personalSetup','members']]
@@ -75,7 +75,7 @@ window.QuestNavigation=(()=>{
    if(project&&['fragile','loden','dusted'].includes(normal(label))){const shortcut=normal(label)==='fragile'?document.getElementById('fragileShortcut'):document.querySelector('.sidebar [data-view="'+normal(label)+'"]');if(permitted(shortcut))continue;}
    const key=view?'view:'+view:project?'project:'+project:room?'chat:'+room:button.id;if(!key||seen.has(key))continue;seen.add(key);
    const group=button.closest('.sidebar-section')?.querySelector('summary')?.textContent||'Quick access';
-   const synonyms={overview:'home globe welcome',tasks:'tasks todos assigned work',calendar:'calendar events schedule agenda',personalCalendar:'calendar my personal appointments',writing:'notes personal notebook writing ideas',businessStudio:'business workspace studio',discussions:'team chat room messages',formStudioShortcut:'form development studio forms'};
+   const synonyms={fragilePersonal:'fragile private personal notes plans',overview:'home globe welcome',tasks:'tasks todos assigned work',calendar:'calendar events schedule agenda',personalCalendar:'calendar my personal appointments',writing:'notes personal notebook writing ideas',businessStudio:'business workspace studio',discussions:'team chat room messages',formStudioShortcut:'form development studio forms'};
    list.push({key,label,group,terms:normal(label+' '+group+' '+(synonyms[view||button.id]||'')),button});
   }
   for(const [view,label,group,aliases] of [['business','Business notes','Notes','work reminders deadlines'],['events','Calendar agenda','Calendar','events schedule'],['personalCalendar','My calendar','Calendar','personal appointments'],['personalHome','My workspace','Home','private home notebook']]){

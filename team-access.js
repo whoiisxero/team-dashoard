@@ -22,6 +22,7 @@ window.createTeamAccess = ({getData, refresh, toast, request:runRequest=async va
     if(['kiMassage','kiLymphatic','kiMyofascial','kiFrequency','kiBodyRecovery','kiSports'].includes(view))return !!(policy.is_admin||policy.personal_only)&&/^ki\s+lifestyle/i.test(getData().businessName||'');
     if(['personalHome','personalSetup','writing','business','personalCalendar','quotes','invoices','businessStudio','questPreview','globe'].includes(view))return !!(policy.is_admin||policy.personal_only);
     if(policy.personal_only)return ['notifications','privateChat','trading'].includes(view);
+    if(view==='fragilePersonal')return !!policy.is_admin;
     if(view==='members')return !!policy.is_admin;
     if(view==='discussions')return policy.shared_access;
     if(['fragile','loden','dusted'].includes(view))return getData().projects.some(p=>normal(p.name)===view)||policy.is_admin;
@@ -72,6 +73,7 @@ window.createTeamAccess = ({getData, refresh, toast, request:runRequest=async va
   function renderOnline(rows=null) {
     const root=$('onlineMemberList');root.replaceChildren();
     if(!rows){$('membersOnlineCount').textContent='—';$('membersOnlineLabel').textContent='Checking online status';return;}
+    rows=window.QuestDirectory?.visible(rows)||rows;
     const online=rows.filter(m=>m.online).length;
     $('membersOnlineCount').textContent=online;$('membersOnlineLabel').textContent=`${online} online`;
     for(const member of rows){const item=node('div','','online-member');const dot=node('span','','presence-dot'+(member.online?' online':''));dot.setAttribute('aria-hidden','true');item.append(dot,node('strong',member.display_name),node('span',member.online?'Online':'Offline','presence-label'));root.append(item);}
@@ -106,7 +108,7 @@ window.createTeamAccess = ({getData, refresh, toast, request:runRequest=async va
     const current=epoch,uid=getData().user?.id;
     $('memberAccessStatus').textContent='Loading access settings…';
     try{const result=await getData().db.rpc('list_member_access');if(current!==epoch||getData().user?.id!==uid||!policy?.is_admin)return;
-      if(result.error)throw result.error;profiles=result.data||[];renderControls();$('memberAccessStatus').textContent='Project access also applies to its tasks, events, notes, chat, moodboard and notifications.';
+      if(result.error)throw result.error;profiles=window.QuestDirectory?.visible(result.data||[])||result.data||[];renderControls();$('memberAccessStatus').textContent='Project access also applies to its tasks, events, notes, chat, moodboard and notifications.';
     }catch{if(current===epoch)$('memberAccessStatus').textContent='Could not load permissions. Press Refresh to retry.';}
   }
   function renderControls() {
