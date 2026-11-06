@@ -55,7 +55,7 @@ window.createPersonalCalendar=({getData,navigate,toast,refreshInbox=()=>{}})=>{
     if(!ready()){events=[];setStatus('Your private calendar needs the latest owner setup. Ask the owner to run the complete query from the setup page, then sign out and back in.');render();return;}
     const generation=epoch,uid=getData().user.id,version=++request;loading=true;setStatus('Loading your private events…');
     try{const result=await getData().db.from('personal_calendar_events').select('*').eq('owner_id',uid).order('event_date',{ascending:false}).limit(500);
-      if(!current(generation,uid)||version!==request)return;if(result.error)throw result.error;events=(result.data||[]).filter(e=>e.owner_id===uid);render();setStatus('Private to your account · latest 500 events');
+      if(!current(generation,uid)||version!==request)return;if(result.error)throw result.error;events=window.QuestDirectory.rows(result.data).filter(e=>e.owner_id===uid);render();setStatus('Private to your account · latest 500 events');
     }catch(error){if(current(generation,uid)&&version===request){events=[];render();setStatus(['PGRST205','42P01'].includes(error?.code)?'Your private calendar needs the latest workspace setup from the owner.':error?.message||'Could not load events. Refresh to retry.');}}
     finally{if(generation===epoch&&version===request)loading=false;}
   }
@@ -82,7 +82,7 @@ window.createPersonalCalendar=({getData,navigate,toast,refreshInbox=()=>{}})=>{
     if(!$('personalEventAllDay').checked&&!args.event_clock){$('personalCalendarSaveStatus').textContent='Choose a time or mark the event as all day.';return;}
     busy=true;form.dataset.appSaving='true';lockForm(true);$('personalCalendarSaveStatus').textContent='Saving…';
     try{const result=await getData().db.rpc('quest_save_personal_event',args);if(!current(generation,uid))return;if(result.error)throw result.error;if(!result.data?.id||result.data.owner_id!==uid)throw new Error('The save was not confirmed. Keep this event here and retry.');
-      const saved=result.data;events=[saved,...events.filter(e=>e.id!==saved.id)];selected=saved.event_date;const d=asDay(selected);month=new Date(d.getFullYear(),d.getMonth(),1,12);delete form.dataset.appDirty;dialog.close();render();setStatus('Personal event saved.');toast(editing?'Personal event updated':'Personal event saved');
+      const saved=window.QuestDirectory.record(result.data);events=[saved,...events.filter(e=>e.id!==saved.id)];selected=saved.event_date;const d=asDay(selected);month=new Date(d.getFullYear(),d.getMonth(),1,12);delete form.dataset.appDirty;dialog.close();render();setStatus('Personal event saved.');toast(editing?'Personal event updated':'Personal event saved');
       void Promise.resolve(getData().db.rpc('refresh_my_reminders')).then(()=>{if(current(generation,uid))refreshInbox();}).catch(()=>{});
     }catch(error){if(current(generation,uid))$('personalCalendarSaveStatus').textContent=error?.message||'Could not save. Your event details are still here; retry.';}
     finally{if(generation===epoch){busy=false;delete form.dataset.appSaving;lockForm(false);syncAllDay();}}

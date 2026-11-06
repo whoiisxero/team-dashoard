@@ -45,6 +45,14 @@ with sync_playwright() as p:
  assert 'Dusted private' not in page.locator('#workflowSearchResults').inner_text();assert 'Private conversation' in page.locator('#workflowSearchResults').inner_text()
  page.locator('.sidebar [data-view=activity]').click();page.wait_for_function('document.querySelector("#activityList").textContent.includes("Quan updated")')
  assert 'Dusted private' not in page.locator('#activityList').inner_text()
+ # Old snapshots and current file/search names follow the same display rule.
+ page.evaluate("accessTest.records.project_activity.push({id:'old-name',project_id:'fragile',actor_name:'Jen',actor_id:'old-account',source_table:'tasks',source_id:'jen-due',action:'UPDATE',item_title:'Jen’s fitting plan <script>text</script>',created_at:'2026-11-06T12:00:00Z'},{id:'known-account',project_id:'fragile',actor_id:'5c9e7be8-1956-47aa-8449-d482851edac9',actor_name:'Old account label',source_table:'tasks',source_id:'jen-due',action:'INSERT',item_title:'Fabric review',created_at:'2026-11-06T12:01:00Z'})")
+ page.locator('#activityRefresh').click();page.wait_for_function('document.querySelectorAll("#activityList .workflow-item").length===3');assert 'Fragile collaborator updated Fragile collaborator’s fitting plan' in page.locator('#activityList').inner_text();assert 'Fragile collaborator added Fabric review' in page.locator('#activityList').inner_text();assert 'Old account label' not in page.locator('#activityList').inner_text();assert 'Jen' not in page.locator('#activityList').inner_text();assert page.locator('#activityList script').count()==0;assert page.evaluate('accessTest.records.project_activity.find(r=>r.id==="old-name").actor_name')=='Jen'
+ page.locator('#activityList .workflow-open').last.click();assert page.locator('#tasks').is_visible()
+ page.evaluate("accessTest.records.project_files.find(f=>f.id==='seed-file').name='Jen reference.png'")
+ page.locator('.sidebar [data-view=files]').click();page.wait_for_function('document.querySelector("#filesList").textContent.includes("Fragile collaborator reference.png")');page.locator('#filesList .workflow-file').filter(has_text='Fragile collaborator reference.png').get_by_role('button',name='Preview',exact=True).click();page.wait_for_function('document.querySelector("#filesList img")?.complete')
+ page.evaluate('workflowTest.legacyNames=true')
+ page.locator('.sidebar [data-view=search]').click();page.locator('#workflowSearchText').fill('Needle');page.locator('#workflowSearchForm button').click();page.wait_for_function('document.querySelector("#workflowSearchResults").textContent.includes("Fragile collaborator’s reference")');assert 'Jen' not in page.locator('#workflowSearchResults').inner_text();assert 'Dusted private' not in page.locator('#workflowSearchResults').inner_text()
  # Slow search responses cannot cross an account boundary.
  page.locator('.sidebar [data-view=search]').click();page.evaluate('workflowTest.delaySearch=true');page.locator('#workflowSearchText').fill('Needle');page.locator('#workflowSearchForm button').click();page.wait_for_function('workflowTest.pending.length>0')
  page.evaluate("accessTest.switchUser('josh')");page.wait_for_function('document.querySelector("#userName").textContent==="Josh"');page.evaluate('workflowTest.release()')
@@ -54,7 +62,7 @@ with sync_playwright() as p:
  # Setup errors are visible and never pretend that an empty dataset is success.
  page.evaluate('workflowTest.failBackend=true');page.locator('#filesRefresh').click();page.wait_for_function('document.querySelector("#filesStatus").textContent.includes("being set up")')
  assert page.locator('#filesList').inner_text()==''
- page.evaluate("workflowTest.failBackend=false;accessTest.switchUser('jen')");page.wait_for_function('document.querySelector("#userName").textContent==="Jen"')
+ page.evaluate("workflowTest.failBackend=false;accessTest.switchUser('jen')");page.wait_for_function('document.querySelector("#userName").textContent==="Fragile collaborator"')
  page.set_viewport_size({'width':390,'height':844});page.locator('#menuButton').click();page.locator('.sidebar [data-view=myDay]').click()
  assert page.evaluate('document.documentElement.scrollWidth<=innerWidth');page.screenshot(path='/tmp/quest-my-day-phone.png',full_page=True,animations='disabled')
  page.locator('#menuButton').click();page.locator('#signOut').scroll_into_view_if_needed();assert page.locator('#signOut').is_visible();page.locator('.sidebar [data-view=files]').click();page.locator('#filesUpload').click()

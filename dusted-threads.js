@@ -90,8 +90,8 @@ window.createDustedThreads=({getData,getProjectId,toast})=>{
   try{
    let result=await c.db.rpc('quest_thread_feed',{target_project:c.project,page_limit:limit+1}),sortSetup=false;
    if(['PGRST202','42883'].includes(result.error?.code)){sortSetup=true;result=await c.db.from('brand_messages').select('*').eq('project_id',c.project).is('parent_id',null).order('created_at',{ascending:false}).order('id',{ascending:false}).range(0,limit);}
-   if(result.error)throw result.error;if(!current(token,c)||req!==request)return;const roots=(result.data||[]).slice(0,limit),loaded=new Map();
-   await Promise.all(roots.filter(p=>expanded.has(p.id)).map(async p=>{const r=await c.db.from('brand_messages').select('*').eq('project_id',c.project).eq('parent_id',p.id).order('created_at',{ascending:false}).order('id',{ascending:false}).range(0,expanded.get(p.id)-1);if(r.error)throw r.error;loaded.set(p.id,r.data||[]);}));
+   if(result.error)throw result.error;if(!current(token,c)||req!==request)return;const roots=window.QuestDirectory.rows(result.data).slice(0,limit),loaded=new Map();
+   await Promise.all(roots.filter(p=>expanded.has(p.id)).map(async p=>{const r=await c.db.from('brand_messages').select('*').eq('project_id',c.project).eq('parent_id',p.id).order('created_at',{ascending:false}).order('id',{ascending:false}).range(0,expanded.get(p.id)-1);if(r.error)throw r.error;loaded.set(p.id,window.QuestDirectory.rows(r.data));}));
    const ids=[...roots,...Array.from(loaded.values()).flat()].map(p=>p.id),counts=ids.length?await c.db.rpc('quest_thread_stats',{message_ids:ids}):{data:[]};if(counts.error)throw counts.error;
    if(!current(token,c)||req!==request)return;posts=roots;replies=loaded;stats=new Map((counts.data||[]).map(s=>[s.message_id,s]));hasMore=(result.data||[]).length>limit;ready=true;
    const paths=new Set([...posts,...Array.from(replies.values()).flat()].flatMap(p=>p.image_paths||[]));for(const [path,url] of images)if(!paths.has(path)){URL.revokeObjectURL(url);images.delete(path);}if(viewer.open&&!paths.has(viewer.dataset.path))viewer.close();

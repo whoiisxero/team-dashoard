@@ -39,6 +39,7 @@ db.rpc=async(name,args)=>{
  {kind:'private_message',item_id:'owner-message',project_id:'fragile',room_id:'jen-room',title:'Private conversation',snippet:'Needle invitation only'},
  {kind:'file',item_id:'seed-file',project_id:'fragile',title:'Needle photo.png',snippet:'image/png'},
  {kind:'task',item_id:'josh-due',project_id:'dusted',title:'Dusted private task',snippet:'Hidden work'}];
+ if(wf.legacyNames)for(const row of all){row.title+=' · Jen';row.snippet='Jen’s reference';}
  const data=all.filter(row=>accessTest.profiles[uid].is_admin||accessTest.rules[uid]?.includes(row.project_id)).filter(row=>row.kind!=='private_message'||roomAllowed(row.room_id,uid));
  if(wf.delaySearch)await new Promise(resolve=>wf.pending.push(resolve));return {data,error:null};
 };

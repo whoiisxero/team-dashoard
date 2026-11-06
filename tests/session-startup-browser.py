@@ -41,7 +41,7 @@ with sync_playwright() as p:
  page.route('**/*',route);page.goto('http://dashboard.test/');page.wait_for_function('window.startupReady')
  page.wait_for_function('document.querySelector("#countrySelect").options.length>200')
  assert page.locator('#appShell').is_visible();assert page.locator('#overview').is_visible()
- page.wait_for_function('document.querySelector("#homeWelcome").textContent.includes("Jen")')
+ page.wait_for_function('document.querySelector("#homeWelcome").textContent.includes("Fragile collaborator")')
  assert page.locator('#members').is_hidden();assert page.locator('#dustedShortcut').is_hidden()
  # A previous owner's Members view and a denied roster must never strand Jen.
  page.evaluate("startupTest.open('quan')");page.evaluate("accessTest.navigate('members')")

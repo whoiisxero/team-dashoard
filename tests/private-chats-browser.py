@@ -26,14 +26,14 @@ with sync_playwright() as p:
  assert page.locator('.sidebar [data-view=discussions]').is_hidden()
  assert page.locator('#privateChatNav button').count()==1
  page.locator('#privateChatNav button').click();page.wait_for_function('!document.querySelector("#privateChatSend").disabled')
- assert page.locator('#privateChatTitle').inner_text()=='Quan & Jen'
- assert 'Jen' in page.locator('#privateChatParticipants').inner_text()
+ assert page.locator('#privateChatTitle').inner_text()=='Quan & Fragile collaborator'
+ assert 'Jen' not in page.locator('#privateChatParticipants').inner_text()
  assert 'Other room only' not in page.locator('#privateChatMessages').inner_text()
  assert '<script>unsafe()</script>' in page.locator('#privateChatMessages').inner_text()
  assert page.locator('#privateChatMessages script').count()==0
  assert page.locator('[data-private-message-id=owner-message] button').count()==0
  page.locator('#privateChatText').fill('Jen private reply\nFabric reference')
- page.locator('#privateChatSend').click();page.wait_for_function('document.querySelector("#privateChatMessages").textContent.includes("Jen private reply")')
+ page.locator('#privateChatSend').click();page.wait_for_function('document.querySelector("#privateChatMessages").textContent.includes("Fragile collaborator private reply")')
  assert page.evaluate('accessTest.writes.find(w=>w.table==="private_chat_messages").values')=={'room_id':'jen-room','user_id':'jen','body':'Jen private reply\nFabric reference'}
  page.evaluate('accessTest.failPrivateWrite=true');page.locator('#privateChatText').fill('Keep this draft');page.locator('#privateChatSend').click()
  page.wait_for_function('document.querySelector("#privateChatStatus").textContent.includes("denied")')
@@ -46,7 +46,7 @@ with sync_playwright() as p:
  page.evaluate("accessTest.switchUser('quan')");page.wait_for_function('document.querySelectorAll("#privateChatNav button").length===2')
  page.locator('#notificationBell').click();page.wait_for_function('document.querySelectorAll(".notification-item").length>0')
  page.locator('.notification-open').first.click();page.wait_for_function('document.querySelector("#privateChat").classList.contains("active")')
- assert page.locator('#privateChatTitle').inner_text()=='Quan & Jen'
+ assert page.locator('#privateChatTitle').inner_text()=='Quan & Fragile collaborator'
  # Same-project access does not reveal another member's private room.
  page.evaluate("accessTest.switchUser('tertius')");page.wait_for_function('document.querySelectorAll("#privateChatNav button").length===1')
  assert 'Quan & Jen' not in page.locator('#privateChatNav').inner_text()

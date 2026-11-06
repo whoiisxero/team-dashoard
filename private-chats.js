@@ -28,13 +28,13 @@ window.createPrivateChats=({getData,navigate,toast})=>{
       getData().policy?.personal_workspace_ready?getData().db.rpc('private_chat_participants',{chat_id:id}):getData().db.from('private_chat_members').select('room_id,user_id').eq('room_id',id)
     ]);if(!current(session,uid,id)||request!==messagesRequest)return;if(items.error||participants.error)throw items.error||participants.error;
       if(!(participants.data||[]).some(m=>m.user_id===uid)){clearSelected();$('privateChatStatus').textContent='This conversation is no longer available to your account.';navigate('overview');return;}
-      messages=(items.data||[]).reverse();members=participants.data||[];ready=true;$('privateChatStatus').textContent='Only invited participants can read this conversation · latest 100 messages.';render();
+      messages=window.QuestDirectory.rows(items.data).reverse();members=window.QuestDirectory.rows(participants.data);ready=true;$('privateChatStatus').textContent='Only invited participants can read this conversation · latest 100 messages.';render();
     }catch{if(current(session,uid,id)&&request===messagesRequest){ready=false;messages=[];members=[];render();$('privateChatStatus').textContent='Could not load this conversation. Press Refresh to retry. Your unsent message is still here.';}}
   }
   async function refreshRooms(){if(navigator.onLine===false)return;const uid=getData().user?.id;if(!uid)return;if(owner!==uid){reset();owner=uid;}
     const session=epoch,request=++roomsRequest;
     try{const result=await getData().db.from('private_chat_rooms').select(getData().policy?.personal_workspace_ready?'id,name,project_id,room_kind,personal_owner_id':'id,name,project_id').order('created_at');if(!current(session,uid)||request!==roomsRequest)return;if(result.error)throw result.error;
-      const oldRoomIds=rooms.map(room=>room.id).sort().join(',');rooms=(result.data||[]).filter(room=>room.id&&room.name&&(['personal','direct'].includes(room.room_kind)||getData().projects.some(p=>p.id===room.project_id)));renderNav();if(oldRoomIds!==rooms.map(room=>room.id).sort().join(','))window.dispatchEvent(new Event('quest:private-access-changed'));
+      const oldRoomIds=rooms.map(room=>room.id).sort().join(',');rooms=window.QuestDirectory.rows(result.data).filter(room=>room.id&&room.name&&(['personal','direct'].includes(room.room_kind)||getData().projects.some(p=>p.id===room.project_id)));renderNav();if(oldRoomIds!==rooms.map(room=>room.id).sort().join(','))window.dispatchEvent(new Event('quest:private-access-changed'));
       if(selected&&!rooms.some(r=>r.id===selected)){clearSelected();$('privateChatStatus').textContent='This conversation is no longer available to your account.';if($('privateChat').classList.contains('active'))navigate('overview');}
       else if(selected&&$('privateChat').classList.contains('active'))await loadMessages();
       if(!poll)poll=setInterval(()=>{if(!document.hidden)void refreshRooms();},30000);
