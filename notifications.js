@@ -81,7 +81,7 @@ window.createNotificationCenter = ({getClient, getUser, getProjects=()=>[], open
       ]);
       if(current!==session)return;if(version!==revision){refreshAgain=true;return;}
       if(items.error||count.error)throw items.error||count.error;
-      rows=items.data||[];unread=count.count||0;online=true;if(!history.skipped&&!history.error&&recoveryVersion===recoveryRevision){recovery(history.data);recoveredRevision=recoveryVersion;}
+      rows=(items.data||[]).map(row=>window.QuestDirectory?.notification(row)||row);unread=count.count||0;online=true;if(!history.skipped&&!history.error&&recoveryVersion===recoveryRevision){recovery(history.data);recoveredRevision=recoveryVersion;}
       status('Team updates and your reminders. Your own activity changes are excluded.');render();
       const incoming=rows.find(row=>pendingMessages.has(row.id)&&row.recipient_id===recipient&&!row.read_at&&['brand_messages','discussion_messages','private_chat_messages'].includes(row.source_table));pendingMessages.clear();if(incoming)toast('New message from '+incoming.actor_name);
     } catch(error) {
