@@ -14,13 +14,13 @@ wf.objects.set('fragile/jen/seed-file.png',new Blob([png],{type:'image/png'}));w
 const previousFrom=db.from;
 db.from=table=>{
  if(!['notification_preferences','project_files','project_activity','tasks'].includes(table))return previousFrom(table);
- let filters=[],single=false,limit=Infinity,insert=null,upsert=null,update=null,deleting=false;
- const q={select:()=>q,eq:(k,v)=>{filters.push(r=>r[k]===v);return q},order:()=>q,limit:n=>{limit=n;return q},maybeSingle:()=>{single=true;return q},insert:v=>{insert=v;return q},upsert:v=>{upsert=v;return q},update:v=>{update=v;return q},delete:()=>{deleting=true;return q},then:(resolve,reject)=>Promise.resolve().then(()=>{
+ let filters=[],orders=[],single=false,limit=Infinity,insert=null,upsert=null,update=null,deleting=false;
+ const q={select:()=>q,eq:(k,v)=>{filters.push(r=>r[k]===v);return q},like:(key,pattern)=>{const escaped=pattern.replace(/[.+^${}()|[\]\\]/g,'\\$&').replaceAll('%','.*').replaceAll('_','.');filters.push(row=>new RegExp('^'+escaped+'$').test(String(row[key]||'')));return q},order:(key,options={})=>{orders.push([key,options.ascending!==false]);return q},limit:n=>{limit=n;return q},maybeSingle:()=>{single=true;return q},insert:v=>{insert=v;return q},upsert:v=>{upsert=v;return q},update:v=>{update=v;return q},delete:()=>{deleting=true;return q},then:(resolve,reject)=>Promise.resolve().then(()=>{
   if(wf.failBackend&&table!=='tasks')return {error:{code:'PGRST205',message:'Not installed'}};
   const records=R[table];const visible=row=>table==='notification_preferences'?row.user_id===user.id:row.project_id?accessible(row.project_id):accessTest.profiles[user.id].shared_access;
   if(insert){if(wf.failMetadata&&table==='project_files')return {error:{message:'Metadata save failed'}};if(!visible(insert)||insert.created_by!==user.id)return {error:{message:'Access denied'}};records.push({...insert,created_at:'2026-10-21T22:30:00Z'});wf.writes.push({table,values:{...insert}});return {error:null};}
   if(upsert){if(upsert.user_id!==user.id)return {error:{message:'Access denied'}};const old=records.find(r=>r.user_id===user.id);if(old)Object.assign(old,upsert);else records.push({...upsert});wf.writes.push({table,values:{...upsert}});return {error:null};}
-  const rows=records.filter(visible).filter(row=>filters.every(fn=>fn(row)));
+  const rows=records.filter(visible).filter(row=>filters.every(fn=>fn(row)));rows.sort((a,b)=>{for(const [key,asc] of orders){const compared=String(a[key]??'').localeCompare(String(b[key]??''));if(compared)return asc?compared:-compared;}return 0;});
   if(update){for(const row of rows)Object.assign(row,update);return {data:single?rows[0]||null:rows,error:null};}
   if(deleting){const own=rows.filter(row=>row.created_by===user.id||accessTest.profiles[user.id].is_admin);for(const row of own)records.splice(records.indexOf(row),1);return {data:single?own[0]||null:own};}
   return {data:single?rows[0]||null:rows.slice(0,limit).map(r=>({...r})),error:null};

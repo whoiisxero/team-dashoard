@@ -3,6 +3,7 @@ import {readFile,writeFile,readdir,mkdir,rm,cp} from 'node:fs/promises';
 import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import path from 'node:path';
+import {prepareNglStudio} from './prepare-ngl-studio.mjs';
 import {prepareFragileAccess} from './prepare-fragile-access.mjs';
 import {prepareDirectChat} from './prepare-direct-chat.mjs';
 import {prepareProductivitySetup} from './prepare-productivity-setup.mjs';
@@ -36,6 +37,7 @@ let setupGuide=await readFile(path.join(root,'setup-guide.html'),'utf8');for(con
 await prepareProductivitySetup(path.join(output,'setup/productivity.sql'));
 await writeFile(path.join(output,'setup/tertius-chat.sql'),await prepareDirectChat('Tertius'));
 await writeFile(path.join(output,'setup/fragile-access.sql'),await prepareFragileAccess());
+await writeFile(path.join(output,'setup/ngl-studio.sql'),await prepareNglStudio());
 await writeFile(path.join(output,'setup/dusted-threads.sql'),'-- Copy the complete query and run as postgres.\nrollback;\nreset role;\n'+await readFile(path.join(root,'supabase/migrations/20261104_dusted_threads.sql'),'utf8')+'\n'+await readFile(path.join(root,'supabase/migrations/20261104_chat_notifications.sql'),'utf8')+'\n'+await readFile(path.join(root,'supabase/migrations/20261105_thread_feed_order.sql'),'utf8')+"\nselect 'Dusted conversations ready' as result;\n-- END DUSTED THREADS SETUP\n");
 for(const name of ['assets','icons'])await cp(path.join(root,name),path.join(output,name),{recursive:true});
 const icons=(await readdir(path.join(root,'icons'))).filter(name=>/\.png$/.test(name)).map(name=>`/icons/${name}`);

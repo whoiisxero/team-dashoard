@@ -138,10 +138,10 @@ window.createNotificationCenter = ({getClient, getUser, getProjects=()=>[], open
     if(['brand_messages','brand_moodboard_items'].includes(row.source_table)){
       const project=getProjects().find(p=>p.id===row.project_id);
       if(!project){toast('This project is no longer available.');return;}
-      const brand=project.name.trim().toLowerCase().replace(/\.$/,'');target=['fragile','loden','dusted'].includes(brand)?brand:'projects';
+      const brand=project.name.trim().toLowerCase().replace(/\.$/,'');target=['fragile','loden','dusted','ngl'].includes(brand)?brand:'projects';
     }
     navigate(target);
-    if(['brand_messages','brand_moodboard_items'].includes(row.source_table)&&['fragile','loden','dusted'].includes(target))document.querySelector(`#${target} [data-studio-tab="${row.source_table==='brand_messages'?'chat':'board'}"]`)?.click();
+    if(['brand_messages','brand_moodboard_items'].includes(row.source_table)&&['fragile','loden','dusted','ngl'].includes(target))document.querySelector(`#${target} [data-studio-tab="${row.source_table==='brand_messages'?'chat':'board'}"]`)?.click();
     if(row.action==='DELETE'){toast('This item was removed.');return;}
     if(row.source_table==='calendar_events')openEvent(row.source_id,row.event_date);
   }

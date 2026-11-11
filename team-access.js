@@ -25,7 +25,7 @@ window.createTeamAccess = ({getData, refresh, toast, request:runRequest=async va
     if(view==='fragilePersonal')return !!policy.is_admin;
     if(view==='members')return !!policy.is_admin;
     if(view==='discussions')return policy.shared_access;
-    if(['fragile','loden','dusted'].includes(view))return getData().projects.some(p=>normal(p.name)===view)||policy.is_admin;
+    if(['fragile','loden','dusted','ngl'].includes(view))return getData().projects.some(p=>normal(p.name)===view)||policy.is_admin;
     return true;
   }
   function apply() {
