@@ -1,4 +1,4 @@
-const ps=accessTest.personal={failSave:false,failRead:false,delay:false,pending:[],writes:[]};
+const ps=accessTest.personal={failSave:false,failRead:false,delay:false,pending:[],writes:[],reads:[]};
 accessTest.profiles.cas={ready:true,is_admin:false,personal_only:true,personal_workspace_ready:true,access_levels_ready:true,project_mode:'selected',shared_access:false,can_create_projects:false,editable_project_ids:[]};
 accessTest.profiles.quan.personal_workspace_ready=true;
 accessTest.records.team_members.push({user_id:'cas',display_name:'Cas'});accessTest.rules.cas=[];
@@ -13,30 +13,39 @@ const privateAllowed=rid=>P.private_chat_members.some(m=>m.room_id===rid&&m.user
 const personalBaseFrom=db.from;
 db.from=table=>{
  if(!['personal_profiles','personal_notes','private_chat_rooms','private_chat_members','private_chat_messages'].includes(table))return personalBaseFrom(table);
- let filters=[],single=false,insert=null,upsert=null,deleting=false,limit=Infinity;
- const q={select:()=>q,eq:(k,v)=>{filters.push(r=>r[k]===v);return q},order:()=>q,limit:n=>{limit=n;return q},maybeSingle:()=>{single=true;return q},insert:v=>{insert=v;return q},upsert:v=>{upsert=v;return q},delete:()=>{deleting=true;return q},then:(resolve,reject)=>Promise.resolve().then(async()=>{
-  const uid=user.id;if(ps.failRead&&table.startsWith('personal_'))return {error:{code:'PGRST205'}};
-  const records=P[table],visible=r=>table==='personal_profiles'?r.user_id===uid:table==='personal_notes'?r.owner_id===uid:privateAllowed(table==='private_chat_rooms'?r.id:r.room_id);
+ let filters=[],equalities=[],single=false,insert=null,upsert=null,deleting=false,limit=Infinity;
+ const q={select:()=>q,eq:(k,v)=>{filters.push(r=>r[k]===v);equalities.push([k,v]);return q},order:()=>q,limit:n=>{limit=n;return q},maybeSingle:()=>{single=true;return q},insert:v=>{insert=v;return q},upsert:v=>{upsert=v;return q},delete:()=>{deleting=true;return q},then:(resolve,reject)=>Promise.resolve().then(async()=>{
+  const uid=user.id;ps.reads.push({table,uid,eq:[...equalities]});if(ps.failRead&&table.startsWith('personal_'))return {error:{code:'PGRST205'}};
+  const records=P[table],visible=r=>table==='personal_profiles'?r.user_id===uid:table==='personal_notes'?(r.owner_id===uid||accessTest.profiles[uid].private_fragile_owner_id===r.owner_id&&r.category==='Fragile / Private'):privateAllowed(table==='private_chat_rooms'?r.id:r.room_id);
   if(upsert){if(upsert.user_id!==uid)return {error:{message:'Access denied'}};const old=records.find(r=>r.user_id===uid);if(old)Object.assign(old,upsert);else records.push({...upsert});ps.writes.push({table,values:{...upsert}});return {error:null};}
   if(insert){if(insert.user_id!==uid||!privateAllowed(insert.room_id))return {error:{message:'Access denied'}};records.push({...insert,id:'message-'+records.length,created_at:'2026-10-28T09:00:00Z'});ps.writes.push({table,values:{...insert}});return {error:null};}
   const found=records.filter(visible).filter(r=>filters.every(f=>f(r)));
   if(deleting){for(const r of found)records.splice(records.indexOf(r),1);return {data:single?found[0]||null:found};}
   const result={data:single?found[0]?{...found[0]}:null:found.slice(0,limit).map(r=>({...r})),error:null};
-  if(ps.delay&&table==='personal_notes'&&uid==='cas')await new Promise(done=>ps.pending.push(done));return result;
+  if((ps.delay&&uid==='cas'||ps.delayFragile&&accessTest.profiles[uid].private_fragile_owner_id)&&table==='personal_notes')await new Promise(done=>ps.pending.push(done));return result;
  }).then(resolve,reject)};return q;
 };
 const personalBaseRpc=db.rpc;
 db.rpc=async(name,args={})=>{
  if(name==='private_chat_participants')return {data:privateAllowed(args.chat_id)?P.private_chat_members.filter(m=>m.room_id===args.chat_id).map(m=>({...m,display_name:P.team_members.find(p=>p.user_id===m.user_id).display_name})):[]};
  if(name==='refresh_my_reminders')return {data:0};
- if(name==='quest_save_personal_note'){
+ if(name==='quest_delete_shared_fragile_note'){
+  const p=accessTest.profiles[user.id],old=P.personal_notes.find(n=>n.id===args.note_id);
+  if(!p.private_fragile_owner_id||!p.private_fragile_can_edit||!old||old.owner_id!==p.private_fragile_owner_id||old.category!=='Fragile / Private')return {error:{message:'Access denied'}};
+  if(old.revision!==args.expected_revision)return {error:{message:'Changed on another device'}};P.personal_notes.splice(P.personal_notes.indexOf(old),1);ps.writes.push({rpc:name,args:{...args}});return {data:true};
+ }
+ if(name==='quest_save_personal_note'||name==='quest_save_shared_fragile_note'){
+  const p=accessTest.profiles[user.id],shared=name==='quest_save_shared_fragile_note';
+  if(shared&&(!p.private_fragile_owner_id||!p.private_fragile_can_edit||args.note_category!=='Fragile / Private'))return {error:{message:'Access denied'}};
+  if(!shared&&p.private_fragile_owner_id)return {error:{message:'Personal workspace access required'}};
+  const noteOwner=shared?p.private_fragile_owner_id:user.id;
   if(ps.failSave)return {error:{message:'Save not confirmed. Keep your writing here and retry.'}};
-  const old=P.personal_notes.find(n=>n.id===args.note_id);if(old&&old.owner_id!==user.id)return {error:{message:'Access denied'}};
+  const old=P.personal_notes.find(n=>n.id===args.note_id);if(old&&(old.owner_id!==noteOwner||shared&&old.category!=='Fragile / Private'))return {error:{message:'Access denied'}};
   if(old&&old.revision!==args.expected_revision)return {error:{message:'This note changed on another device.'}};
-  const row={id:args.note_id,owner_id:user.id,kind:args.note_kind,title:args.note_title,body:args.note_body,category:args.note_category,pinned:args.note_pinned,status:args.note_status,due_at:args.due_local?new Date(args.due_local+'+02:00').toISOString():null,remind_at:args.remind_local?new Date(args.remind_local+'+02:00').toISOString():null,time_zone:args.zone,revision:(old?.revision||0)+1,updated_at:'2026-10-28T10:00:00Z',created_at:old?.created_at||'2026-10-28T10:00:00Z'};
+  const row={id:args.note_id,owner_id:noteOwner,kind:args.note_kind,title:args.note_title,body:args.note_body,category:args.note_category,pinned:args.note_pinned,status:args.note_status,due_at:args.due_local?new Date(args.due_local+'+02:00').toISOString():null,remind_at:args.remind_local?new Date(args.remind_local+'+02:00').toISOString():null,time_zone:args.zone,revision:(old?.revision||0)+1,updated_at:'2026-10-28T10:00:00Z',created_at:old?.created_at||'2026-10-28T10:00:00Z'};
   if(old)Object.assign(old,row);else P.personal_notes.push(row);ps.writes.push({rpc:name,args:{...args}});return {data:{...row}};
  }
  return personalBaseRpc(name,args);
 };
-ps.release=()=>{ps.delay=false;for(const done of ps.pending.splice(0))done();};
+ps.release=()=>{ps.delay=false;ps.delayFragile=false;for(const done of ps.pending.splice(0))done();};
 await accessTest.switchUser('cas');window.personalReady=true;

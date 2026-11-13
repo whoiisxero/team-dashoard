@@ -40,6 +40,7 @@ jobs:
           node tests/project-edit-access-db.mjs
           node tests/dusted-threads-db.mjs
           node tests/ngl-studio-db.mjs
+          node tests/private-fragile-sharing-db.mjs
           node tests/personal-workspace-db.mjs
           node tests/personal-calendar-db.mjs
           node tests/private-quotes-db.mjs
@@ -69,6 +70,7 @@ jobs:
           python tests/direct-chat-browser.py
           python tests/studio-only-browser.py
           python tests/fragile-personal-browser.py
+          python tests/private-fragile-sharing-browser.py
           python tests/calendar-edit.py
           python tests/notifications-browser.py
           python tests/daily-workflow-browser.py

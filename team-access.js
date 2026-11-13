@@ -10,12 +10,13 @@ window.createTeamAccess = ({getData, refresh, toast, request:runRequest=async va
   function canEdit(project=null) {
     if(!policy)return false;
     if(policy.is_admin)return true;
-    if(policy.personal_only)return false;
+    if(policy.personal_only||policy.private_fragile_owner_id)return false;
     if(!project)return !!policy.shared_access;
     if(!getData().projects.some(p=>p.id===project))return false;
     return policy.editable_project_ids==null||policy.editable_project_ids.includes(project);
   }
   function canView(view) {
+    if(policy?.private_fragile_owner_id)return ['fragilePersonal','notifications'].includes(view);
     if(view==='overview')return true;
     if(!policy)return false;
     if(policy.studio_only_project_id)return ['fragile','notifications'].includes(view);
@@ -31,8 +32,8 @@ window.createTeamAccess = ({getData, refresh, toast, request:runRequest=async va
   function apply() {
     for(const button of document.querySelectorAll('[data-view]'))button.hidden=!canView(button.dataset.view);
     if(policy?.personal_only)for(const button of document.querySelectorAll('.sidebar [data-view="personalHome"]'))button.hidden=true;
-    if(policy?.studio_only_project_id)for(const button of document.querySelectorAll('.sidebar [data-view=overview],.sidebar .logo'))button.hidden=true;
-    $('projectNav').hidden=!policy||!!policy.personal_only||!!policy.studio_only_project_id;
+    if(policy?.studio_only_project_id||policy?.private_fragile_owner_id)for(const button of document.querySelectorAll('.sidebar [data-view=overview],.sidebar .logo'))button.hidden=true;
+    $('projectNav').hidden=!policy||!!policy.personal_only||!!policy.studio_only_project_id||!!policy.private_fragile_owner_id;
     $('fragileShortcut').hidden=!canView('fragile');$('fragileShortcutStatus').hidden=true;
     for(const button of document.querySelectorAll('[data-add="project"]'))button.hidden=!policy?.can_create_projects;
     const writable=canEdit()||getData().projects.some(p=>canEdit(p.id));
