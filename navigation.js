@@ -1,6 +1,7 @@
 /* Shared sidebar appearance; page permissions and navigation stay with the app. */
 window.QuestNavigation=(()=>{
  const pages={
+  questLab:['✺','#7aeadb','Quest Lab'],
   ngl:['💎','#f397d4','NGL'],
   formStudio:['🧩','#67e8f9','Form Studio ↗'],
   globe:['🌐','#38bdf8','Globe'],
@@ -19,7 +20,7 @@ window.QuestNavigation=(()=>{
   ['work','Work',['myDay','dashboard','projects','goals','files','activity','notifications','discussions']],
   ['studios','Studios',['fragilePersonal','ngl']],
   ['business','Business',['businessStudio','writing','quotes','invoices','expenses']],
-  ['tools','Tools',['search','trading','globe','questPreview']],
+  ['tools','Tools',['search','trading','globe','questLab','questPreview']],
   ['settings','Settings',['personalSetup','members']]
  ];
  const sections=new Map(),preferenceKey='quest-sidebar-sections-v2';
@@ -76,7 +77,7 @@ window.QuestNavigation=(()=>{
    if(project&&['fragile','loden','dusted'].includes(normal(label))){const shortcut=normal(label)==='fragile'?document.getElementById('fragileShortcut'):document.querySelector('.sidebar [data-view="'+normal(label)+'"]');if(permitted(shortcut))continue;}
    const key=view?'view:'+view:project?'project:'+project:room?'chat:'+room:button.id;if(!key||seen.has(key))continue;seen.add(key);
    const group=button.closest('.sidebar-section')?.querySelector('summary')?.textContent||'Quick access';
-   const synonyms={ngl:'ngl social media team content creative studio',fragilePersonal:'fragile private personal notes plans',overview:'home globe welcome',tasks:'tasks todos assigned work',calendar:'calendar events schedule agenda',personalCalendar:'calendar my personal appointments',writing:'notes personal notebook writing ideas',businessStudio:'business workspace studio',discussions:'team chat room messages',formStudioShortcut:'form development studio forms'};
+   const synonyms={questLab:'galaxy universe forecast demo experimental lab',ngl:'ngl social media team content creative studio',fragilePersonal:'fragile private personal notes plans',overview:'home globe welcome',tasks:'tasks todos assigned work',calendar:'calendar events schedule agenda',personalCalendar:'calendar my personal appointments',writing:'notes personal notebook writing ideas',businessStudio:'business workspace studio',discussions:'team chat room messages',formStudioShortcut:'form development studio forms'};
    list.push({key,label,group,terms:normal(label+' '+group+' '+(synonyms[view||button.id]||'')),button});
   }
   for(const [view,label,group,aliases] of [['business','Business notes','Notes','work reminders deadlines'],['events','Calendar agenda','Calendar','events schedule'],['personalCalendar','My calendar','Calendar','personal appointments'],['personalHome','My workspace','Home','private home notebook']]){
