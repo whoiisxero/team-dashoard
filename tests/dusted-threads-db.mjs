@@ -73,4 +73,35 @@ await actor(josh);assert.equal((await rows('select id from quest_thread_feed($1,
 await actor(tertius);assert.equal((await rows('select id from quest_thread_feed($1,21)',[dusted])).length,0);
 await actor(null);await db.exec('set role anon');await assert.rejects(db.query('select * from quest_thread_feed($1,21)',[dusted]),/permission denied/);
 await actor(null);assert.equal((await rows("select public from storage.buckets where id='quest-thread-images'"))[0].public,false);
-await db.close();console.log('PASS Dusted threads: latest-reply ordering across pages, deletion reordering, scoped feed RPC, preserved history, image posts, replies, likes, same-project parents, private storage, read-only users, excluded/personal/anonymous users, revocation and cascading deletion.');
+// Fragile reuses the same conversation-image schema and current project permissions.
+await actor(null);
+await db.query('insert into project_member_access(user_id,project_id,allowed) values($1,$2,true) on conflict(user_id,project_id) do update set allowed=true',[viewer,fragile]);
+const fragileImage=fragile+'/'+tertius+'/'+id(90)+'.png';
+await actor(tertius);
+await post([id(91),fragile,tertius,'',null,[fragileImage]]);
+await db.query('insert into storage.objects(bucket_id,name) values($1,$2)',['quest-thread-images',fragileImage]);
+assert.equal((await rows('select id from brand_messages where id=$1',[id(91)])).length,1);
+assert.equal((await rows('select name from storage.objects where name=$1',[fragileImage])).length,1);
+await assert.rejects(post([id(92),fragile,tertius,'Cross-project photo',null,[image]]),/check constraint/);
+await assert.rejects(post([id(92),fragile,owner,'Forged author',null,[fragile+'/'+owner+'/'+id(92)+'.png']]),/row-level security/);
+await assert.rejects(db.query('insert into storage.objects(bucket_id,name) values($1,$2)',['quest-thread-images',fragile+'/'+owner+'/'+id(93)+'.png']),/row-level security/);
+await actor(viewer);
+assert.equal((await rows('select id from brand_messages where id=$1',[id(91)])).length,1);
+assert.equal((await rows('select name from storage.objects where name=$1',[fragileImage])).length,1);
+await assert.rejects(post([id(94),fragile,viewer,'',null,[fragile+'/'+viewer+'/'+id(94)+'.png']]),/row-level security/);
+await assert.rejects(db.query('insert into storage.objects(bucket_id,name) values($1,$2)',['quest-thread-images',fragile+'/'+viewer+'/'+id(94)+'.png']),/row-level security/);
+assert.equal((await rows('delete from storage.objects where name=$1 returning id',[fragileImage])).length,0);
+for(const denied of [josh,cas]){
+ await actor(denied);
+ assert.equal((await rows('select id from brand_messages where id=$1',[id(91)])).length,0);
+ assert.equal((await rows('select name from storage.objects where name=$1',[fragileImage])).length,0);
+ await assert.rejects(db.query('insert into storage.objects(bucket_id,name) values($1,$2)',['quest-thread-images',fragile+'/'+denied+'/'+id(94)+'.png']),/row-level security/);
+}
+await actor(null);await db.exec('set role anon');
+assert.equal((await rows('select name from storage.objects where name=$1',[fragileImage])).length,0);
+await actor(null);
+await db.query('insert into project_member_access(user_id,project_id,allowed) values($1,$2,false) on conflict(user_id,project_id) do update set allowed=false',[tertius,fragile]);
+await actor(tertius);
+assert.equal((await rows('select id from brand_messages where id=$1',[id(91)])).length,0);
+assert.equal((await rows('select name from storage.objects where name=$1',[fragileImage])).length,0);
+await db.close();console.log('PASS Dusted threads: latest-reply ordering across pages, deletion reordering, scoped feed RPC, preserved history, image posts, replies, likes, same-project parents, private storage including Fragile image-only posts, cross-project/author guards, read-only users, excluded/personal/anonymous users, revocation and cascading deletion.');
