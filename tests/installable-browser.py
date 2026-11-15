@@ -106,7 +106,7 @@ try:
   member_page=desktop.new_page();member_page.goto(base);member_page.wait_for_function('window.ready&&window.QuestApp')
   for uid in ['quan','tertius','josh','jen']:
    member_page.evaluate('(id)=>accessTest.switchUser(id)',uid)
-   assert member_page.locator('#userName').inner_text()==uid.title()
+   assert member_page.locator('#userName').inner_text()==('Fragile collaborator' if uid=='jen' else uid.title())
    assert member_page.locator('#appInstallMenu').is_visible()
    member_page.locator('#appInstallMenu').click();assert member_page.locator('#appInstallDialog').is_visible()
    assert 'Install app' in member_page.locator('#appInstallSteps').inner_text()

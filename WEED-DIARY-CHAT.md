@@ -6,6 +6,8 @@ The dedicated diary page was brought forward from the earlier local draft. Exist
 
 The conversation reuses Quest's private-chat controller, database permissions, realtime updates and in-app notification triggers. It has its own room, separate from the existing Quan/Tertius conversation. Moving between its embedded and ordinary private-chat views preserves an unsent draft. Failed sends leave the draft in place. Current room membership controls access after reopening and reconnecting.
 
+Images and documents are covered in [PRIVATE-CHAT-FILES.md](PRIVATE-CHAT-FILES.md). Use `/setup-guide.html#weed-diary-uploads` to activate both the room and private uploads with one complete query.
+
 ## One-time production setup
 
 There is no Supabase administrator connection in the execution environment, so the production room must be created by the owner:

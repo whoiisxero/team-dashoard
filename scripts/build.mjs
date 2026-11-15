@@ -8,6 +8,7 @@ import {prepareNglStudio} from './prepare-ngl-studio.mjs';
 import {prepareFragileAccess} from './prepare-fragile-access.mjs';
 import {prepareDirectChat} from './prepare-direct-chat.mjs';
 import {prepareProductivitySetup} from './prepare-productivity-setup.mjs';
+import {prepareWeedDiaryUploads} from './prepare-weed-diary-uploads.mjs';
 const root=fileURLToPath(new URL('../',import.meta.url)),output=path.join(root,'dist');
 const hash=value=>createHash('sha256').update(value).digest('hex').slice(0,16);
 const names=(await readdir(root)).filter(name=>/\.(js|css)$/.test(name)&&name!=='service-worker.js').sort();
@@ -38,6 +39,7 @@ let setupGuide=await readFile(path.join(root,'setup-guide.html'),'utf8');for(con
 await prepareProductivitySetup(path.join(output,'setup/productivity.sql'));
 await writeFile(path.join(output,'setup/tertius-chat.sql'),await prepareDirectChat('Tertius'));
 await writeFile(path.join(output,'setup/weed-diary-chat.sql'),await readFile(path.join(root,'supabase/maintenance/weed-diary-chat.sql'),'utf8'));
+await writeFile(path.join(output,'setup/weed-diary-uploads.sql'),await prepareWeedDiaryUploads());
 await writeFile(path.join(output,'setup/fragile-access.sql'),await prepareFragileAccess());
 await writeFile(path.join(output,'setup/ngl-studio.sql'),await prepareNglStudio());
 await writeFile(path.join(output,'setup/private-fragile-sharing.sql'),await prepareSharedFragile());

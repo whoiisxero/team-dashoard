@@ -14,20 +14,22 @@ window.createPrivateChats=({getData,navigate,toast})=>{
   const writable=()=>{const room=rooms.find(r=>r.id===selected);return ['personal','direct'].includes(room?.room_kind)?true:getData().canEditProject?.(room?.project_id)??true;};
   const person=id=>members.find(m=>m.user_id===id)?.display_name||getData().roster.find(m=>m.user_id===id)?.display_name||'Team member';
   const current=(session,uid,id)=>session===epoch&&getData().user?.id===uid&&(!id||id===selected);
+  const files=window.createPrivateChatFiles?.({getContext:()=>({db:getData().db,user:getData().user,room:rooms.find(r=>r.id===selected),ready,sending,writable:writable()}),onChange:render});
   function renderNav(){const root=$('privateChatNav');root.replaceChildren();$('privateChatNavSection').hidden=!rooms.length;
     for(const room of rooms){const button=el('button',room.name);button.type='button';button.dataset.privateChat=room.id;window.QuestNavigation?.decorate(button,'room',room.name,room.id);button.classList.toggle('active',selected===room.id&&active());button.onclick=()=>void open(room.id);root.append(button);}}
   function render(){const room=rooms.find(r=>r.id===selected);$('privateChatTitle').textContent=room?.name||'Private chat';
     const project=getData().projects.find(p=>p.id===room?.project_id);
     $('privateChatParticipants').textContent=room?`${['personal','direct'].includes(room.room_kind)?'Private conversation':project?.name||'Project'} · ${members.map(m=>person(m.user_id)).join(' & ')||'Checking participants…'}`:'Choose a conversation from Private chats.';
     $('privateChatSend').disabled=!ready||sending||!writable();$('privateChatText').disabled=!ready||sending||!writable();
+    files?.sync(messages);
     const root=$('privateChatMessages');root.replaceChildren();
     for(const message of messages){const post=el('article','','post');post.dataset.privateMessageId=message.id;const head=el('div','','post-head');head.append(el('b',person(message.user_id)));
       const time=el('time',new Date(message.created_at).toLocaleString(undefined,{dateStyle:'medium',timeStyle:'short'}));time.dateTime=message.created_at;head.append(time);
       if(message.user_id===getData().user?.id&&writable()){const remove=el('button',deleting.has(message.id)?'Deleting…':'Delete','button');remove.type='button';remove.disabled=deleting.has(message.id);remove.onclick=()=>void removeMessage(message.id);head.append(remove);}
-      post.append(head,el('div',message.body,'post-body private-message-body'));root.append(post);}
+      post.append(head,el('div',message.body,'post-body private-message-body'));files?.decorate(post,message);root.append(post);}
     if(ready&&!messages.length)root.append(el('p','No messages yet. Start your private conversation.','empty'));renderNav();
   }
-  function clearSelected(){selection++;messagesRequest++;selected=null;messages=[];members=[];ready=false;sending=false;deleting.clear();$('privateChatText').value='';
+  function clearSelected(){files?.reset();delete $('privateChatForm').dataset.appSaving;selection++;messagesRequest++;selected=null;messages=[];members=[];ready=false;sending=false;deleting.clear();$('privateChatText').value='';
     if(channel)getData().db?.removeChannel(channel);channel=null;mount();render();}
   async function loadMessages(){const uid=getData().user?.id,id=selected;if(!uid||!id)return;const session=epoch,request=++messagesRequest;
     try{const [items,participants]=await Promise.all([
@@ -55,16 +57,16 @@ window.createPrivateChats=({getData,navigate,toast})=>{
     if(!$(route).classList.contains('active'))navigate(route);renderNav();await loadMessages();
   }
   $('privateChatForm').onsubmit=async event=>{event.preventDefault();const body=$('privateChatText').value.trim(),uid=getData().user?.id,id=selected,session=epoch,version=selection;
-    if(!body||body.length>4000||!uid||!id||!ready||sending||!writable())return;sending=true;render();
-    try{const {error}=await getData().db.from('private_chat_messages').insert({room_id:id,user_id:uid,body});if(error)throw error;
+    if((!body&&!files?.hasFiles())||body.length>4000||!uid||!id||!ready||sending||!writable())return;sending=true;$('privateChatForm').dataset.appSaving='true';render();
+    try{if(files?.hasFiles())await files.send(body);else{const {error}=await getData().db.from('private_chat_messages').insert({room_id:id,user_id:uid,body});if(error)throw error;}
       if(!current(session,uid,id)||version!==selection)return;$('privateChatText').value='';await loadMessages();
     }catch(error){if(current(session,uid,id)&&version===selection)$('privateChatStatus').textContent=error?.message||'Could not send. Your message is still here; please try again.';}
-    finally{if(current(session,uid,id)&&version===selection){sending=false;render();}}
+    finally{if(current(session,uid,id)&&version===selection){sending=false;delete $('privateChatForm').dataset.appSaving;render();}}
   };
   async function removeMessage(id){const record=messages.find(m=>m.id===id),uid=getData().user?.id,room=selected,session=epoch,version=selection;
     if(!uid||!writable()||record?.user_id!==uid||deleting.has(id)||!confirm('Delete this private message? This cannot be undone.'))return;deleting.add(id);render();
     try{const result=await getData().db.from('private_chat_messages').delete().eq('id',id).eq('room_id',room).eq('user_id',uid).select('id').maybeSingle();if(result.error)throw result.error;if(!result.data)throw new Error('Message could not be deleted. Refresh to check your access.');
-      if(current(session,uid,room)&&version===selection){toast('Message deleted');await loadMessages();}
+      if(current(session,uid,room)&&version===selection){await files?.deleted(record);if(!current(session,uid,room)||version!==selection)return;toast('Message deleted');await loadMessages();}
     }catch(error){if(current(session,uid,room)&&version===selection)$('privateChatStatus').textContent=error?.message||'Could not delete this message. Please retry.';}
     finally{if(current(session,uid,room)&&version===selection){deleting.delete(id);render();}}
   }

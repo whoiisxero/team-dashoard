@@ -46,6 +46,7 @@ jobs:
           node tests/private-quotes-db.mjs
           node tests/private-chats-db.mjs
           node tests/weed-diary-chat-db.mjs
+          node tests/private-chat-files-db.mjs
           node tests/daily-workflow-db.mjs
           node tests/assistant-server.mjs
           node tests/assistant-tools-server.mjs
@@ -71,6 +72,7 @@ jobs:
           python tests/direct-chat-browser.py
           python tests/weed-diary-browser.py
           python tests/weed-diary-chat-browser.py
+          python tests/private-chat-files-browser.py
           python tests/studio-only-browser.py
           python tests/fragile-personal-browser.py
           python tests/private-fragile-sharing-browser.py

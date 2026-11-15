@@ -24,7 +24,7 @@
     if(document.querySelector('dialog[open]:not(#appInstallDialog)'))return true;
     if(document.querySelector('[data-app-saving="true"]'))return true;
     if([...document.querySelectorAll('form[data-app-dirty="true"]')].some(form=>form.offsetParent))return true;
-    return ['messageText','privateChatText','fragileChatText','dustedChatText','qaInput'].some(id=>$(id)?.value.trim())||
+    return !!$('privateChatFileDrafts')?.childElementCount||['messageText','privateChatText','fragileChatText','dustedChatText','qaInput'].some(id=>$(id)?.value.trim())||
       (!$('#loginScreen')?.hidden&&['email','password','resetEmail','newPassword','confirmPassword'].some(id=>$(id)?.offsetParent&&$(id).value));
   }
   function renderInstall(){
