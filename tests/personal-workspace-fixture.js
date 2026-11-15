@@ -13,8 +13,8 @@ const privateAllowed=rid=>P.private_chat_members.some(m=>m.room_id===rid&&m.user
 const personalBaseFrom=db.from;
 db.from=table=>{
  if(!['personal_profiles','personal_notes','private_chat_rooms','private_chat_members','private_chat_messages'].includes(table))return personalBaseFrom(table);
- let filters=[],equalities=[],single=false,insert=null,upsert=null,deleting=false,limit=Infinity;
- const q={select:()=>q,eq:(k,v)=>{filters.push(r=>r[k]===v);equalities.push([k,v]);return q},order:()=>q,limit:n=>{limit=n;return q},maybeSingle:()=>{single=true;return q},insert:v=>{insert=v;return q},upsert:v=>{upsert=v;return q},delete:()=>{deleting=true;return q},then:(resolve,reject)=>Promise.resolve().then(async()=>{
+ let filters=[],equalities=[],single=false,insert=null,upsert=null,deleting=false,limit=Infinity,diaryFilter=false;
+ const q={select:()=>q,or:expression=>{diaryFilter=true;(ps.diaryQueries??=[]).push({table,expression,uid:user.id});filters.push(r=>/weed|cannabis|smoking/i.test([r.category,r.title,r.body].join(' ')));return q;},eq:(k,v)=>{filters.push(r=>r[k]===v);equalities.push([k,v]);return q},order:()=>q,limit:n=>{limit=n;return q},maybeSingle:()=>{single=true;return q},insert:v=>{insert=v;return q},upsert:v=>{upsert=v;return q},delete:()=>{deleting=true;return q},then:(resolve,reject)=>Promise.resolve().then(async()=>{
   const uid=user.id;ps.reads.push({table,uid,eq:[...equalities]});if(ps.failRead&&table.startsWith('personal_'))return {error:{code:'PGRST205'}};
   const records=P[table],visible=r=>table==='personal_profiles'?r.user_id===uid:table==='personal_notes'?(r.owner_id===uid||accessTest.profiles[uid].private_fragile_owner_id===r.owner_id&&r.category==='Fragile / Private'):privateAllowed(table==='private_chat_rooms'?r.id:r.room_id);
   if(upsert){if(upsert.user_id!==uid)return {error:{message:'Access denied'}};const old=records.find(r=>r.user_id===uid);if(old)Object.assign(old,upsert);else records.push({...upsert});ps.writes.push({table,values:{...upsert}});return {error:null};}
@@ -22,6 +22,7 @@ db.from=table=>{
   const found=records.filter(visible).filter(r=>filters.every(f=>f(r)));
   if(deleting){for(const r of found)records.splice(records.indexOf(r),1);return {data:single?found[0]||null:found};}
   const result={data:single?found[0]?{...found[0]}:null:found.slice(0,limit).map(r=>({...r})),error:null};
+  if(ps.delayDiary&&table==='personal_notes'&&uid==='quan'&&diaryFilter)await new Promise(done=>ps.pending.push(done));
   if((ps.delay&&uid==='cas'||ps.delayFragile&&accessTest.profiles[uid].private_fragile_owner_id)&&table==='personal_notes')await new Promise(done=>ps.pending.push(done));return result;
  }).then(resolve,reject)};return q;
 };

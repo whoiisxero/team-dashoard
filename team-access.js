@@ -21,6 +21,7 @@ window.createTeamAccess = ({getData, refresh, toast, request:runRequest=async va
     if(!policy)return false;
     if(view==='questLab')return !!policy.is_admin&&!policy.studio_only_project_id;
     if(policy.studio_only_project_id)return ['fragile','notifications'].includes(view);
+    if(view==='weedDiary')return !!policy.is_admin||!!getData().weedDiaryRoom;
     if(['kiMassage','kiLymphatic','kiMyofascial','kiFrequency','kiBodyRecovery','kiSports'].includes(view))return !!(policy.is_admin||policy.personal_only)&&/^ki\s+lifestyle/i.test(getData().businessName||'');
     if(['personalHome','personalSetup','writing','business','personalCalendar','quotes','invoices','businessStudio','questPreview','globe'].includes(view))return !!(policy.is_admin||policy.personal_only);
     if(policy.personal_only)return ['notifications','privateChat','trading'].includes(view);

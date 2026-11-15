@@ -37,6 +37,7 @@ for(const name of ['offline.html','manifest.webmanifest','favicon.svg'])await cp
 let setupGuide=await readFile(path.join(root,'setup-guide.html'),'utf8');for(const [name,target] of assets)setupGuide=setupGuide.replaceAll(`src="./${name}"`,`src="${target}"`).replaceAll(`href="./${name}"`,`href="${target}"`);await writeFile(path.join(output,'setup-guide.html'),setupGuide);
 await prepareProductivitySetup(path.join(output,'setup/productivity.sql'));
 await writeFile(path.join(output,'setup/tertius-chat.sql'),await prepareDirectChat('Tertius'));
+await writeFile(path.join(output,'setup/weed-diary-chat.sql'),await readFile(path.join(root,'supabase/maintenance/weed-diary-chat.sql'),'utf8'));
 await writeFile(path.join(output,'setup/fragile-access.sql'),await prepareFragileAccess());
 await writeFile(path.join(output,'setup/ngl-studio.sql'),await prepareNglStudio());
 await writeFile(path.join(output,'setup/private-fragile-sharing.sql'),await prepareSharedFragile());

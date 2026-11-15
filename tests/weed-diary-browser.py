@@ -1,0 +1,48 @@
+"""Dedicated diary: discovery of old private notes, editor reuse, privacy and navigation."""
+from pathlib import Path
+import mimetypes
+from playwright.sync_api import sync_playwright
+from browser_config import CHROMIUM
+root=Path(__file__).resolve().parents[1]
+html=(root/'index.html').read_text().replace("import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/+esm';","const createClient=()=>({auth:{getSession:async()=>({data:{session:null}}),onAuthStateChange:()=>{}}});")
+fixture='\n'.join((root/'tests'/name).read_text() for name in ['member-access-fixture.js','personal-workspace-fixture.js'])+'''
+const originalNote={kind:'writing',body:'Private thoughts',category:'Ideas',pinned:false,status:'open',revision:1,time_zone:'Africa/Johannesburg',created_at:'2026-11-11T10:00:00Z',updated_at:'2026-11-11T10:00:00Z'};
+// The old diary is beyond the generic notebook's latest 200 records.
+for(let i=0;i<210;i++)P.personal_notes.push({...originalNote,id:'general-'+i,owner_id:'quan',title:'Unrelated private note '+i});
+P.personal_notes.push({...originalNote,id:'legacy-diary',owner_id:'quan',title:'Weed dairy — old entry',body:'Older journal entry <script>text only</script>',category:'Journal',created_at:'2020-01-01T10:00:00Z',updated_at:'2020-01-01T10:00:00Z'},
+ {...originalNote,id:'business-diary',owner_id:'quan',kind:'business',title:'Quiet evening',category:'Cannabis diary',body:'Existing diary note',pinned:true,status:'in_progress',time_zone:'America/New_York',due_at:'2026-11-12T15:00:00Z',remind_at:'2026-11-12T14:00:00Z'},
+ {...originalNote,id:'other-diary',owner_id:'cas',title:'Weed diary for another account',body:'OTHER_ACCOUNT_SECRET',category:'Weed diary / Private'});
+await accessTest.switchUser('quan');window.diaryReady=true;
+'''
+html=html.replace('</script></body>',fixture.replace('</script','<\\/script')+'</script></body>')
+with sync_playwright() as p:
+ b=p.chromium.launch(executable_path=CHROMIUM,args=['--no-sandbox']);page=b.new_page(viewport={'width':1366,'height':950},timezone_id='Africa/Johannesburg');errors=[];page.on('pageerror',lambda e:(errors.append(str(e)),print(e,flush=True)))
+ def route(r):
+  url=r.request.url
+  if url=='http://dashboard.test/':return r.fulfill(body=html,content_type='text/html')
+  if url.startswith('http://dashboard.test/'):
+   path=root/url.removeprefix('http://dashboard.test/').split('?')[0]
+   if path.name in ['home.js','d3.min.js']:return r.fulfill(body='',content_type='application/javascript')
+   return r.fulfill(body=path.read_bytes() if path.is_file() else b'',content_type=mimetypes.guess_type(path)[0] or 'text/plain')
+  return r.fulfill(body='',content_type='text/css')
+ page.route('**/*',route);page.goto('http://dashboard.test/');page.wait_for_function('window.diaryReady')
+ # One studio shortcut, a link from My Fragile, and search by the old spelling.
+ assert page.locator('.sidebar-quick [data-view=weedDiary]').count()==0;assert page.locator('[data-nav-section=studios] [data-view=weedDiary]').count()==1;page.locator('.sidebar [data-view=fragilePersonal]').click();page.locator('#fragilePersonal [data-view=weedDiary]').click();page.wait_for_function('document.querySelectorAll(".weed-diary-entry").length===2');assert page.locator('#weedDiary').is_visible();assert page.locator('#crumb').text_content()=='Weed diary';assert page.locator('#weedDiaryList script').count()==0;assert 'OTHER_ACCOUNT_SECRET' not in page.locator('#weedDiary').inner_text();assert 'Unrelated private note' not in page.locator('#weedDiaryList').inner_text()
+ assert page.evaluate('accessTest.personal.diaryQueries.at(-1).uid')=='quan';assert page.evaluate('accessTest.personal.writes.length')==0
+ page.keyboard.press('Control+k');page.locator('#questPageQuery').fill('weed dairy');assert page.locator('#questPageResults [role=option]').count()==1;page.keyboard.press('Enter');assert page.locator('#weedDiary').is_visible();assert page.locator('[data-nav-section=studios]').evaluate('(section)=>section.open')
+ page.evaluate("accessTest.navigate('dashboard')");page.locator('#qaOpen').click();page.locator('#qaInput').fill('Q, pull up weed diary');page.locator('#qaSend').click();page.wait_for_function('document.querySelector("#weedDiary").classList.contains("active")');assert page.locator('#qaPanel').is_hidden();page.wait_for_function('document.querySelectorAll(".weed-diary-entry").length===2');page.screenshot(path='/tmp/quest-weed-diary-desktop.png',full_page=True)
+ # Editing an older diary uses its same record ID, kind, category and revision.
+ old=page.locator('[data-note-id=legacy-diary]');old.get_by_role('button',name='Open entry',exact=True).click();assert page.locator('#personalNoteBody').input_value()=='Older journal entry <script>text only</script>';page.locator('#personalNoteBody').fill('Older journal entry, updated');page.locator('#personalNoteSave').click();page.wait_for_function('document.querySelector("#weedDiaryList").textContent.includes("entry, updated")')
+ saved=page.evaluate('accessTest.personal.writes.at(-1).args');assert saved['note_id']=='legacy-diary' and saved['note_kind']=='writing' and saved['note_category']=='Journal' and saved['expected_revision']==1
+ card=page.locator('[data-note-id=business-diary]');card.get_by_role('button',name='Open entry',exact=True).click();page.locator('#personalNoteBody').fill('Existing diary note, updated');page.locator('#personalNoteSave').click();page.wait_for_function('!document.querySelector("#personalNoteDialog").open');saved=page.evaluate('accessTest.personal.writes.at(-1).args');assert saved['note_kind']=='business' and saved['note_category']=='Cannabis diary' and saved['note_status']=='in_progress' and saved['note_pinned'];assert saved['due_local']=='2026-11-12T10:00' and saved['remind_local']=='2026-11-12T09:00' and saved['zone']=='America/New_York'
+ # Failed saves preserve the entry and retry its same ID.
+ page.locator('#weedDiaryNew').click();assert page.locator('#personalNoteHeading').inner_text()=='New diary entry';assert page.locator('#personalNoteCategory').input_value()=='Weed diary / Private';page.locator('#personalNoteTitle').fill('Weed diary · Today');page.locator('#personalNoteBody').fill('My own diary entry');page.evaluate('accessTest.personal.failSave=true');page.locator('#personalNoteSave').click();page.wait_for_function('document.querySelector("#personalNoteState").textContent.includes("Save not confirmed")');assert page.locator('#personalNoteBody').input_value()=='My own diary entry';page.evaluate('accessTest.personal.failSave=false');page.locator('#personalNoteSave').click();page.wait_for_function('document.querySelectorAll(".weed-diary-entry").length===3');assert page.evaluate('accessTest.records.personal_notes.filter(n=>n.title==="Weed diary · Today").length')==1
+ page.locator('#weedDiarySearch').fill('older');assert page.locator('.weed-diary-entry').count()==1;page.locator('#weedDiarySearch').fill('not found');assert 'No matching diary entries' in page.locator('#weedDiaryList').inner_text();page.locator('#weedDiarySearch').fill('')
+ newest=page.locator('.weed-diary-entry').filter(has_text='My own diary entry');page.once('dialog',lambda d:d.dismiss());newest.get_by_role('button',name='Delete',exact=True).click();assert newest.count()==1;page.once('dialog',lambda d:d.accept());newest.get_by_role('button',name='Delete',exact=True).click();page.wait_for_function('document.querySelectorAll(".weed-diary-entry").length===2');assert page.evaluate('accessTest.records.personal_notes.some(n=>n.id==="other-diary")')
+ page.evaluate('accessTest.personal.failRead=true');page.locator('#weedDiaryRefresh').click();page.wait_for_function('document.querySelector("#weedDiaryStatus").textContent.includes("needs setup")');assert 'No diary entries' not in page.locator('#weedDiaryList').inner_text();page.evaluate('accessTest.personal.failRead=false');page.locator('#weedDiaryRefresh').click();page.wait_for_function('document.querySelectorAll(".weed-diary-entry").length===2')
+ page.set_viewport_size({'width':375,'height':812});page.wait_for_function('document.querySelector("#sidebar").getBoundingClientRect().right<=0');assert page.evaluate('document.documentElement.scrollWidth<=innerWidth');page.evaluate('scrollTo(0,0)');page.screenshot(path='/tmp/quest-weed-diary-phone.png',full_page=True)
+ # A late diary response is discarded when changing account, and members cannot open it.
+ page.evaluate('accessTest.personal.delayDiary=true');page.locator('#weedDiaryRefresh').click();page.wait_for_function('accessTest.personal.pending.length>0');page.evaluate("accessTest.switchUser('cas')");page.wait_for_function('document.querySelector("#userName").textContent==="Cas"');page.evaluate('accessTest.personal.delayDiary=false;for(const done of accessTest.personal.pending.splice(0))done()');assert page.locator('#weedDiaryList').inner_text()=='';assert page.locator('.sidebar [data-view=weedDiary]').is_hidden();page.evaluate("accessTest.navigate('weedDiary')");assert page.locator('#weedDiary').is_hidden()
+ page.evaluate("accessTest.switchUser('josh')");page.wait_for_function('document.querySelector("#userName").textContent==="Josh"');assert page.locator('.sidebar [data-view=weedDiary]').is_hidden();assert page.locator('#weedDiaryList').inner_text()==''
+ assert not errors,errors;b.close()
+print('PASS Weed diary: studio route/search, old-note discovery before pagination, Q navigation, existing IDs/categories/reminders preserved, safe text, create/save retry, search/delete, setup error, phone fit, owner-only routing and stale-response privacy. No real records are accessed or migrated.')

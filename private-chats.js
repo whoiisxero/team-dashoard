@@ -2,13 +2,20 @@
 window.createPrivateChats=({getData,navigate,toast})=>{
   const $=id=>document.getElementById(id);
   const el=(tag,text='',cls='')=>{const node=document.createElement(tag);node.textContent=text;if(cls)node.className=cls;return node;};
+  const defaultHost=$('privateChat'),surface=el('div','','private-chat-surface');surface.append(...defaultHost.childNodes);defaultHost.append(surface);
+  const active=()=>!!surface.closest('.view.active')&&!surface.closest('[hidden]');
+  function mount(host=defaultHost){
+    if(surface.parentElement!==host)host.append(surface);
+    const title=$('privateChatTitle'),tag=host===defaultHost?'H1':'H2';
+    if(title.tagName!==tag){const heading=el(tag.toLowerCase(),title.textContent);heading.id=title.id;title.replaceWith(heading);}
+  }
   let owner=null,epoch=0,roomsRequest=0,messagesRequest=0,selection=0,rooms=[],selected=null,messages=[],members=[];
   let ready=false,sending=false,channel=null,poll=null;const deleting=new Set();
   const writable=()=>{const room=rooms.find(r=>r.id===selected);return ['personal','direct'].includes(room?.room_kind)?true:getData().canEditProject?.(room?.project_id)??true;};
   const person=id=>members.find(m=>m.user_id===id)?.display_name||getData().roster.find(m=>m.user_id===id)?.display_name||'Team member';
   const current=(session,uid,id)=>session===epoch&&getData().user?.id===uid&&(!id||id===selected);
   function renderNav(){const root=$('privateChatNav');root.replaceChildren();$('privateChatNavSection').hidden=!rooms.length;
-    for(const room of rooms){const button=el('button',room.name);button.type='button';button.dataset.privateChat=room.id;window.QuestNavigation?.decorate(button,'room',room.name,room.id);button.classList.toggle('active',selected===room.id&&$('privateChat').classList.contains('active'));button.onclick=()=>void open(room.id);root.append(button);}}
+    for(const room of rooms){const button=el('button',room.name);button.type='button';button.dataset.privateChat=room.id;window.QuestNavigation?.decorate(button,'room',room.name,room.id);button.classList.toggle('active',selected===room.id&&active());button.onclick=()=>void open(room.id);root.append(button);}}
   function render(){const room=rooms.find(r=>r.id===selected);$('privateChatTitle').textContent=room?.name||'Private chat';
     const project=getData().projects.find(p=>p.id===room?.project_id);
     $('privateChatParticipants').textContent=room?`${['personal','direct'].includes(room.room_kind)?'Private conversation':project?.name||'Project'} · ${members.map(m=>person(m.user_id)).join(' & ')||'Checking participants…'}`:'Choose a conversation from Private chats.';
@@ -21,7 +28,7 @@ window.createPrivateChats=({getData,navigate,toast})=>{
     if(ready&&!messages.length)root.append(el('p','No messages yet. Start your private conversation.','empty'));renderNav();
   }
   function clearSelected(){selection++;messagesRequest++;selected=null;messages=[];members=[];ready=false;sending=false;deleting.clear();$('privateChatText').value='';
-    if(channel)getData().db?.removeChannel(channel);channel=null;render();}
+    if(channel)getData().db?.removeChannel(channel);channel=null;mount();render();}
   async function loadMessages(){const uid=getData().user?.id,id=selected;if(!uid||!id)return;const session=epoch,request=++messagesRequest;
     try{const [items,participants]=await Promise.all([
       getData().db.from('private_chat_messages').select('*').eq('room_id',id).order('created_at',{ascending:false}).order('id',{ascending:false}).limit(100),
@@ -33,17 +40,19 @@ window.createPrivateChats=({getData,navigate,toast})=>{
   }
   async function refreshRooms(){if(navigator.onLine===false)return;const uid=getData().user?.id;if(!uid)return;if(owner!==uid){reset();owner=uid;}
     const session=epoch,request=++roomsRequest;
-    try{const result=await getData().db.from('private_chat_rooms').select(getData().policy?.personal_workspace_ready?'id,name,project_id,room_kind,personal_owner_id':'id,name,project_id').order('created_at');if(!current(session,uid)||request!==roomsRequest)return;if(result.error)throw result.error;
+    try{let result=await getData().db.from('private_chat_rooms').select('id,name,project_id,room_key,created_by,room_kind,personal_owner_id').order('created_at');if(['42703','PGRST204'].includes(result.error?.code))result=await getData().db.from('private_chat_rooms').select('id,name,project_id,room_key,created_by').order('created_at');if(!current(session,uid)||request!==roomsRequest)return;if(result.error)throw result.error;
       const oldRoomIds=rooms.map(room=>room.id).sort().join(',');rooms=window.QuestDirectory.rows(result.data).filter(room=>room.id&&room.name&&(['personal','direct'].includes(room.room_kind)||getData().projects.some(p=>p.id===room.project_id)));renderNav();if(oldRoomIds!==rooms.map(room=>room.id).sort().join(','))window.dispatchEvent(new Event('quest:private-access-changed'));
-      if(selected&&!rooms.some(r=>r.id===selected)){clearSelected();$('privateChatStatus').textContent='This conversation is no longer available to your account.';if($('privateChat').classList.contains('active'))navigate('overview');}
-      else if(selected&&$('privateChat').classList.contains('active'))await loadMessages();
+      if(selected&&!rooms.some(r=>r.id===selected)){const wasActive=active();clearSelected();$('privateChatStatus').textContent='This conversation is no longer available to your account.';if(wasActive)navigate('overview');}
+      else if(selected&&active())await loadMessages();
       if(!poll)poll=setInterval(()=>{if(!document.hidden)void refreshRooms();},30000);
     }catch{if(current(session,uid)&&request===roomsRequest){rooms=[];clearSelected();window.dispatchEvent(new Event('quest:private-access-changed'));$('privateChatStatus').textContent='Private chats could not be loaded. Ask the owner to finish setup, or press Refresh to retry.';}}
   }
-  async function open(id){if(!rooms.some(r=>r.id===id))await refreshRooms();if(!rooms.some(r=>r.id===id)){toast('This private chat is not available to your account.');return;}
+  async function open(id,options={}){if(!rooms.some(r=>r.id===id))await refreshRooms();if(!rooms.some(r=>r.id===id)){toast('This private chat is not available to your account.');return;}
     if(selected!==id){clearSelected();selected=id;$('privateChatStatus').textContent='Loading your private conversation…';render();const session=epoch;
       if(getData().db.channel){channel=getData().db.channel(`private-chat-${id}`).on('postgres_changes',{event:'*',schema:'public',table:'private_chat_messages',filter:`room_id=eq.${id}`},()=>{if(session===epoch&&selected===id)void loadMessages();}).subscribe();}}
-    navigate('privateChat');await loadMessages();
+    const embedded=options.host?.isConnected&&options.host.closest('.view')?.id===options.view;
+    mount(embedded?options.host:defaultHost);const route=embedded?options.view:'privateChat';
+    if(!$(route).classList.contains('active'))navigate(route);renderNav();await loadMessages();
   }
   $('privateChatForm').onsubmit=async event=>{event.preventDefault();const body=$('privateChatText').value.trim(),uid=getData().user?.id,id=selected,session=epoch,version=selection;
     if(!body||body.length>4000||!uid||!id||!ready||sending||!writable())return;sending=true;render();
