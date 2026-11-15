@@ -5,9 +5,9 @@ Release scope: add the sample-data Quest Lab to the owner’s My workspace scree
 Quest Lab adds two views without changing the existing Quest layout:
 
 - Universe: a rotating 3D-projected sample network. Drag to orbit, scroll or pinch to zoom, click a node or use the picker to highlight its connections. Switch between Orbital, Spiral and Sphere, change detail, or filter a constellation.
-- Forecast Lab: synthetic OHLC candles and 100 generated future paths over 24 bars. Switch BTC, ETH or gold and minute/hour/day intervals. Drag through history, zoom, inspect candles, or generate a new seeded scenario.
+- Forecast Lab: synthetic OHLC candles and 100 generated future paths over 24 bars. Choose NVIDIA (NVDA), Apple, Microsoft, Tesla, Amazon, Alphabet or Meta; Bitcoin, Ethereum, Solana, XRP or BNB; gold, silver, platinum or copper; and WTI or Brent oil. The 18 markets are grouped in the menu, with minute/hour/day intervals and units appropriate to each instrument. Drag through history, zoom, inspect candles, or generate a new seeded scenario.
 
-All nodes, labels, candles and future paths are generated locally. There are no exchange feeds, API calls, trained forecasting models, workspace data, AI-agent activity, measured forecast accuracy or trading actions. The P10–P90 range describes the generated scenario set; it is not a calibrated confidence interval. Timestamps use Africa/Johannesburg.
+All nodes, labels, candles and future paths are generated locally. Market anchors and variation parameters are illustrative constants; they are not current prices, calibrated volatility estimates or exchange-session models. Per-market decimal precision applies to chart axes, crosshairs and summary values. There are no exchange feeds, API calls, trained forecasting models, workspace data, AI-agent activity, measured forecast accuracy or trading actions. The P10–P90 range describes the generated scenario set; it is not a calibrated confidence interval. Timestamps use Africa/Johannesburg.
 
 ## Review the portable demo
 
@@ -19,7 +19,9 @@ The output is /workspace/outputs/Quest-Lab-Demo.html. Download it and open it in
 
 ## Local Quest integration
 
-The owner gets the complete Quest Lab section directly below the welcome area in My workspace, and below the globe on Home, with Universe and Forecast Lab tabs. Open full page moves the same surface into the Quest Lab page; The back button returns to the originating workspace or Home while preserving the selected tab, camera and scenario. The existing globe, country controls, connection panel and arcade remain in place. A shortcut is also available under Tools and in the page finder.\n\nThe Home and My workspace sections and the full-page route are hidden for other accounts. Only one renderer is mounted, its animation pauses off screen, on other routes and in a hidden document, and account changes destroy its state. Normal member access and existing pages are unchanged.
+The owner gets the complete Quest Lab section directly below the welcome area in My workspace, and below the globe on Home, with Universe and Forecast Lab tabs. Open full page moves the same surface into the Quest Lab page; the back button returns to the originating workspace or Home while preserving the selected tab, camera and scenario. The existing globe, country controls, connection panel and arcade remain in place. A shortcut is also available under Tools and in the page finder.
+
+The Home and My workspace sections and the full-page route are hidden for other accounts. Only one renderer is mounted, its animation pauses off screen, on other routes and in a hidden document, and account changes destroy its state. Normal member access and existing pages are unchanged.
 
 The standalone file contains the same renderer without sign-in. Sharing that file shares sample data only.
 
@@ -36,13 +38,17 @@ Balanced detail uses 760 nodes on desktop and 320 on small screens, with a devic
 - node --check team-access.js
 - node scripts/build.mjs
 - python tests/quest-lab-demo-browser.py
-- python tests/sidebar-sections-browser.py\n- python tests/home-globe.py
+- python tests/sidebar-sections-browser.py
+- python tests/home-globe.py
 
-The demo browser checks cover orbit, zoom, node picking, layouts, filters, density changes, forecast quantiles, seed changes, minute intervals, assets, crosshairs and chart navigation. They also cover a 390px touch viewport, reduced motion, offline operation with no external requests, paused/background animation, owner-only Home and My workspace integration, the permission-checked ?view=personalHome sign-in link, preserved state across embedded/full-page navigation, off-screen animation pausing and clearing on account changes.
+The demo browser checks cover orbit, zoom, node picking, layouts, filters, density changes, forecast quantiles, all 18 market choices, NVIDIA workspace/full-page continuity, cent and low-price formatting, quote units, seed changes, minute intervals, assets, crosshairs and chart navigation. They also cover a 390px touch viewport, reduced motion, offline operation with no external requests, paused/background animation, owner-only Home and My workspace integration, the permission-checked ?view=personalHome sign-in link, preserved state across embedded/full-page navigation, off-screen animation pausing and clearing on account changes.
 
 Desktop and phone screenshots were reviewed. These are Chromium viewport checks; actual iPhone/Android device testing remains for a later release. Managed Chromium blocks file URLs, so the self-contained output was served through a locally intercepted test URL; offline tests fulfilled only that HTML with browser networking disabled.
 
 ## Before a live version
 
 Review this demo first. Any real data connection or trained forecasting model is a separate milestone requiring source validation, historical evaluation and permission-scoped access. Production publication is authorized by the user's request to add the feature to Quest and My workspace.
-\n## Release and rollback\n\nThe static build fingerprints all scripts and styles for coordinated app updates. The pre-feature main commit is a9bd532ebdd83d6e9dba5ca8a981be9d543b44be. Rollback can revert this feature commit without changing the database. A live version.json response should match the release hash printed by the static build.\n
+
+## Release and rollback
+
+The static build fingerprints all scripts and styles for coordinated app updates. The pre-feature main commit is a9bd532ebdd83d6e9dba5ca8a981be9d543b44be. Rollback can revert this feature commit without changing the database. A live version.json response should match the release hash printed by the static build.

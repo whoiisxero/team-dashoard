@@ -6,7 +6,38 @@
   const clusterNames = ['Studio', 'Operations', 'Research', 'Personal'];
   const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
   const number = n => Math.round(n).toLocaleString('en-US');
-  const price = n => n.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0});
+  // Illustrative anchors and variation settings, not live quotes or fitted market models.
+  const markets = [
+    ['nvda', 'NVIDIA', 'NVDA', 'Stocks', 145, 2, 'USD / share', .0028],
+    ['aapl', 'Apple', 'AAPL', 'Stocks', 225, 2, 'USD / share', .0016],
+    ['msft', 'Microsoft', 'MSFT', 'Stocks', 415, 2, 'USD / share', .0017],
+    ['tsla', 'Tesla', 'TSLA', 'Stocks', 240, 2, 'USD / share', .0032],
+    ['amzn', 'Amazon', 'AMZN', 'Stocks', 195, 2, 'USD / share', .0020],
+    ['googl', 'Alphabet', 'GOOGL', 'Stocks', 170, 2, 'USD / share', .0019],
+    ['meta', 'Meta', 'META', 'Stocks', 580, 2, 'USD / share', .0022],
+    ['btc', 'Bitcoin', 'BTC', 'Crypto', 81170, 0, 'USD / coin', .0022],
+    ['eth', 'Ethereum', 'ETH', 'Crypto', 2840, 2, 'USD / coin', .0028],
+    ['sol', 'Solana', 'SOL', 'Crypto', 190, 2, 'USD / coin', .0034],
+    ['xrp', 'XRP', 'XRP', 'Crypto', 1.1, 4, 'USD / coin', .0031],
+    ['bnb', 'BNB', 'BNB', 'Crypto', 620, 2, 'USD / coin', .0027],
+    ['gold', 'Gold', 'XAU', 'Metals', 2640, 2, 'USD / troy oz', .0011],
+    ['silver', 'Silver', 'XAG', 'Metals', 31.5, 3, 'USD / troy oz', .0018],
+    ['platinum', 'Platinum', 'XPT', 'Metals', 980, 2, 'USD / troy oz', .0015],
+    ['copper', 'Copper', 'HG', 'Metals', 4.25, 4, 'USD / lb', .0016],
+    ['wti', 'WTI crude oil', 'WTI', 'Energy', 72, 3, 'USD / barrel', .0021],
+    ['brent', 'Brent crude oil', 'BRENT', 'Energy', 76, 3, 'USD / barrel', .0020]
+  ].map(([id, name, symbol, group, anchor, decimals, unit, volatility]) => ({
+    id, name, symbol, group, anchor, decimals, unit, volatility,
+    title: group === 'Stocks' ? name + ' / ' + symbol : symbol + ' / USD',
+    format: new Intl.NumberFormat('en-US', {minimumFractionDigits: decimals, maximumFractionDigits: decimals})
+  }));
+  const marketById = new Map(markets.map(market => [market.id, market]));
+  const marketOptions = [...new Set(markets.map(market => market.group))].map(group =>
+    '<optgroup label="' + group + '">' + markets.filter(market => market.group === group).map(market =>
+      '<option value="' + market.id + '"' + (market.id === 'btc' ? ' selected' : '') + '>' +
+      market.name + (market.name === market.symbol ? '' : ' · ' + market.symbol) + '</option>'
+    ).join('') + '</optgroup>'
+  ).join('');
   const random = seed => () => {
     seed |= 0; seed = seed + 0x6D2B79F5 | 0;
     let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
@@ -50,7 +81,7 @@
     '<footer class="ql-footnote"><span><b>DEMO DATA ONLY</b> / Locally generated nodes and connections</span><span>Arrow keys: orbit · + / −: zoom · Space: pause · Home: reset</span></footer></section>',
     '<section class="ql-console" id="ql-forecast" role="tabpanel" aria-labelledby="ql-tab-forecast" hidden>',
     '<div class="ql-console-bar"><div class="ql-console-title">' + lights + '<strong>QUEST FORECAST LAB</strong><span>/ SCENARIO EXPLORER</span></div><span class="ql-console-id">SIMULATION · NO MODEL CONNECTED</span></div>',
-    '<div class="ql-toolbar"><div class="ql-control-group"><label class="ql-select-label">Market<select class="ql-select" data-control="asset"><option value="btc">BTC / USD</option><option value="eth">ETH / USD</option><option value="gold">Gold / USD</option></select></label>',
+    '<div class="ql-toolbar"><div class="ql-control-group"><label class="ql-select-label">Market<select class="ql-select" data-control="asset">' + marketOptions + '</select></label>',
     '<label class="ql-select-label">Interval<select class="ql-select" data-control="interval"><option value="1">1 minute</option><option value="5">5 minutes</option><option value="15">15 minutes</option><option value="60" selected>1 hour</option><option value="240">4 hours</option><option value="1440">1 day</option></select></label></div>',
     '<div class="ql-control-group">' + button('forecast-out', '−', 'ql-zoom') + button('forecast-in', '+', 'ql-zoom') + button('forecast-reset', 'Reset view') + button('scenario', 'New scenario', 'ql-primary') + '</div></div>',
     '<div class="ql-layout"><div class="ql-stage ql-forecast-stage"><div class="ql-stage-heading"><span data-read="chart-title">BTC / USD · SAMPLE CANDLES · 1H</span><span>100 PATHS / NEXT 24 BARS</span></div>',
@@ -58,12 +89,12 @@
     '<div class="ql-stage-foot"><span data-read="crosshair">Drag to explore dates · Hover for candle details</span><span>TIME: AFRICA/JOHANNESBURG</span></div></div>',
     '<aside class="ql-side"><section class="ql-side-card"><h2 class="ql-card-title">Scenario engine</h2><span class="ql-model-label">SIMULATION / NO AI MODEL</span>',
     '<div class="ql-stats">' + stat('Synthetic history', 'history-count') + stat('Generated paths', 'path-count') + stat('Horizon', 'horizon') + stat('Sample anchor', 'anchor') + '</div>',
-    '<div class="ql-quantile"><i></i>Median scenario</div><div class="ql-quantile"><i class="band"></i>10–90th scenario range</div></section>',
+    '<p class="ql-summary-sub" data-read="quote-unit"></p><div class="ql-quantile"><i></i>Median scenario</div><div class="ql-quantile"><i class="band"></i>10–90th scenario range</div></section>',
     '<section class="ql-side-card"><h2 class="ql-card-title">At the horizon</h2><div class="ql-pair"><span>90th percentile</span><b data-read="p90"></b></div><div class="ql-pair"><span>Median</span><b class="ql-gold" data-read="median"></b></div><div class="ql-pair"><span>10th percentile</span><b data-read="p10"></b></div>',
     '<p class="ql-callout">The spread describes these generated paths. It is not a measured confidence level or prediction accuracy.</p></section>',
     '<section class="ql-side-card"><h2 class="ql-card-title">Session readout</h2><pre class="ql-console-log" data-read="scenario-log"></pre>',
     '<p class="ql-summary-sub">Explore a new seed to see how the possible paths change.</p>' + button('motion', 'Pause motion') + '</section></aside></div>',
-    '<div class="ql-scenario-summary"><section class="ql-summary-card"><div class="ql-summary-title">Median at +24 bars / USD</div><div class="ql-big-number" data-read="median-big"></div>',
+    '<div class="ql-scenario-summary"><section class="ql-summary-card"><div class="ql-summary-title" data-read="median-title">Median at +24 bars / USD</div><div class="ql-big-number" data-read="median-big"></div>',
     '<div class="ql-summary-sub" data-read="horizon-date"></div><div class="ql-summary-sub">Synthetic candles. Simulated future. No live quote.</div></section>',
     '<section class="ql-summary-card"><div class="ql-summary-title">Terminal scenario split</div><div class="ql-split-count"><div><small>Above anchor</small><span data-read="up-count"></span></div><div class="ql-down"><small>Below anchor</small><span data-read="down-count"></span></div></div><div class="ql-path-dots" data-read="path-dots" aria-hidden="true"></div></section>',
     '<section class="ql-summary-card"><div class="ql-summary-title">What this preview explores</div><p class="ql-summary-sub">Candles + a field of possible paths, an illuminated anchor, crosshair inspection and time navigation.</p><p class="ql-callout">No exchange connection, trained model, backtest or trading actions are included.</p></section></div>',
@@ -244,19 +275,22 @@
   }
 
   function marketData(asset, interval, seed) {
-    const anchors = {btc: 81170, eth: 2840, gold: 2640}, anchor = anchors[asset], rng = random(271 + seed + interval * 13 + anchor);
+    const market = marketById.get(asset);
+    if (!market) throw new RangeError('Choose a supported sample market.');
+    const anchor = market.anchor, rng = random(271 + seed + interval * 13 + anchor * (anchor < 10 ? 10000 : 1));
     const history = [], paths = [], count = 180, horizon = 24, step = interval * 60000;
     const stamp = Date.UTC(2026, 10, 13, 10, 0);
     const timeScale = Math.sqrt(interval / 60);
+    const candleVariation = market.volatility * .82;
     let current = anchor * .975;
     for (let i = 0; i < count; i++) {
-      const open = current, close = open * Math.exp(.00008 * timeScale + normal(rng) * .0018 * timeScale);
-      const high = Math.max(open, close) * (1 + rng() * .0018 * timeScale), low = Math.min(open, close) * (1 - rng() * .0018 * timeScale);
+      const open = current, close = open * Math.exp(.00008 * timeScale + normal(rng) * candleVariation * timeScale);
+      const high = Math.max(open, close) * (1 + rng() * candleVariation * timeScale), low = Math.min(open, close) * (1 - rng() * candleVariation * timeScale);
       history.push({open, close, high, low, time: stamp - (count - 1 - i) * step}); current = close;
     }
     const factor = anchor / current;
     for (const candle of history) for (const key of ['open', 'close', 'high', 'low']) candle[key] *= factor;
-    const volatility = .0022 * Math.sqrt(interval / 60), drift = .00018 * Math.sqrt(interval / 60);
+    const volatility = market.volatility * timeScale, drift = .00018 * timeScale;
     for (let i = 0; i < 100; i++) {
       const path = [anchor]; let p = anchor;
       for (let j = 1; j <= horizon; j++) {p *= Math.exp(drift + normal(rng) * volatility); path.push(p);}
@@ -267,13 +301,12 @@
       const values = paths.map(p => p[i]).sort((a, b) => a - b);
       quantiles.push({low: values[9], median: (values[49] + values[50]) / 2, high: values[89], time: stamp + i * step});
     }
-    return {anchor, history, paths, quantiles, horizon, interval, seed, step, stamp, asset};
+    return {anchor, history, paths, quantiles, horizon, interval, seed, step, stamp, asset, market};
   }
 
   function forecast(canvas, read, onData) {
     const ctx = canvas.getContext('2d', {alpha: false});
     let data, width = 1, height = 1, dpr = 1, pan = 0, span = 56, hover = null, phase = 0, map = null;
-    const titles = {btc: 'BTC / USD', eth: 'ETH / USD', gold: 'GOLD / USD'};
     function build(asset, interval, seed) { data = marketData(asset, interval, seed); pan = 0; hover = null; onData(data); draw(); }
     function resize() {
       const rect = canvas.getBoundingClientRect(); width = Math.max(1, rect.width); height = Math.max(1, rect.height);
@@ -282,6 +315,7 @@
     }
     function draw() {
       if (!data || width < 2) return;
+      const price = n => data.market.format.format(n);
       ctx.fillStyle = '#050d12'; ctx.fillRect(0, 0, width, height);
       const left = 12, right = width < 500 ? 57 : 72, top = 53, bottom = 38, pw = width - left - right, ph = height - top - bottom;
       const anchorIndex = data.history.length - 1, start = anchorIndex - span * .51 - pan, end = start + span;
@@ -375,7 +409,7 @@
         else read('crosshair', 'Outside generated history / scenario horizon');
         tag(width - right, hover.y, price(high - (hover.y - top) / ph * (high - low)), '#b2c9c6');
       }
-      read('chart-title', titles[data.asset] + ' · SAMPLE CANDLES · ' + (data.interval < 60 ? data.interval + 'M' : data.interval < 1440 ? data.interval / 60 + 'H' : '1D'));
+      read('chart-title', data.market.title + ' · SAMPLE CANDLES · ' + (data.interval < 60 ? data.interval + 'M' : data.interval < 1440 ? data.interval / 60 + 'H' : '1D'));
     }
     return {
       build, resize, draw, tick(dt) {phase += dt; draw();},
@@ -383,7 +417,7 @@
       zoom(factor) {span = clamp(span / factor, 24, 150); pan = clamp(pan, -data.horizon, data.history.length - span * .51 - 1); draw();},
       inspect(x, y) {hover = x === null ? null : {x, y}; if (!hover) read('crosshair', 'Drag to explore dates · Hover for candle details'); draw();},
       reset() {pan = 0; span = 56; hover = null; draw();},
-      snapshot() {return {asset: data.asset, interval: data.interval, seed: data.seed, paths: data.paths.length, candles: data.history.length, horizon: data.horizon, anchor: data.anchor, quantiles: data.quantiles, up: data.paths.filter(p => p[data.horizon] >= data.anchor).length, pan, span, phase, firstCandle: data.history[0].time, lastCandle: data.history.at(-1).time};}
+      snapshot() {return {asset: data.asset, name: data.market.name, symbol: data.market.symbol, unit: data.market.unit, decimals: data.market.decimals, interval: data.interval, seed: data.seed, paths: data.paths.length, candles: data.history.length, horizon: data.horizon, anchor: data.anchor, quantiles: data.quantiles, up: data.paths.filter(p => p[data.horizon] >= data.anchor).length, pan, span, phase, firstCandle: data.history[0].time, lastCandle: data.history.at(-1).time};}
     };
   }
 
@@ -437,9 +471,13 @@
     }
     function updateFilterButtons() {for (const b of root.querySelectorAll('[data-cluster]')) b.setAttribute('aria-pressed', String(activeFilter === (b.dataset.cluster === 'all' ? null : Number(b.dataset.cluster))));}
     function updateForecast(data) {
+      const price = n => data.market.format.format(n);
       const end = data.quantiles[data.horizon], up = data.paths.filter(p => p[data.horizon] >= data.anchor).length;
       read('history-count', data.history.length + ' candles'); read('path-count', data.paths.length); read('horizon', '+24 bars');
       read('anchor', price(data.anchor) + ' USD'); read('p90', price(end.high)); read('median', price(end.median)); read('p10', price(end.low)); read('median-big', price(end.median));
+      read('quote-unit', 'Prices in ' + data.market.unit);
+      read('median-title', 'Median at +24 bars · ' + data.market.unit);
+      chartCanvas.setAttribute('aria-label', 'Simulated ' + data.market.name + ' (' + data.market.symbol + ') price chart, ' + data.market.unit + '. Drag or use left and right arrows to explore sample dates. Scroll or use plus and minus to zoom. Home resets. Future paths are simulations.');
       read('up-count', up); read('down-count', 100 - up); read('horizon-date', timeLabel(end.time) + ' SAST · ' + (interval < 60 ? interval + 'm' : interval < 1440 ? interval / 60 + 'h' : '1D') + ' interval');
       read('scenario-log', '> seeded simulation #' + seed + '\n> 180 synthetic OHLC candles\n> 100 paths × 24 future bars\n> interval: ' + interval + ' minutes\n> drift + stochastic variation\n> percentile range: P10 / P90\n> data sources: none\n> execution: on this device');
       const dots = $('[data-read=path-dots]'); dots.replaceChildren();
@@ -499,7 +537,7 @@
         case 'layout': g.layout(event.target.value); break;
         case 'density': g.build(event.target.value); break;
         case 'node': g.choose(event.target.value); break;
-        case 'asset': asset = event.target.value; f.build(asset, interval, seed); break;
+        case 'asset': if (marketById.has(event.target.value)) {asset = event.target.value; f.build(asset, interval, seed);} break;
         case 'interval': interval = Number(event.target.value); f.build(asset, interval, seed); break;
       }
     };

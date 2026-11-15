@@ -104,6 +104,41 @@ with sync_playwright() as p:
     page.locator('[data-control=interval]').select_option('60')
     page.mouse.move(10, 10)
     page.screenshot(path=str(output/'Quest-Lab-Forecast-Desktop.png'), full_page=True)
+    # Every menu market must generate finite ordered paths and update its labels/units.
+    asset_select=page.locator('[data-control=asset]')
+    options=asset_select.locator('option').evaluate_all('(options)=>options.map(o=>({id:o.value,label:o.textContent,group:o.parentElement.label}))')
+    assert len(options)==18 and len({o['id'] for o in options})==18
+    assert {o['group'] for o in options}=={'Stocks','Crypto','Metals','Energy'}
+    assert next(o for o in options if o['id']=='nvda')['label']=='NVIDIA · NVDA'
+    for option in options:
+        asset_select.select_option(option['id'])
+        market=snap()['forecast']
+        assert market['asset']==option['id'] and market['paths']==100 and market['candles']==180
+        assert all(0<q['low']<=q['median']<=q['high'] for q in market['quantiles'])
+        assert market['symbol'] in page.locator('[data-read=chart-title]').inner_text()
+        assert market['unit'] in page.locator('[data-read=quote-unit]').inner_text()
+        assert market['unit'] in page.locator('[data-read=median-title]').text_content()
+        assert market['name'] in chart.get_attribute('aria-label')
+        assert 'SIMULATION' in page.locator('#ql-forecast').inner_text()
+        assert 'NaN' not in page.locator('#ql-forecast').inner_text()
+        median=page.locator('[data-read=median-big]').inner_text()
+        assert ('.' in median and len(median.rsplit('.',1)[1])==market['decimals']) if market['decimals'] else '.' not in median
+    # Stock prices retain cents; low-priced assets retain distinct scenario values.
+    asset_select.select_option('nvda')
+    assert snap()['forecast']['anchor']==145 and snap()['forecast']['unit']=='USD / share'
+    assert page.locator('[data-read=anchor]').inner_text()=='145.00 USD'
+    for selected_interval in ['1','60','240']:
+        page.locator('[data-control=interval]').select_option(selected_interval)
+        assert snap()['forecast']['interval']==int(selected_interval)
+    page.locator('[data-control=interval]').select_option('60')
+    page.mouse.move(10,10)
+    page.screenshot(path=str(output/'Quest-Forecast-NVIDIA-Desktop.png'),full_page=True)
+    for low_price in ['xrp','copper']:
+        asset_select.select_option(low_price)
+        page.locator('[data-control=interval]').select_option('1')
+        assert page.locator('[data-read=p90]').inner_text()!=page.locator('[data-read=p10]').inner_text()
+    asset_select.select_option('btc')
+    page.locator('[data-control=interval]').select_option('60')
     # Canvas actually contains many lit pixels, not an empty placeholder.
     for selector in ['[data-canvas=forecast]']:
         assert page.locator(selector).evaluate("""c => {
@@ -139,6 +174,10 @@ with sync_playwright() as p:
     mobile.locator('[data-control=interval]').select_option('1')
     assert mobile.evaluate('questLabDemo.snapshot().forecast.interval') == 1
     mobile.screenshot(path=str(output/'Quest-Lab-Forecast-Mobile.png'), full_page=True)
+    mobile.locator('[data-control=asset]').select_option('nvda')
+    assert 'NVIDIA' in mobile.locator('[data-read=chart-title]').inner_text()
+    assert mobile.evaluate('document.documentElement.scrollWidth <= innerWidth')
+    mobile.screenshot(path=str(output/'Quest-Forecast-NVIDIA-Mobile.png'),full_page=True)
     # Keyboard-accessible tab navigation.
     mobile.locator('[data-tab=forecast]').focus(); mobile.keyboard.press('ArrowLeft')
     assert mobile.evaluate('questLabDemo.snapshot().tab') == 'universe'
@@ -206,6 +245,7 @@ with sync_playwright() as p:
     app.locator('#questWorkspaceLab [data-tab=forecast]').click()
     app.locator('#questWorkspaceLab [data-control=interval]').select_option('5')
     app.locator('#questWorkspaceLab [data-action=scenario]').click()
+    app.locator('#questWorkspaceLab [data-control=asset]').select_option('nvda')
     workspace_seed = app.evaluate('accessTest.lab.snapshot().forecast.seed')
     app.locator('#questWorkspaceLab [data-lab-open=page]').click()
     assert app.locator('#questLab [data-lab-open=home]').inner_text() == '← Back to My workspace'
@@ -214,6 +254,7 @@ with sync_playwright() as p:
     assert app.evaluate('accessTest.lab.snapshot().location') == 'workspace'
     assert app.evaluate('accessTest.lab.snapshot().forecast.seed') == workspace_seed
     assert app.evaluate('accessTest.lab.snapshot().forecast.interval') == 5
+    assert app.evaluate('accessTest.lab.snapshot().forecast.asset') == 'nvda'
     assert app.locator('[data-canvas=galaxy]').count() == 1
     app.locator('#questWorkspaceLab [data-tab=universe]').click()
     app.locator('#questWorkspaceLab .ql-main-title').scroll_into_view_if_needed()
@@ -265,7 +306,7 @@ with sync_playwright() as p:
     assert app.evaluate('accessTest.writes.length') == 0
     assert not errors, errors
     report = {'result':'PASS','offline':True,'external_requests':external,'console_errors':errors,
-              'checks':['galaxy orbit/zoom/select/filter/forms/detail','simulation quantiles/intervals/assets/seeds','historical chart drag/zoom/crosshair','pause/reduced motion/hidden page lifecycle','390px touch layout','owner Home / My workspace embedding and full-page continuity','workspace sign-in deep link','one renderer / offscreen and off-route pause','owner-only app navigation and account reset']}
+              'checks':['galaxy orbit/zoom/select/filter/forms/detail','18 grouped markets / NVIDIA / price precision / quote units','simulation quantiles/intervals/assets/seeds','historical chart drag/zoom/crosshair','pause/reduced motion/hidden page lifecycle','390px touch layout','owner Home / My workspace embedding and full-page continuity','workspace sign-in deep link','one renderer / offscreen and off-route pause','owner-only app navigation and account reset']}
     (output/'Quest-Lab-Test-Results.json').write_text(json.dumps(report,indent=2))
     browser.close()
     print(json.dumps(report,indent=2))
