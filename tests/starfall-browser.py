@@ -118,8 +118,9 @@ with sync_playwright() as p:
     assert page.locator('#starfallStart').evaluate('(el)=>document.activeElement===el')
 
     # The rest of Quest keeps normal text editing and arrow/space behavior.
-    page.evaluate("accessTest.navigate('discussions')")
-    composer = page.locator('#messageText')
+    page.evaluate("accessTest.navigate('fragile')")
+    page.locator('#fragile [data-studio-tab=chat]').click()
+    composer = page.locator('#fragileChatText')
     composer.fill('abcd')
     composer.press('ArrowLeft')
     composer.press('Space')

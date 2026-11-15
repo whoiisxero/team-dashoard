@@ -10,7 +10,7 @@ window.QuestNavigation=(()=>{
   overview:['🏡','#7dd3fc','Home'],myDay:['☀️','#fcd34d','My day'],dashboard:['🧭','#a5b4fc','Dashboard'],
   projects:['🗂️','#c4b5fd','Projects'],tasks:['✅','#86efac','Tasks'],notifications:['🔔','#f9a8d4','Notifications'],
   members:['👥','#67e8f9','Members'],events:['🎟️','#fdba74','Events'],calendar:['🗓️','#fda4af','Calendar'],
-  expenses:['💸','#a3e635','Expenses'],goals:['🎯','#f0abfc','Goals'],discussions:['💬','#6ee7b7','Team chat room'],
+  expenses:['💸','#a3e635','Expenses'],goals:['🎯','#f0abfc','Goals'],
   files:['📎','#93c5fd','Files'],search:['🔎','#fde68a','Search'],activity:['📜','#5eead4','Activity'],
   trading:['📈','#38bdf8','Trading view'],fragilePersonal:['🪶','#c4a0ff','My Fragile'],fragile:['🦋','#e9a8ff','Fragile'],loden:['L','#b4ff39','Loden'],dusted:['🍬','#fb923c','Dusted.'],
   install:['📲','#cbd5e1','Install Quest']
@@ -18,7 +18,7 @@ window.QuestNavigation=(()=>{
  };
  const hash=text=>Array.from(String(text)).reduce((value,letter)=>(Math.imul(value,31)+letter.codePointAt(0))>>>0,0);
  const sectionDefinitions=[
-  ['work','Work',['myDay','dashboard','projects','goals','files','activity','notifications','discussions']],
+  ['work','Work',['myDay','dashboard','projects','goals','files','activity','notifications']],
   ['studios','Studios',['fragilePersonal','weedDiary','ngl']],
   ['business','Business',['businessStudio','writing','quotes','invoices','expenses']],
   ['tools','Tools',['search','trading','globe','questLab','questPreview']],
@@ -78,7 +78,7 @@ window.QuestNavigation=(()=>{
    if(project&&['fragile','loden','dusted'].includes(normal(label))){const shortcut=normal(label)==='fragile'?document.getElementById('fragileShortcut'):document.querySelector('.sidebar [data-view="'+normal(label)+'"]');if(permitted(shortcut))continue;}
    const key=view?'view:'+view:project?'project:'+project:room?'chat:'+room:button.id;if(!key||seen.has(key))continue;seen.add(key);
    const group=button.closest('.sidebar-section')?.querySelector('summary')?.textContent||'Quick access';
-   const synonyms={weedDiary:'weed diary dairy cannabis journal private chat tertius',questLab:'galaxy universe forecast demo experimental lab',ngl:'ngl social media team content creative studio',fragilePersonal:'fragile private personal notes plans',overview:'home globe welcome',tasks:'tasks todos assigned work',calendar:'calendar events schedule agenda',personalCalendar:'calendar my personal appointments',writing:'notes personal notebook writing ideas',businessStudio:'business workspace studio',discussions:'team chat room messages',formStudioShortcut:'form development studio forms'};
+   const synonyms={weedDiary:'weed diary dairy cannabis journal private chat tertius',questLab:'galaxy universe forecast demo experimental lab',ngl:'ngl social media team content creative studio',fragilePersonal:'fragile private personal notes plans',overview:'home globe welcome',tasks:'tasks todos assigned work',calendar:'calendar events schedule agenda',personalCalendar:'calendar my personal appointments',writing:'notes personal notebook writing ideas',businessStudio:'business workspace studio',formStudioShortcut:'form development studio forms'};
    list.push({key,label,group,terms:normal(label+' '+group+' '+(synonyms[view||button.id]||'')),button});
   }
   for(const [view,label,group,aliases] of [['business','Business notes','Notes','work reminders deadlines'],['events','Calendar agenda','Calendar','events schedule'],['personalCalendar','My calendar','Calendar','personal appointments'],['personalHome','My workspace','Home','private home notebook']]){

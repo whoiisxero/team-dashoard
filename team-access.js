@@ -16,6 +16,7 @@ window.createTeamAccess = ({getData, refresh, toast, request:runRequest=async va
     return policy.editable_project_ids==null||policy.editable_project_ids.includes(project);
   }
   function canView(view) {
+    if(view==='discussions')return false;
     if(policy?.private_fragile_owner_id)return ['fragilePersonal','notifications'].includes(view);
     if(view==='overview')return true;
     if(!policy)return false;
@@ -27,7 +28,6 @@ window.createTeamAccess = ({getData, refresh, toast, request:runRequest=async va
     if(policy.personal_only)return ['notifications','privateChat','trading'].includes(view);
     if(view==='fragilePersonal')return !!policy.is_admin;
     if(view==='members')return !!policy.is_admin;
-    if(view==='discussions')return policy.shared_access;
     if(['fragile','loden','dusted','ngl'].includes(view))return getData().projects.some(p=>normal(p.name)===view)||policy.is_admin;
     return true;
   }
@@ -45,7 +45,7 @@ window.createTeamAccess = ({getData, refresh, toast, request:runRequest=async va
       const project=button.dataset.priorityKind==='project'?getData().projects.find(p=>p.id===id):getData().tasks?.find(t=>t.id===id);
       if(project)button.hidden=!canEdit(button.dataset.priorityKind==='project'?project.id:project.project_id||project.access_project_id);
     }
-    for(const id of ['budgetSpent','recentMessages'])$(id)?.closest('.card')?.toggleAttribute('hidden',!policy?.shared_access);
+    $('budgetSpent')?.closest('.card')?.toggleAttribute('hidden',!policy?.shared_access);
     $('budgetNote').textContent=policy?.shared_access?$('budgetNote').textContent:'Your accessible projects';
     $('remainingStat')?.closest('.stat')?.toggleAttribute('hidden',!policy?.shared_access);
     $('budgetSubtitle')?.parentElement?.toggleAttribute('hidden',!policy?.shared_access);

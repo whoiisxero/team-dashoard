@@ -50,7 +50,7 @@ with sync_playwright() as p:
  assert 'Casting' not in page.locator('#notificationList').inner_text()
  assert page.locator('#notificationsUndoBar').is_hidden()
  page.evaluate('inboxTest.seedCategories()');page.wait_for_function('document.querySelectorAll(".notification-item").length===6')
- assert page.locator('.notification-group h2').all_text_contents()==['Dusted.','Fragile','Private chats','Team chat','My calendar']
+ assert page.locator('.notification-group h2').all_text_contents()==['Dusted.','Fragile','Private chats','Past team updates','My calendar']
  assert 'Other account secret' not in page.locator('#notificationList').inner_text()
  page.locator('#notificationCategories').get_by_role('button',name='Dusted.',exact=True).click();assert page.locator('.notification-item').count()==2;assert 'Tasks' in page.locator('.notification-source').all_text_contents();assert page.locator('#notificationBadge').inner_text()=='6';assert page.locator('.notification-item.unread').count()==2
  page.locator('.notification-item .button').first.click();page.wait_for_function('document.querySelector("#notificationBadge").textContent==="5"');assert page.locator('.notification-group>header small').inner_text()=='2 updates · 1 unread'

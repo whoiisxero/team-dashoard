@@ -91,14 +91,13 @@ window.createDailyWorkflow=({getData,navigate,refresh,openEvent,openProject,open
   }
   async function openResult(result){if(result.project_id&&!allowed(result.project_id)){toast('This project is no longer available.');return;}if(result.kind==='private_message'){if(canOpenPrivate(result.room_id))await openPrivateChat(result.room_id);else toast('This conversation is no longer available.');}
     else if(result.kind==='event')await openEvent(result.item_id);
-    else if(result.kind==='message')navigate('discussions');
     else if(result.kind==='brand_message')openBrandChat(result.project_id);
     else if(result.kind==='task')navigate('tasks');
     else if(result.kind==='file'){navigate('files');$('filesProject').value=result.project_id;renderFiles();}
     else if(result.project_id)openProject(result.project_id);
   }
   async function search(){const text=$('workflowSearchText').value.trim(),request=++searchRequest,generation=epoch,uid=getData().user?.id;$('workflowSearchResults').replaceChildren();if(!uid||text.length<2){$('workflowSearchStatus').textContent='Enter at least two characters.';return;}$('workflowSearchStatus').textContent='Searching your workspace…';
-    try{const result=await getData().db.rpc('search_quest',{search_text:text});if(!current(generation,uid)||request!==searchRequest)return;if(result.error)throw result.error;const rows=window.QuestDirectory.rows(result.data).filter(row=>(!row.project_id?getData().policy?.shared_access:allowed(row.project_id))&&(row.kind!=='private_message'||canOpenPrivate(row.room_id)));
+    try{const result=await getData().db.rpc('search_quest',{search_text:text});if(!current(generation,uid)||request!==searchRequest)return;if(result.error)throw result.error;const rows=window.QuestDirectory.rows(result.data).filter(row=>row.kind!=='message'&&(!row.project_id?getData().policy?.shared_access:allowed(row.project_id))&&(row.kind!=='private_message'||canOpenPrivate(row.room_id)));
       $('workflowSearchStatus').textContent=rows.length?`${rows.length} result${rows.length===1?'':'s'} · maximum 50`:'No matching items in your accessible workspace.';for(const row of rows)$('workflowSearchResults').append(item(row.title,row.snippet+' · '+projectName(row.project_id),()=>void openResult(row),row.kind.replaceAll('_',' ')));
     }catch(error){if(current(generation,uid)&&request===searchRequest)$('workflowSearchStatus').textContent=setupText(error,'Search');}
   }

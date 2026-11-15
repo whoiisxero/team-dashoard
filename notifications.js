@@ -1,7 +1,7 @@
 /* Per-recipient activity inbox. Database triggers create trusted actor snapshots. */
 window.createNotificationCenter = ({getClient, getUser, getProjects=()=>[], openPrivateChat=()=>{}, openPersonalNote=()=>{}, openPersonalEvent=()=>{}, navigate, openEvent, toast}) => {
   const $ = id => document.getElementById(id);
-  const destinations = {project_files:'files',brand_messages:'fragile',brand_moodboard_items:'fragile',project_notes:'projects',projects:'projects',tasks:'tasks',expenses:'expenses',goals:'goals',discussion_messages:'discussions',calendar_events:'calendar',team_settings:'expenses',team_members:'dashboard'};
+  const destinations = {project_files:'files',brand_messages:'fragile',brand_moodboard_items:'fragile',project_notes:'projects',projects:'projects',tasks:'tasks',expenses:'expenses',goals:'goals',discussion_messages:'dashboard',calendar_events:'calendar',team_settings:'expenses',team_members:'dashboard'};
   const labels = {personal_calendar_events:'personal event',project_files:'project file',private_chat_messages:'private message',brand_messages:'brand message',brand_moodboard_items:'moodboard pin',project_notes:'project note',projects:'project',tasks:'task',expenses:'expense',goals:'goal',discussion_messages:'message',calendar_events:'event',team_settings:'budget',team_members:'team member'};
   let session = 0, owner = null, channel = null, poll = null, rows = [], limit = 50, unread = 0;
   let fetching = false, refreshAgain = false, online = false, busy = false;
@@ -16,7 +16,7 @@ window.createNotificationCenter = ({getClient, getUser, getProjects=()=>[], open
     const known=undoBatch?.known&&Array.from(batches.values()).find(g=>Date.parse(g.stamp)===Date.parse(undoBatch.stamp));
     undoBatch=known?{...known,known:true}:Array.from(batches.values()).filter(g=>g.count>1).sort((a,b)=>Date.parse(b.stamp)-Date.parse(a.stamp))[0]||null;
   }
-  const origins={discussion_messages:'Team chat',private_chat_messages:'Private chats',tasks:'Tasks',calendar_events:'Calendar',personal_calendar_events:'My calendar',personal_notes:'Business & notes',brand_messages:'Brand chats',brand_moodboard_items:'Moodboards',project_files:'Files',project_notes:'Project notes',projects:'Projects',expenses:'Expenses',team_settings:'Budget',goals:'Goals',team_members:'Team updates'};
+  const origins={discussion_messages:'Past team updates',private_chat_messages:'Private chats',tasks:'Tasks',calendar_events:'Calendar',personal_calendar_events:'My calendar',personal_notes:'Business & notes',brand_messages:'Brand chats',brand_moodboard_items:'Moodboards',project_files:'Files',project_notes:'Project notes',projects:'Projects',expenses:'Expenses',team_settings:'Budget',goals:'Goals',team_members:'Team updates'};
   function category(row){
     if(row.source_table==='private_chat_messages')return {key:'private_chats',name:'Private chats'};
     const project=getProjects().find(p=>p.id===row.project_id);
@@ -83,7 +83,7 @@ window.createNotificationCenter = ({getClient, getUser, getProjects=()=>[], open
       if(items.error||count.error)throw items.error||count.error;
       rows=(items.data||[]).map(row=>window.QuestDirectory?.notification(row)||row);unread=count.count||0;online=true;if(!history.skipped&&!history.error&&recoveryVersion===recoveryRevision){recovery(history.data);recoveredRevision=recoveryVersion;}
       status('Team updates and your reminders. Your own activity changes are excluded.');render();
-      const incoming=rows.find(row=>pendingMessages.has(row.id)&&row.recipient_id===recipient&&!row.read_at&&['brand_messages','discussion_messages','private_chat_messages'].includes(row.source_table));pendingMessages.clear();if(incoming)toast('New message from '+incoming.actor_name);
+      const incoming=rows.find(row=>pendingMessages.has(row.id)&&row.recipient_id===recipient&&!row.read_at&&['brand_messages','private_chat_messages'].includes(row.source_table));pendingMessages.clear();if(incoming)toast('New message from '+incoming.actor_name);
     } catch(error) {
       if(current!==session)return;
       online=false;
