@@ -64,6 +64,10 @@
   "outputDirectory": "dist",
   "framework": null,
   "functions": {
+    "api/research.mjs": {
+      "maxDuration": 60,
+      "includeFiles": "config.js"
+    },
     "api/assistant.mjs": {
       "maxDuration": 30,
       "includeFiles": "config.js"

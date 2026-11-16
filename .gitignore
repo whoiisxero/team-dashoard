@@ -1,3 +1,9 @@
 dist/
 __pycache__/
 *.pyc
+.env
+.env.local
+.venv/
+worker/data/
+worker/.cache/
+dist-review/

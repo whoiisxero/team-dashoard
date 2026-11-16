@@ -4,6 +4,7 @@
 .qa-character,.qa-mini{touch-action:none}
 .qa-dock.is-placed{left:var(--qa-left);top:var(--qa-top);bottom:auto}
 .qa-dock.is-viewport-small{width:52px}.qa-dock.is-viewport-small .qa-character,.qa-dock.is-viewport-small .qa-small-controls{display:none}.qa-dock.is-viewport-small .qa-mini{display:block}
+.qa-panel[hidden],.qa-dock[hidden]{display:none!important}
 .qa-character:focus-visible,.qa-dock button:focus-visible,.qa-panel button:focus-visible{outline:2px solid #87ceff;outline-offset:3px;border-radius:12px}
 .qa-small-controls{display:flex;justify-content:center;gap:7px;align-items:center}.qa-small-controls button,.qa-mini{background:var(--panel);border:1px solid var(--line);color:var(--ink);border-radius:20px;min-height:36px;padding:7px 12px;font-size:12px}
 .qa-mini{display:none;width:52px;height:52px;font:700 24px Orbitron,sans-serif;color:#91d7ff;border-color:#70cfff77;box-shadow:0 0 24px #70cfff22}

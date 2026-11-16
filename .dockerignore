@@ -1,0 +1,8 @@
+**
+!worker/
+!worker/**
+worker/**/__pycache__/
+worker/**/*.pyc
+worker/data/
+worker/.env
+worker/.cache/
