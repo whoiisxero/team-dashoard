@@ -1,0 +1,40 @@
+# Q Research worker only. Review Render's hosting/disk charges before creating it.
+# Quest's existing website continues to deploy through Vercel.
+services:
+  - type: web
+    name: quest-q-research
+    runtime: docker
+    branch: main
+    plan: standard
+    region: frankfurt
+    numInstances: 1
+    dockerfilePath: ./worker/Dockerfile
+    dockerContext: .
+    buildFilter:
+      paths:
+        - worker/**
+        - render.yaml
+    healthCheckPath: /healthz
+    disk:
+      name: quest-q-research-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: Q_RESEARCH_WORKER_SECRET
+        generateValue: true
+      - key: Q_RESEARCH_MODEL
+        value: gpt-4.1-mini
+      - key: Q_RESEARCH_DATA
+        value: /data
+      - key: Q_RESEARCH_MEMBER_DAILY
+        value: "3"
+      - key: Q_RESEARCH_GLOBAL_DAILY
+        value: "12"
+      - key: Q_RESEARCH_QUEUE_LIMIT
+        value: "4"
+      - key: Q_RESEARCH_RETENTION_DAYS
+        value: "14"
+      - key: PORT
+        value: "8080"

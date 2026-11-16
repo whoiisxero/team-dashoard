@@ -50,6 +50,9 @@ jobs:
           node tests/daily-workflow-db.mjs
           node tests/assistant-server.mjs
           node tests/assistant-tools-server.mjs
+          node tests/research-server.mjs
+          node scripts/build-research-preview.mjs
+          node tests/research-build.mjs
       - name: Test browser workflows
         run: |
           python tests/session-startup-browser.py
@@ -84,5 +87,34 @@ jobs:
           python tests/trading-browser.py
           python tests/assistant-browser.py
           python tests/assistant-tools-browser.py
+          python tests/research-browser.py
+          python tests/research-app-browser.py
           python tests/assistant-personality-browser.py
           python tests/installable-browser.py
+  research-worker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install research worker and test browser
+        run: |
+          python -m pip install -r worker/requirements.txt -c worker/constraints.txt playwright==1.62.0
+          python -m playwright install --with-deps chromium
+          python - <<'PY'
+          import os
+          from pathlib import Path
+          from playwright.sync_api import sync_playwright
+          with sync_playwright() as p:
+              with Path(os.environ['GITHUB_ENV']).open('a') as f:
+                  f.write('QUEST_BROWSER_EXECUTABLE='+p.chromium.executable_path+'\n')
+          PY
+      - name: Test authenticated queue, host startup and real browser adapter
+        run: |
+          python tests/test_research_worker.py
+          python tests/test_research_hosting.py
+          python tests/research-engine-smoke.py

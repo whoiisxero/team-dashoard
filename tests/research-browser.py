@@ -1,10 +1,11 @@
 """Real Q modules in the downloadable preview; simulated research transport is labelled."""
 from pathlib import Path
-import sys
+import sys,tempfile
 from playwright.sync_api import sync_playwright,expect
 from browser_config import CHROMIUM
 
 preview=Path(sys.argv[1] if len(sys.argv)>1 else Path(__file__).resolve().parents[1]/'dist-review/Quest-Research-Preview.html')
+output=Path('/workspace/outputs') if Path('/workspace/outputs').is_dir() else Path(tempfile.gettempdir())
 with sync_playwright() as p:
  browser=p.chromium.launch(executable_path=CHROMIUM,args=['--no-sandbox'])
  context=browser.new_context(viewport={'width':1440,'height':1024},accept_downloads=True,reduced_motion='reduce')
@@ -16,7 +17,7 @@ with sync_playwright() as p:
  assert 'Simulated' in page.locator('.preview-banner').inner_text()
  assert page.locator('#qaResearchTab').get_attribute('aria-selected')=='true'
  ids=page.locator('#qaPanel [id]').evaluate_all('(items)=>items.map(item=>item.id)');assert len(ids)==len(set(ids))
- page.screenshot(path='/workspace/outputs/Quest-Research-Desktop.png',animations='disabled')
+ page.screenshot(path=str(output/'Quest-Research-Desktop.png'),animations='disabled')
  # Stop must wait for confirmed cancellation, not announce immediate success.
  page.evaluate('qResearchPreview.hold=true');page.locator('#qrStart').click()
  expect(page.locator('#qrBadge')).to_have_text('Queued');assert page.locator('#qrQuestion').is_disabled()
@@ -55,7 +56,7 @@ with sync_playwright() as p:
  # Phone, narrow width and keyboard space all fit with scrollable content.
  page.set_viewport_size({'width':390,'height':844});box=page.locator('#qaPanel').bounding_box();assert box['x']>=0 and box['x']+box['width']<=391
  assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
- page.locator('#qaResearchView').evaluate('(element)=>element.scrollTop=0');page.screenshot(path='/workspace/outputs/Quest-Research-Phone.png',animations='disabled')
+ page.locator('#qaResearchView').evaluate('(element)=>element.scrollTop=0');page.screenshot(path=str(output/'Quest-Research-Phone.png'),animations='disabled')
  page.set_viewport_size({'width':320,'height':680});assert page.evaluate('document.documentElement.scrollWidth<=innerWidth')
  page.evaluate("document.documentElement.style.setProperty('--quest-viewport-height','300px')")
  expect(page.locator('#qrQuestion')).to_have_value('Keep my research draft')

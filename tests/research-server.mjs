@@ -83,6 +83,7 @@ r=await invoke('save',task);assert.equal(r.status,200);r=await invoke('save',tas
 r=await invoke('save',{...task,due_date:'2026-02-31'});assert.equal(r.status,400);
 r=await invoke('save',{...review,kind:'private_note',project_id:null});assert.equal(r.status,200);r=await invoke('save',{...review,kind:'private_note',project_id:null});assert.equal(r.status,200);assert.equal(saved.personal_notes.size,1);
 workerFail=true;r=await invoke('status');assert.equal(r.status,503);assert(!JSON.stringify(r.body).includes('sk-do-not-expose'));workerFail=false;
+env.Q_RESEARCH_WORKER_SECRET='  '+secret+'\n';r=await invoke('status');assert.equal(r.status,200);env.Q_RESEARCH_WORKER_SECRET=secret;
 env.Q_RESEARCH_WORKER_URL='http://worker.example.com';r=await invoke('status');assert.equal(r.body.configured,false);
 assert.equal(workerSignature({secret:'test-shared-secret-01234567890123456789',time:'1700000000',nonce:jid,member:uid,method:'POST',path:'/v1/jobs',body:'{}'}),'643ee223c95c22fd79f0a2f5399dbdd4ab2e9043965f9aa0ec21eb962ea9faed');
 console.log('PASS Q Research gateway: current membership/scope/edit rights, owner pilot and allowlist, no private context/JWT sent to worker, HMAC, safe failures, project and private notes, assigned tasks and idempotent saves after lost acknowledgement. Worker/Supabase HTTP fixtures used.');

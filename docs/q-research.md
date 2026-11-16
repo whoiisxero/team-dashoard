@@ -1,6 +1,6 @@
 # Q Research — local build and activation
 
-This change is local on `codex/q-research`, based on release `bbb53e9`. It has not been pushed or deployed. Quest's sidebar and page layout stay as they are. The new interface lives inside Q, alongside Chat.
+This change was prepared on `codex/q-research`, based on release `bbb53e9`. Publication was requested after local testing. The website deploys through the existing GitHub/Vercel connection; real research requires the separate worker to be connected. Quest's sidebar and page layout stay as they are. The new interface lives inside Q, alongside Chat.
 
 The downloadable `Quest-Research-Preview.html` is a self-contained demonstration of the actual Q interface with simulated research and saves. Extract the preview ZIP and open that HTML file in a desktop browser. It needs no API key or installation, does not contact Quest, and clears sample saves when reloaded. The surrounding preview dashboard is illustrative; it is not a dashboard redesign.
 
@@ -19,11 +19,17 @@ The downloadable `Quest-Research-Preview.html` is a self-contained demonstration
 
 The browser worker runs outside Vercel's short-lived functions. It uses FastAPI, SQLite, local Chromium and the tested Browser Use source snapshot provided in `browser-use-main.zip`. That snapshot identifies itself as 0.13.13 but is not published on PyPI. The exact source and its MIT license are included under `worker/vendor/browser-use`, with a SHA-256 inventory in `worker/vendor/source-manifest.json`. Tested Linux/Python 3.12 dependency versions are recorded in `worker/constraints.txt`.
 
-Browser Use cloud sync, extensions, telemetry, vision, planning and judge calls are disabled. Tools for typing, clicking, submitting forms, file access and uploading are removed. Navigation stays on the listed domains. A separate public-only HTTPS CONNECT proxy validates all Chromium connections, blocks private/metadata addresses and pins DNS to the checked public IP. Downloads and browser permissions are disabled. Temporary browser profiles and agent screenshot folders are removed on normal completion and cancellation. Questions, page text and raw provider errors are filtered out of the SDK's console output.
+Browser Use cloud sync, extensions, telemetry, vision, planning and judge calls are disabled. Tools for typing, clicking, submitting forms, file access and uploading are removed. Navigation stays on the listed domains. A separate public-only HTTPS CONNECT proxy validates all Chromium connections, blocks private/metadata addresses and pins DNS to the checked public IP. Downloads and browser permissions are disabled. Temporary browser profiles and agent screenshot folders are removed on normal completion and cancellation. Questions, page text and raw provider errors are filtered out of the SDK's console output. The container launcher removes the SDK's automatic sandbox-disabling arguments, enables site isolation and gives Chromium an allowlisted environment without the worker's API keys or shared secret.
 
 Jobs and reports remain in the worker's private SQLite volume for 14 days by default. Browser storage does not hold the reports. A worker restart cancels interrupted and queued work rather than restarting paid requests automatically. Cancelled and failed runs still count towards daily run limits. Back up or erase the worker volume according to the team's needs; it contains research questions and findings.
 
 Saved notes/tasks use existing Supabase tables and RLS. No new database migration is required. Private notes require the existing personal workspace setup; project saves require current editing access. A selected project does not share the research job itself. Whole-account revocation blocks all further gateway access immediately; a previously submitted public-only run may finish within its time limit because the worker does not receive or retain the member's sign-in token.
+
+## Prepared Render setup
+
+The repository includes `render.yaml` for one Docker web service, a private 1 GB persistent disk and the pilot limits below. Open [Deploy to Render](https://render.com/deploy?repo=https%3A%2F%2Fgithub.com%2Fwhoiisxero%2Fteam-dashoard), sign in/create the hosting account and connect the Quest repository. Review the Standard service and disk charges shown by Render before creating it. No account or paid hosting subscription is created by publishing this repository.
+
+Render asks for `OPENAI_API_KEY` privately and generates `Q_RESEARCH_WORKER_SECRET`. After its deployment is healthy, copy the HTTPS worker origin and that generated secret into the three Vercel Production variables shown below, and redeploy Quest. Leave `Q_RESEARCH_ENABLED` unset until the worker is ready. The in-app setup link goes to `/setup-guide.html#q-research`. A small real run, a real saved note and Stop must be verified after connection.
 
 ## Default pilot limits
 
@@ -61,7 +67,7 @@ Set secrets through the host's secret settings. Do not put them in the repositor
 - Optional: `Q_RESEARCH_MODEL` (default `gpt-4.1-mini`), `Q_RESEARCH_MEMBER_DAILY`, `Q_RESEARCH_GLOBAL_DAILY`, `Q_RESEARCH_QUEUE_LIMIT`, `Q_RESEARCH_RETENTION_DAYS`.
 - `Q_RESEARCH_DATA=/data`, and `QUEST_BROWSER_EXECUTABLE=/usr/bin/chromium` (set by the Dockerfile).
 
-The worker starts `uvicorn worker.app:app --host 0.0.0.0 --port 8080 --workers 1 --no-access-log`. Mount `/data` writable by UID 10001. `/healthz` returns only a basic health acknowledgement; every `/v1/...` operation requires an HMAC signature, timestamp, unique nonce and member UUID. Do not log signed request bodies or secret headers at the hosting proxy.
+The container starts `python -m worker.start`. It checks private storage and starts sandboxed Chromium on an empty page before it starts Uvicorn on `PORT` (8080 by default), with one process and no request-access logs. An unsupported sandbox or unwritable volume fails deployment before the API becomes healthy. Mount `/data` writable by UID 10001. `/healthz` returns only a basic health acknowledgement; every `/v1/...` operation requires an HMAC signature, timestamp, unique nonce and member UUID. Do not log signed request bodies or secret headers at the hosting proxy.
 
 Set Vercel's server-only variables:
 
@@ -73,7 +79,7 @@ Q_RESEARCH_WORKER_SECRET=THE-SAME-WORKER-SECRET
 
 `Q_RESEARCH_MEMBER_IDS` is an optional comma-separated UUID allowlist. Start with the owner. The worker URL must be a plain HTTPS origin with no path or credentials. `Q_RESEARCH_LOCAL_WORKER=true` permits only a loopback HTTP worker for development; do not enable it in production. The existing public Supabase configuration continues to be used. No service-role key or database password is needed.
 
-The environment in which this build was prepared has no OpenAI key or hosting credentials. The Docker image and a paid model call have not been tested on a deployment host. Before activation, verify the host's sandbox/Chromium startup and persistent disk, run one small paid research request with a dedicated low-budget key, save/reopen a real note/task in the preview workspace, test Stop/restart and access revocation, then explicitly authorise production publication.
+The environment in which this build was prepared has no OpenAI key or hosting credentials. A paid model call and the chosen deployment host still need verification. Before activation, verify the host's sandbox/Chromium startup and persistent disk, run one small paid research request with a dedicated low-budget key, save/reopen a real note/task in the preview workspace, test Stop/restart and access revocation, then explicitly authorise production publication.
 
 To disable new Research access, set `Q_RESEARCH_ENABLED=false` and redeploy the gateway. Stop active worker jobs or stop the worker process separately; toggling the gateway flag does not refund or cancel already submitted requests. Roll back the frontend to the prior release if needed. Existing saved notes/tasks remain ordinary Quest records.
 
@@ -85,6 +91,7 @@ From the repository root, using a virtual environment rather than system Python:
 uv venv .venv --python 3.12
 uv pip install --python .venv/bin/python -r worker/requirements.txt -c worker/constraints.txt
 .venv/bin/python tests/test_research_worker.py
+.venv/bin/python tests/test_research_hosting.py
 .venv/bin/python tests/research-engine-smoke.py
 node tests/research-server.mjs
 node tests/assistant-server.mjs
@@ -112,3 +119,7 @@ Those tests use explicit Quest/worker fixtures; they do not claim live Supabase 
 Passed the research gateway suite; six real FastAPI/HMAC/SQLite/proxy tests; the actual Chromium/HTTPS/Browser Use/OpenAI-adapter smoke test; the downloadable preview's UI suite; integration inside Quest's actual `index.html`; the existing Q chat and voice/calendar browser suites; the existing chat/voice/event server suites; and the release/cache/vendor-integrity checks. The quota reset was also checked across 23:59 → 00:01 in Africa/Johannesburg. Worker tests ran from a separate fresh installation of the included source and pinned dependencies.
 
 Static release identifier: `37130dda14b00e10`. The static build and its API-cache exclusion passed locally. Real paid API delivery, deployment-host behaviour and live Supabase saves remain activation checks; those services were simulated in the local tests.
+
+The publication preparation adds a Render blueprint, an owner setup link in Q, private key entry/generation, a single persistent worker, startup checks, a separate Chromium launcher with a clean environment, and CI coverage for research. Hosting must be created by the account owner; no hosting subscription has been purchased and no real API key is available in this environment. The gateway also accepts pasted shared secrets with surrounding whitespace, matching the worker's trimming behaviour.
+
+The worker Docker image builds successfully. The local production-container check has not passed its Chromium sandbox startup in this managed environment; this is not recorded as a working hosted service. Its entrypoint correctly refuses readiness. Verify sandbox support on the selected host before enabling the gateway. Current web release prepared for publication: `88cbb05283af749b`.

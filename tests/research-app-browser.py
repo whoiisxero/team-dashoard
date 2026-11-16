@@ -10,7 +10,7 @@ html=(root/'index.html').read_text().replace("import { createClient } from 'http
 fixture='\n'.join((root/'tests'/name).read_text() for name in ['member-access-fixture.js','private-chats-fixture.js','daily-workflow-fixture.js']).replace('</script','<\\/script')
 fixture+="\nfor(const [i,p] of accessTest.records.projects.entries())Object.assign(p,{status:'On track',client:'Sample project',progress:[40,65,25][i]});await accessTest.switchUser('quan');db.auth={getSession:async()=>({data:{session:{access_token:'test-research-caller-token-'+user.id}}})};window.researchAppReady=true;"
 html=html.replace('</script></body>',fixture+'</script></body>')
-state={'job':None,'calls':[],'saves':[],'deny':False}
+state={'job':None,'calls':[],'saves':[],'deny':False,'configured':False}
 with sync_playwright() as p:
  browser=p.chromium.launch(executable_path=CHROMIUM,args=['--no-sandbox']);page=browser.new_page(viewport={'width':1440,'height':1000},reduced_motion='reduce');errors=[];page.on('pageerror',lambda e:errors.append(str(e)))
  def route(r):
@@ -20,7 +20,7 @@ with sync_playwright() as p:
    body=r.request.post_data_json if r.request.method=='POST' else {};action=body.get('action') or parse_qs(urlsplit(address).query).get('action',['status'])[0]
    state['calls'].append({'action':action,'body':body,'headers':r.request.headers})
    if state['deny']:return r.fulfill(status=403,json={'code':'scope_revoked','message':'Your access to this research project has changed.'})
-   if action=='status':return r.fulfill(json={'configured':True,'destinations':{'private_notes':False,'projects':[{'id':'fragile','name':'Fragile'}]},'limits':{'calls':6,'seconds':180,'retention_days':14},'usage':{'member_runs':0,'member_limit':3}})
+   if action=='status':return r.fulfill(json={'configured':state['configured'],'destinations':{'private_notes':False,'projects':[{'id':'fragile','name':'Fragile'}]},'limits':{'calls':6,'seconds':180,'retention_days':14},'usage':{'member_runs':0,'member_limit':3}})
    if action in ('job','latest'):return r.fulfill(json={'job':state['job']})
    if action=='start':
     state['job']={'id':body['id'],'question':body['question'],'urls':body['urls'],'scope_project_id':body['scope_project_id'],'status':'running','stage':'Reading public sources','result':'','sources':[],'events':[],'calls':1};return r.fulfill(json={'job':state['job']})
@@ -34,7 +34,10 @@ with sync_playwright() as p:
   return r.fulfill(body='',content_type='text/css')
  page.route('**/*',route);page.goto('http://dashboard.test/');page.wait_for_function('window.researchAppReady')
  page.evaluate("accessTest.navigate('dashboard')");nav=page.locator('.sidebar .nav').all_inner_texts()
- page.locator('#qaOpen').click();expect(page.locator('#qaResearchTab')).to_be_visible();page.locator('#qaResearchTab').click();expect(page.locator('#qrStart')).to_be_enabled()
+ page.locator('#qaOpen').click();expect(page.locator('#qaResearchTab')).to_be_visible();page.locator('#qaResearchTab').click()
+ expect(page.locator('#qrSetup')).to_be_visible();expect(page.locator('#qrStart')).to_be_disabled()
+ assert page.locator('#qrSetup a').get_attribute('href')=='/setup-guide.html#q-research'
+ state['configured']=True;page.locator('#qrRetry').click();expect(page.locator('#qrStart')).to_be_enabled()
  assert page.locator('.sidebar .nav').all_inner_texts()==nav,'Q Research must not rebuild or replace the app navigation'
  assert not page.locator('.sidebar [data-view=discussions]').is_visible(),'The removed general Team chat must stay removed'
  page.locator('#qrQuestion').fill('Compare public supplier services');page.locator('#qrURLs').fill('https://example.com/');page.locator('#qrScope').select_option('fragile')

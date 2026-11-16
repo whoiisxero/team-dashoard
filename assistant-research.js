@@ -7,7 +7,7 @@ window.createAssistantResearch=({panel,getData,getToken,onEnter=()=>{},onSaved=(
  tabs.innerHTML='<button type="button" id="qaChatTab" role="tab" aria-selected="true" aria-controls="qaChatView">Chat</button><button type="button" id="qaResearchTab" role="tab" aria-selected="false" aria-controls="qaResearchView" tabindex="-1" hidden>Research <span>↗</span></button>';
  const view=node('div','','qr-view');view.id='qaResearchView';view.hidden=true;view.setAttribute('role','tabpanel');view.setAttribute('aria-labelledby','qaResearchTab');
  view.innerHTML=`<div class="qr-intro"><span class="qr-eyebrow">Q / Research</span><h3>Follow the sources.</h3><p>Explore public websites, then review what belongs in your work.</p></div>
- <p id="qrSetup" class="qr-notice" hidden>Research needs the private browser service connected by the owner. You can prepare a question here.</p>
+ <p id="qrSetup" class="qr-notice" hidden>Research needs the private browser service connected by the owner. You can prepare a question here. <a href="/setup-guide.html#q-research" target="_blank" rel="noopener noreferrer">Open Research setup</a></p>
  <form id="qrForm"><label>What would you like to find out?<textarea class="input" id="qrQuestion" maxlength="2000" rows="3" required placeholder="Compare these suppliers and summarise their services…"></textarea></label>
  <label>Websites to read<textarea class="input" id="qrURLs" maxlength="4503" rows="3" required placeholder="https://example.com\nOne public HTTPS link per line"></textarea></label>
  <label>Related project<select class="input" id="qrScope"><option value="">No project · only you can see this run</option></select></label>
