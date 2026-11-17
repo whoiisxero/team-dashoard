@@ -4,10 +4,11 @@ WORKDIR /app
 COPY worker/requirements.txt worker/constraints.txt /app/worker/
 COPY worker/vendor /app/worker/vendor
 RUN pip install --no-cache-dir -r /app/worker/requirements.txt -c /app/worker/constraints.txt && useradd --create-home --uid 10001 quest && mkdir /data && chown quest:quest /data
+RUN useradd --no-create-home --uid 10002 --shell /usr/sbin/nologin quest-browser
 COPY worker /app/worker
 RUN chmod -R a+rX /app/worker && chmod 755 /app/worker/chromium_launcher.py
-USER quest
+USER root
 ENV Q_RESEARCH_DATA=/data QUEST_BROWSER_EXECUTABLE=/app/worker/chromium_launcher.py PYTHONUNBUFFERED=1
 VOLUME ["/data"]
 EXPOSE 8080
-CMD ["python", "-m", "worker.start"]
+CMD ["python", "-m", "worker.container_bootstrap"]

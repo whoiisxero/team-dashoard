@@ -1,4 +1,4 @@
-"""Fail deployment before readiness if credentials, storage or sandboxed Chrome are missing."""
+"""Fail deployment before readiness if credentials, storage or isolated Chrome are missing."""
 import os
 import subprocess
 import sys
@@ -17,7 +17,7 @@ def main():
             result=subprocess.run([binary,'--headless=new','--disable-dev-shm-usage','--disable-background-networking','--no-first-run',f'--user-data-dir={profile}','--dump-dom','about:blank'],capture_output=True,timeout=20)
             if result.returncode!=0 or b'<html' not in result.stdout:raise RuntimeError('browser_startup')
     except (OSError,subprocess.TimeoutExpired,RuntimeError):
-        print('Q Research could not start sandboxed Chromium or write its private data volume. Check the host supports Chromium user namespaces and that /data belongs to UID 10001. Research has not been enabled.',file=sys.stderr);return 1
+        print('Q Research could not start isolated Chromium or write its private data volume. Check the container supervisor is running and /data belongs to UID 10001. Research has not been enabled.',file=sys.stderr);return 1
     import uvicorn
     uvicorn.run('worker.app:app',host='0.0.0.0',port=int(os.getenv('PORT','8080')),workers=1,access_log=False)
     return 0

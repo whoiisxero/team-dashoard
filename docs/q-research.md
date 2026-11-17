@@ -19,7 +19,11 @@ The downloadable `Quest-Research-Preview.html` is a self-contained demonstration
 
 The browser worker runs outside Vercel's short-lived functions. It uses FastAPI, SQLite, local Chromium and the tested Browser Use source snapshot provided in `browser-use-main.zip`. That snapshot identifies itself as 0.13.13 but is not published on PyPI. The exact source and its MIT license are included under `worker/vendor/browser-use`, with a SHA-256 inventory in `worker/vendor/source-manifest.json`. Tested Linux/Python 3.12 dependency versions are recorded in `worker/constraints.txt`.
 
-Browser Use cloud sync, extensions, telemetry, vision, planning and judge calls are disabled. Tools for typing, clicking, submitting forms, file access and uploading are removed. Navigation stays on the listed domains. A separate public-only HTTPS CONNECT proxy validates all Chromium connections, blocks private/metadata addresses and pins DNS to the checked public IP. Downloads and browser permissions are disabled. Temporary browser profiles and agent screenshot folders are removed on normal completion and cancellation. Questions, page text and raw provider errors are filtered out of the SDK's console output. The container launcher removes the SDK's automatic sandbox-disabling arguments, enables site isolation and gives Chromium an allowlisted environment without the worker's API keys or shared secret.
+Browser Use cloud sync, extensions, telemetry, vision, planning and judge calls are disabled. Tools for typing, clicking, submitting forms, file access and uploading are removed. Navigation stays on the listed domains. A separate public-only HTTPS CONNECT proxy validates Chromium connections, blocks private/metadata addresses and pins DNS to the checked public IP. Downloads and browser permissions are disabled. Temporary browser profiles and agent screenshot folders are removed on normal completion and cancellation. Questions, page text and raw provider errors are filtered out of the SDK's console output.
+
+The production container separates the API (UID 10001) from Chromium (UID 10002). A small root supervisor starts only those fixed executables, cleans up orphaned browser processes and accepts browser requests only through a Unix socket owned by the API account. Both child accounts have no effective process capabilities and cannot acquire new privileges. Chromium receives a clean environment and its own temporary HOME/profile, without the worker's API keys or shared secret. Its account cannot read `/data`, the API's process environment or the launcher socket. Remote debugging stays on loopback.
+
+Chromium's native namespace sandbox is disabled in this supervised container because ordinary hosted containers can block it. The security boundary is the dedicated container, separate OS accounts and private filesystem permissions; this is not equivalent to Chrome's native sandbox. Keep this worker separate from other application services and mount only its research data volume. Direct local use of `chromium_launcher.py` without the container socket still retains the native sandbox.
 
 Jobs and reports remain in the worker's private SQLite volume for 14 days by default. Browser storage does not hold the reports. A worker restart cancels interrupted and queued work rather than restarting paid requests automatically. Cancelled and failed runs still count towards daily run limits. Back up or erase the worker volume according to the team's needs; it contains research questions and findings.
 
@@ -52,7 +56,7 @@ Studio-only accounts and guests of the private My Fragile space are excluded, ev
 
 ## Worker setup, when deployment is authorised
 
-Use one persistent Linux worker instance with Python 3.12, Chromium, HTTPS ingress and a persistent private `/data` disk. The host must support Chromium's non-root sandbox/user namespaces. The implementation does not automatically disable the production sandbox. Set max instances and worker processes to one; the SQLite queue is not a multi-replica coordinator.
+Use one persistent Linux Docker worker with Python 3.12, Chromium, HTTPS ingress and a persistent private `/data` disk. It must allow the image's root supervisor to initialise the two unprivileged accounts and enforce standard Linux UID permissions. Do not override the image's entrypoint or force the entire container to run as the API UID. Set max instances and worker processes to one; the SQLite queue is not a multi-replica coordinator.
 
 Build from the repository root:
 
@@ -65,9 +69,9 @@ Set secrets through the host's secret settings. Do not put them in the repositor
 - `OPENAI_API_KEY`: the dedicated OpenAI project key for research.
 - `Q_RESEARCH_WORKER_SECRET`: a newly generated random secret of at least 32 characters; use the identical value on the Vercel gateway.
 - Optional: `Q_RESEARCH_MODEL` (default `gpt-4.1-mini`), `Q_RESEARCH_MEMBER_DAILY`, `Q_RESEARCH_GLOBAL_DAILY`, `Q_RESEARCH_QUEUE_LIMIT`, `Q_RESEARCH_RETENTION_DAYS`.
-- `Q_RESEARCH_DATA=/data`, and `QUEST_BROWSER_EXECUTABLE=/usr/bin/chromium` (set by the Dockerfile).
+- `Q_RESEARCH_DATA=/data`, and `QUEST_BROWSER_EXECUTABLE=/app/worker/chromium_launcher.py` (set by the Dockerfile).
 
-The container starts `python -m worker.start`. It checks private storage and starts sandboxed Chromium on an empty page before it starts Uvicorn on `PORT` (8080 by default), with one process and no request-access logs. An unsupported sandbox or unwritable volume fails deployment before the API becomes healthy. Mount `/data` writable by UID 10001. `/healthz` returns only a basic health acknowledgement; every `/v1/...` operation requires an HMAC signature, timestamp, unique nonce and member UUID. Do not log signed request bodies or secret headers at the hosting proxy.
+The container starts `python -m worker.container_bootstrap`. Its private launcher runs Chromium under the browser account; the API checks private storage and a real empty-page browser launch before Uvicorn accepts requests on `PORT` (8080 by default). One API process runs without request-access logs. Account, storage or browser failures prevent readiness. `/data` is owned by UID 10001 with mode 0700. `/healthz` returns only a basic acknowledgement; every `/v1/...` operation requires an HMAC signature, timestamp, unique nonce and member UUID. Do not log signed request bodies or secret headers at the hosting proxy.
 
 Set Vercel's server-only variables:
 
@@ -79,7 +83,7 @@ Q_RESEARCH_WORKER_SECRET=THE-SAME-WORKER-SECRET
 
 `Q_RESEARCH_MEMBER_IDS` is an optional comma-separated UUID allowlist. Start with the owner. The worker URL must be a plain HTTPS origin with no path or credentials. `Q_RESEARCH_LOCAL_WORKER=true` permits only a loopback HTTP worker for development; do not enable it in production. The existing public Supabase configuration continues to be used. No service-role key or database password is needed.
 
-The environment in which this build was prepared has no OpenAI key or hosting credentials. A paid model call and the chosen deployment host still need verification. Before activation, verify the host's sandbox/Chromium startup and persistent disk, run one small paid research request with a dedicated low-budget key, save/reopen a real note/task in the preview workspace, test Stop/restart and access revocation, then explicitly authorise production publication.
+The environment in which this build was prepared has no OpenAI key or hosting credentials. A paid model call and the chosen deployment host still need verification. After creating the hosting service and connecting its secrets, verify the host's Chromium startup and persistent disk, run one small research request with a low-budget key, save/reopen a real note/task, and test Stop/restart and access revocation before expanding the pilot. The requested website publication does not purchase hosting or connect a missing worker automatically.
 
 To disable new Research access, set `Q_RESEARCH_ENABLED=false` and redeploy the gateway. Stop active worker jobs or stop the worker process separately; toggling the gateway flag does not refund or cancel already submitted requests. Roll back the frontend to the prior release if needed. Existing saved notes/tasks remain ordinary Quest records.
 
@@ -99,6 +103,8 @@ node tests/assistant-tools-server.mjs
 node scripts/build-research-preview.mjs
 node scripts/build.mjs
 node tests/research-build.mjs
+docker build -f worker/Dockerfile -t quest-q-research:release .
+python tests/research-container-smoke.py
 ```
 
 The engine smoke test needs Chromium and OpenSSL. It uses an actual temporary HTTPS server, Chromium, public-only proxy and OpenAI SDK, with a simulated provider response. It asserts real DOM extraction, denial of a metadata subresource, source capture, token accounting and normal/cancelled browser, profile and screenshot cleanup. No paid model request is made.
@@ -122,4 +128,10 @@ Static release identifier: `37130dda14b00e10`. The static build and its API-cach
 
 The publication preparation adds a Render blueprint, an owner setup link in Q, private key entry/generation, a single persistent worker, startup checks, a separate Chromium launcher with a clean environment, and CI coverage for research. Hosting must be created by the account owner; no hosting subscription has been purchased and no real API key is available in this environment. The gateway also accepts pasted shared secrets with surrounding whitespace, matching the worker's trimming behaviour.
 
-The worker Docker image builds successfully. The local production-container check has not passed its Chromium sandbox startup in this managed environment; this is not recorded as a working hosted service. Its entrypoint correctly refuses readiness. Verify sandbox support on the selected host before enabling the gateway. Current web release prepared for publication: `88cbb05283af749b`.
+The original image built successfully but failed its native Chromium namespace startup on this managed host. That version correctly refused readiness. The 17 November startup change below replaces that container runtime design; `88cbb05283af749b` identifies the earlier web preparation.
+
+## Container validation — 17 November 2026
+
+The supervised production image passed real Chromium preflight, private volume/socket permissions, unprivileged API/browser process checks, no-new-privileges and zero effective capabilities, private file/process access denial from the browser UID, HMAC status/unsigned denial, and cleanup of Chrome subprocesses and profiles after launcher disconnect. These checks use dummy keys and do not make paid API requests.
+
+The container engine smoke test runs the real Browser Use adapter through that same launcher, reads a local fixture page and exercises completion plus cancellation with an OpenAI transport fixture. It verifies that actual page text reaches the model adapter and that profile/screenshot data is removed. Public HTTPS, certificate handling and metadata-blocking are separately exercised by `tests/research-engine-smoke.py`. Neither test establishes a working Render deployment or a successful paid model call.

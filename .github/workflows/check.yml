@@ -121,3 +121,7 @@ jobs:
           python tests/test_research_worker.py
           python tests/test_research_hosting.py
           python tests/research-engine-smoke.py
+      - name: Test the production container and supervised browser
+        run: |
+          docker build -f worker/Dockerfile -t quest-q-research:release .
+          python tests/research-container-smoke.py
