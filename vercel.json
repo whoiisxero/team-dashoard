@@ -64,6 +64,10 @@
   "outputDirectory": "dist",
   "framework": null,
   "functions": {
+    "api/trading-access.mjs": {
+      "maxDuration": 30,
+      "includeFiles": "config.js"
+    },
     "api/research.mjs": {
       "maxDuration": 60,
       "includeFiles": "config.js"

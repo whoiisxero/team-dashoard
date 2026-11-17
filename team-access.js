@@ -2,7 +2,7 @@
 window.createTeamAccess = ({getData, refresh, toast, request:runRequest=async value=>value}) => {
   const $=id=>document.getElementById(id);
   let policy=null,epoch=0,profiles=[],saving=false,presenceTimer=null,presenceOwner=null;
-  let sessionKey=null,presenceBusy=false,accessRequest=0;
+  let sessionKey=null,presenceBusy=false,accessRequest=0,tradingOwner=null;
   const node=(tag,value,cls='')=>{const el=document.createElement(tag);el.textContent=value;if(cls)el.className=cls;return el;};
   const workspaceSetup=node('p','','hint');workspaceSetup.id='memberWorkspaceSetup';
   const workspaceSetupText=node('span',''),workspaceSetupLink=node('a','Open owner setup');workspaceSetupLink.href='/setup-guide.html';workspaceSetupLink.target='_blank';workspaceSetupLink.rel='noopener noreferrer';workspaceSetup.append(workspaceSetupText,workspaceSetupLink);$('memberAccessControls').prepend(workspaceSetup);
@@ -20,7 +20,7 @@ window.createTeamAccess = ({getData, refresh, toast, request:runRequest=async va
     if(policy?.private_fragile_owner_id)return ['fragilePersonal','notifications'].includes(view);
     if(view==='overview')return true;
     if(!policy)return false;
-    if(view==='questLab')return !!policy.is_admin&&!policy.studio_only_project_id;
+    if(view==='questLab')return !!(policy.is_admin||policy.can_use_trading_lab)&&!policy.studio_only_project_id&&!policy.private_fragile_owner_id;
     if(policy.studio_only_project_id)return ['fragile','notifications'].includes(view);
     if(view==='weedDiary')return !!policy.is_admin||!!getData().weedDiaryRoom;
     if(['kiMassage','kiLymphatic','kiMyofascial','kiFrequency','kiBodyRecovery','kiSports'].includes(view))return !!(policy.is_admin||policy.personal_only)&&/^ki\s+lifestyle/i.test(getData().businessName||'');
@@ -60,6 +60,20 @@ window.createTeamAccess = ({getData, refresh, toast, request:runRequest=async va
     if(!policy?.is_admin){profiles=[];$('memberAccessList').replaceChildren();renderOnline();}
     window.QuestNavigation?.refreshSections();
   }
+  async function checkTradingAccess(uid,generation,request) {
+    const client=getData().db;if(!client?.auth?.getSession)return;
+    let allowed=false;
+    try{
+      const session=await client.auth.getSession();
+      if(generation!==epoch||request!==accessRequest||getData().user?.id!==uid)return;
+      const token=session.data?.session?.access_token;if(!token)throw Error('No active sign-in');
+      const response=await fetch('/api/trading-access',{headers:{Authorization:'Bearer '+token},credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(18000)});
+      const result=await response.json();allowed=response.ok&&result.allowed===true;
+    }catch{}
+    if(generation!==epoch||request!==accessRequest||getData().user?.id!==uid||!policy)return;
+    if(policy.studio_only_project_id||policy.private_fragile_owner_id||policy.personal_only)allowed=false;
+    if(policy.can_use_trading_lab!==allowed){policy={...policy,can_use_trading_lab:allowed};apply();window.dispatchEvent(new CustomEvent('quest:trading-access-changed',{detail:{userId:uid}}));}
+  }
   async function load() {
     const request=++accessRequest,current=epoch,uid=getData().user?.id;
     if(!uid)return false;
@@ -67,7 +81,10 @@ window.createTeamAccess = ({getData, refresh, toast, request:runRequest=async va
       const result=await runRequest(getData().db.rpc('my_dashboard_access'),'Member permission check timed out. Check your connection and retry.');
       if(current!==epoch||request!==accessRequest||getData().user?.id!==uid)return false;
       if(result.error||!result.data?.ready)throw result.error||new Error('Membership access is unavailable.');
-      policy=result.data;apply();return true;
+      const retained=tradingOwner===uid&&policy?.can_use_trading_lab===true;
+      policy={...result.data,can_use_trading_lab:!!result.data.is_admin||result.data.can_use_trading_lab===true||retained};tradingOwner=uid;
+      if(policy.studio_only_project_id||policy.private_fragile_owner_id||policy.personal_only&&!policy.is_admin)policy.can_use_trading_lab=false;
+      apply();if(!policy.is_admin&&!policy.studio_only_project_id&&!policy.private_fragile_owner_id&&!policy.personal_only)void checkTradingAccess(uid,current,request);return true;
     } catch {
       if(current===epoch&&request===accessRequest){policy=null;apply();$('teamAccessNotice').textContent='Member permissions need setup or could not be checked. Only Home is available. Ask the owner to run the member access setup, then refresh.';}
       return false;
@@ -152,7 +169,7 @@ window.createTeamAccess = ({getData, refresh, toast, request:runRequest=async va
     }
   }
   function reset() {
-    epoch++;accessRequest++;policy=null;profiles=[];saving=false;presenceBusy=false;presenceOwner=null;sessionKey=null;
+    epoch++;accessRequest++;policy=null;tradingOwner=null;profiles=[];saving=false;presenceBusy=false;presenceOwner=null;sessionKey=null;
     if(presenceTimer)clearInterval(presenceTimer);presenceTimer=null;
     $('memberAccessList').replaceChildren();$('memberAccessControls').hidden=true;renderOnline();
   }

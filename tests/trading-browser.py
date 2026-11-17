@@ -54,7 +54,7 @@ try:
         page.locator('.sidebar [data-view=trading]').click()
         page.wait_for_function('()=>document.querySelector("#cryptoRankingTitle").textContent.startsWith("Top 5")&&window.marketWidgetTests?.length===2')
         page.wait_for_function('()=>document.querySelector("#tradingChartWidget").getAttribute("aria-busy")==="false"')
-        assert page.locator('#trading h1').inner_text()=='Trading view'
+        assert page.locator('#trading h1').text_content()=='Trading view'
         assert page.locator('.trading-coin').count()==5
         assert page.locator('.trading-coin strong').all_text_contents()==['Bitcoin','Ethereum','Tether','BNB','USDC']
         assert page.locator('[data-coin=bitcoin] .trading-coin-price').inner_text()=='$100,000.00'
@@ -118,11 +118,11 @@ try:
         state['fail_ranking']=True
         fallback=context.new_page();fallback.goto(base);fallback.wait_for_function('()=>window.ready&&document.querySelector("#trading")');fallback.evaluate("accessTest.navigate('trading')")
         fallback.wait_for_function('()=>document.querySelector("#cryptoRankingStatus").textContent.includes("Ranking unavailable")')
-        assert fallback.locator('#cryptoRankingTitle').inner_text()=='Crypto watchlist'
+        assert fallback.locator('#cryptoRankingTitle').text_content()=='Crypto watchlist'
         assert fallback.locator('.trading-coin-price').all_text_contents()==['View chart']*5
         state['fail_ranking']=False;state['invalid_ranking']=True;fallback.locator('#cryptoRankingRefresh').click()
         fallback.wait_for_function('()=>!document.querySelector("#cryptoRankingRefresh").disabled')
-        assert fallback.locator('#cryptoRankingTitle').inner_text()=='Crypto watchlist'
+        assert fallback.locator('#cryptoRankingTitle').text_content()=='Crypto watchlist'
         state['invalid_ranking']=False;fallback.locator('#cryptoRankingRefresh').click()
         fallback.wait_for_function('()=>document.querySelector("#cryptoRankingTitle").textContent.startsWith("Top 5")')
         browser.close()

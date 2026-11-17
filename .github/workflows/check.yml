@@ -51,6 +51,7 @@ jobs:
           node tests/assistant-server.mjs
           node tests/assistant-tools-server.mjs
           node tests/research-server.mjs
+          node tests/trading-access-server.mjs
           node scripts/build-research-preview.mjs
           node tests/research-build.mjs
       - name: Test browser workflows
@@ -85,6 +86,8 @@ jobs:
           python tests/task-status-browser.py
           python tests/mobile-layout-browser.py
           python tests/trading-browser.py
+          node scripts/build-quest-lab-demo.mjs "$RUNNER_TEMP/quest-lab/Quest-Lab-Demo.html"
+          QUEST_LAB_OUTPUT="$RUNNER_TEMP/quest-lab" python tests/quest-lab-demo-browser.py
           python tests/assistant-browser.py
           python tests/assistant-tools-browser.py
           python tests/research-browser.py

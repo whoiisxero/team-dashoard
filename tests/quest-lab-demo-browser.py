@@ -1,12 +1,13 @@
-"""Quest Lab: offline interactions, honest simulation, motion lifecycle and owner-only integration."""
+"""Quest Lab: offline interactions, honest simulation, lifecycle and scoped member access."""
 from pathlib import Path
 import json
 import mimetypes
+import os
 from playwright.sync_api import sync_playwright
 from browser_config import CHROMIUM
 
 root = Path(__file__).resolve().parents[1]
-output = Path('/workspace/outputs')
+output = Path(os.environ.get('QUEST_LAB_OUTPUT','/workspace/outputs'))
 errors, external = [], []
 
 with sync_playwright() as p:
@@ -188,12 +189,21 @@ with sync_playwright() as p:
     html = (root/'index.html').read_text().replace(
         "import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/+esm';",
         "const createClient=()=>({auth:{getSession:async()=>({data:{session:null}}),onAuthStateChange:()=>{}}});")
-    fixture = (root/'tests/member-access-fixture.js').read_text() + "\naccessTest.lab=questLab;accessTest.enter=enterApp;window.questLabAppReady=true;"
+    fixture = (root/'tests/member-access-fixture.js').read_text() + """
+    db.auth={getSession:async()=>({data:{session:{access_token:'test-session-'+user.id}}})};
+    accessTest.lab=questLab;accessTest.enter=enterApp;window.questLabAppReady=true;
+    """
     html = html.replace('</script></body>', fixture.replace('</script','<\\/script')+'</script></body>')
     app = context.new_page()
     app.on('pageerror', lambda e: errors.append(str(e)))
+    trading_denied = set()
+    trading_requests = []
     def route(r):
         url = r.request.url
+        if url == 'http://dashboard.test/api/trading-access':
+            actor = r.request.headers.get('authorization','').removeprefix('Bearer test-session-')
+            trading_requests.append(actor)
+            return r.fulfill(json={'allowed':actor in ('josh','tertius') and actor not in trading_denied},headers={'Cache-Control':'no-store'})
         if url == 'http://dashboard.test/':
             return r.fulfill(body=html, content_type='text/html')
         if url.startswith('http://dashboard.test/'):
@@ -287,26 +297,64 @@ with sync_playwright() as p:
     app.set_viewport_size({'width':1440,'height':1120})
     app.evaluate("accessTest.navigate('questLab'); accessTest.switchUser('josh')")
     app.wait_for_function('() => document.querySelector("#userName").textContent==="Josh"')
-    assert app.locator('.sidebar [data-view=questLab]').is_hidden()
-    assert app.locator('#questHomeLab').is_hidden()
+    app.wait_for_function('() => !document.querySelector("#questHomeLab").hidden')
+    app.locator('#questHomeLab .ql-main-title').scroll_into_view_if_needed()
+    assert app.locator('#questHomeLab').is_visible()
+    assert app.locator('.sidebar [data-view=questLab]').is_visible()
+    assert app.locator('#questHomeLab .ql-main-title').inner_text() == 'Trading view'
+    assert app.evaluate('accessTest.lab.snapshot().tab') == 'forecast'
+    assert app.evaluate('Boolean(document.querySelector("#worldGlobe").compareDocumentPosition(document.querySelector("#questHomeLab")) & Node.DOCUMENT_POSITION_FOLLOWING)')
+    assert 'SIMULATION' in app.locator('#questHomeLab').inner_text().upper()
     assert app.locator('#questWorkspaceLab').is_hidden()
-    assert app.locator('[data-canvas=galaxy]').count() == 0
-    app.evaluate("accessTest.navigate('questLab')")
+    assert app.locator('.sidebar [data-view=members]').is_hidden()
+    assert app.locator('#onlineMemberList').inner_text() == ''
+    assert app.locator('#fragileShortcut').is_hidden()
+    assert app.locator('#dustedShortcut').is_visible()
+    app.evaluate("accessTest.navigate('personalHome')")
+    assert not app.locator('#personalHome').evaluate('(el)=>el.classList.contains("active")')
+    app.locator('#questHomeLab [data-lab-open=page]').click()
+    assert app.locator('#questLab').is_visible()
+    app.locator('#questLab [data-lab-open=charts]').click()
+    assert app.locator('#trading').is_visible()
+    app.evaluate("accessTest.navigate('overview')")
+    previous = app.evaluate('accessTest.lab.snapshot().forecast')
+    app.evaluate('accessTest.refresh()')
+    app.wait_for_function('() => !document.querySelector("#questHomeLab").hidden')
+    assert app.evaluate('accessTest.lab.snapshot().forecast') == previous
+    # A failed/revoked permission check removes the section and exits its full-page view.
+    trading_denied.add('josh')
+    app.evaluate("accessTest.navigate('questLab');accessTest.refresh()")
+    app.wait_for_function('() => document.querySelector("#questHomeLab").hidden')
+    assert app.locator('#overview').is_visible()
     assert app.locator('#questLab').is_hidden()
-    assert not app.evaluate('accessTest.lab.snapshot().animating')
+    assert app.locator('[data-canvas=galaxy]').count() == 0
+    trading_denied.clear()
     app.evaluate("accessTest.switchUser('tertius')")
     app.wait_for_function('() => document.querySelector("#userName").textContent==="Tertius"')
-    assert app.locator('#questHomeLab').is_hidden()
+    app.wait_for_function('() => !document.querySelector("#questHomeLab").hidden')
+    app.locator('#questHomeLab .ql-main-title').scroll_into_view_if_needed()
+    assert app.evaluate('accessTest.lab.snapshot().tab') == 'forecast'
+    assert app.locator('#fragileShortcut').is_visible()
+    assert app.locator('#dustedShortcut').is_hidden()
+    assert app.locator('.sidebar [data-view=members]').is_hidden()
     assert app.locator('#questWorkspaceLab').is_hidden()
+    app.set_viewport_size({'width':390,'height':844})
+    assert app.evaluate('document.documentElement.scrollWidth <= innerWidth')
+    app.screenshot(path=str(output/'Quest-Tertius-Home-Trading.png'), full_page=True)
+    app.evaluate("accessTest.profiles.richard={ready:true,is_admin:false,shared_access:false};accessTest.records.team_members.push({user_id:'richard',display_name:'Richard'});accessTest.rules.richard=[];accessTest.switchUser('richard')")
+    app.wait_for_function('() => document.querySelector("#userName").textContent==="Richard"')
+    assert app.locator('#questHomeLab').is_hidden()
     app.evaluate("accessTest.profiles.cas={ready:true,is_admin:false,personal_only:true,shared_access:false,editable_project_ids:[]};accessTest.records.team_members.push({user_id:'cas',display_name:'Cas'});accessTest.rules.cas=[];accessTest.switchUser('cas')")
     app.wait_for_function('() => document.querySelector("#userName").textContent==="Cas"')
     assert app.locator('.sidebar [data-view=questLab]').is_hidden()
     assert app.locator('#questHomeLab').is_hidden()
     assert app.locator('#questWorkspaceLab').is_hidden()
+    assert 'josh' in trading_requests and 'tertius' in trading_requests and 'richard' in trading_requests
+    assert 'cas' not in trading_requests
     assert app.evaluate('accessTest.writes.length') == 0
     assert not errors, errors
     report = {'result':'PASS','offline':True,'external_requests':external,'console_errors':errors,
-              'checks':['galaxy orbit/zoom/select/filter/forms/detail','18 grouped markets / NVIDIA / price precision / quote units','simulation quantiles/intervals/assets/seeds','historical chart drag/zoom/crosshair','pause/reduced motion/hidden page lifecycle','390px touch layout','owner Home / My workspace embedding and full-page continuity','workspace sign-in deep link','one renderer / offscreen and off-route pause','owner-only app navigation and account reset']}
+              'checks':['galaxy orbit/zoom/select/filter/forms/detail','18 grouped markets / NVIDIA / price precision / quote units','simulation quantiles/intervals/assets/seeds','historical chart drag/zoom/crosshair','pause/reduced motion/hidden page lifecycle','390px touch layout','owner Home / My workspace embedding and full-page continuity','workspace sign-in deep link','one renderer / offscreen and off-route pause','Tertius and Josh Home trading under the globe / market charts / scoped API capability','refresh and revoked capability / other members and private workspace excluded / account reset']}
     (output/'Quest-Lab-Test-Results.json').write_text(json.dumps(report,indent=2))
     browser.close()
     print(json.dumps(report,indent=2))

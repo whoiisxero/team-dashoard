@@ -612,6 +612,7 @@
         g.layout('orbit'); g.build('balanced'); g.reset(); f.build(asset, interval, seed); f.reset(); setTab('universe');
       },
       snapshot() {return {tab, paused, visible, animating: !!raf, frames, galaxy: g.snapshot(), forecast: f.snapshot()};},
+      showForecast() {setTab('forecast');},
       destroy() {
         destroyed = true; stop(); observer.disconnect(); document.removeEventListener('visibilitychange', visibility); motionPreference.removeEventListener('change', preference);
         root.removeEventListener('click', onClick); root.removeEventListener('change', onChange); root.removeEventListener('keydown', onKey);
@@ -631,7 +632,7 @@
     const nav = document.createElement('button'); nav.type = 'button'; nav.dataset.view = 'questLab'; nav.textContent = '✺ Quest Lab'; nav.hidden = true;
     window.QuestNavigation?.decorate(nav, 'questLab'); document.querySelector('.sidebar .nav').append(nav);
     let controller = null, identity = null, expand = null, back = null, embeddedRoute = 'personalHome';
-    const allowed = () => {const {user, policy} = getData(); return !!(user && policy?.is_admin && !policy.private_fragile_owner_id && !policy.studio_only_project_id);};
+    const allowed = () => {const {user, policy} = getData(); return !!(user && (policy?.is_admin||policy?.can_use_trading_lab) && !policy.private_fragile_owner_id && !policy.studio_only_project_id);};
     const currentRoute = () => document.querySelector('.view.active')?.id;
     const onHome = () => currentRoute() === 'overview' && document.getElementById('overview').dataset.route !== 'globe';
     const onWorkspace = () => currentRoute() === 'personalHome';
@@ -647,22 +648,25 @@
       if (surface.parentElement !== target) target.append(surface);
       if (!controller) {
         controller = window.mountQuestLab(surface, {visible: false, headingLevel: 2});
+        if(!getData().policy?.is_admin)controller.showForecast();
         const heading = surface.querySelector('.ql-main-title'); heading.id = 'questLabHeading'; heading.tabIndex = -1;
         const actions = document.createElement('div'); actions.className = 'ql-entry-actions';
         expand = document.createElement('button'); expand.type = 'button'; expand.className = 'ql-button'; expand.dataset.labOpen = 'page'; expand.textContent = 'Open full page ↗';
         back = document.createElement('button'); back.type = 'button'; back.className = 'ql-button'; back.dataset.labOpen = 'home'; back.textContent = '← Back to Home';
-        actions.append(expand, back); surface.querySelector('.ql-top-right').prepend(actions);
+        const charts=document.createElement('button');charts.type='button';charts.className='ql-button';charts.dataset.labOpen='charts';charts.textContent='Market charts ↗';
+        actions.append(expand, back, charts); surface.querySelector('.ql-top-right').prepend(actions);
       }
       const embedded = target === home || target === workspace;
       if (embedded) embeddedRoute = target === workspace ? 'personalHome' : 'overview';
       expand.hidden = !embedded; back.hidden = embedded;
       back.textContent = embeddedRoute === 'personalHome' ? '← Back to My workspace' : '← Back to Home';
-      surface.querySelector('.ql-main-title').textContent = embedded ? 'Quest Lab' : 'A different perspective.';
+      surface.querySelector('.ql-main-title').textContent = embedded ? (getData().policy?.is_admin?'Quest Lab':'Trading view') : 'A different perspective.';
       surface.classList.toggle('ql-embedded', embedded);
       updateAnimation();
     }
     surface.addEventListener('click', event => {
       const action = event.target.closest('[data-lab-open]'); if (!action || !allowed()) return;
+      if(action.dataset.labOpen==='charts'){navigate?.('trading');return;}
       const destination = action.dataset.labOpen === 'page' ? 'questLab' : embeddedRoute; navigate?.(destination);
       surface.querySelector('.ql-main-title')?.focus({preventScroll: true});
       (destination === 'questLab' ? view : destination === 'personalHome' ? workspace : home).scrollIntoView({block: 'start'});
