@@ -320,7 +320,9 @@ with sync_playwright() as p:
     previous = app.evaluate('accessTest.lab.snapshot().forecast')
     app.evaluate('accessTest.refresh()')
     app.wait_for_function('() => !document.querySelector("#questHomeLab").hidden')
-    assert app.evaluate('accessTest.lab.snapshot().forecast') == previous
+    refreshed = app.evaluate('accessTest.lab.snapshot().forecast')
+    # The animation clock advances independently of a retained scenario.
+    assert {k:v for k,v in refreshed.items() if k!='phase'} == {k:v for k,v in previous.items() if k!='phase'}
     # A failed/revoked permission check removes the section and exits its full-page view.
     trading_denied.add('josh')
     app.evaluate("accessTest.navigate('questLab');accessTest.refresh()")
